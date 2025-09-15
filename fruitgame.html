@@ -413,8 +413,8 @@ async function loadBalance(uid) {
   if (snap.exists()) {
     balance = snap.data().saldo || 0;
   } else {
-    balance = 100000; // saldo awal untuk user baru
-    await saveBalance(uid);
+    balance = 100000; // default user baru
+    await saveBalance(uid); // ✅ nama fungsi betul
   }
   updateStats();
 }
