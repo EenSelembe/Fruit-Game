@@ -404,15 +404,11 @@ spinning=false;}
     }
     updateStats();
 
-    if (currentUser) {
-      await saveBalance(currentUser.uid);
-    }
-  }
 
   // fungsi simpan saldo ke Firestore
   async function saveBalance(uid) {
     const ref = doc(db, "users", uid);
-    await SetDoc(ref, { saldo: balance });
+    await setDoc(ref, { saldo: balance });
   }
 
   // cek login user
