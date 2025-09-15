@@ -389,7 +389,7 @@ spinning=false;}
   const db = getFirestore(app);
 
   let currentUser;
-  let balance = 0;
+  
 
   async function loadBalance(uid) {
     const ref = doc(db, "users", uid);
@@ -421,7 +421,7 @@ spinning=false;}
       // Hook ke fungsi game
       window.updateGameBalance = async (newBalance) => {
         balance = newBalance;
-        updateBalanceUI();
+        
         await saveBalance(user.uid);
       };
 
