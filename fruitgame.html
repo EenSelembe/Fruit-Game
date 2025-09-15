@@ -135,7 +135,7 @@
     const COLS=5, ROWS=4;
     const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍊","🍊","🍊","🍊","🍊","🍊","🍉","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🍏","🍏","🍏","🍏","🍎","🍎","🍎","🍎","🥭","🥭","🥭","🍌","🍌","🥥","🍈","⭐","🔔","🔔"]
     const PAYTABLE={"🍒":0.5,"🍋":0.5,"🍊":0.5,"🍉":1,"🍇":1,"🍓":1,"🍍":2,"🥝":3,"🍏":3,"🍎":2,"🍐":4,"🥭":3,"🍌":4,"🍑":5,"🥥":5,"🍈":5,"💎":8,"⭐":10};
-    let balance=100000, bet=500, win=0, spinning=false;
+    let balance=0, bet=500, win=0, spinning=false;
     const betStep=500, betMin=500, betMax=100000;
     let cascadeCount=0, currentMulti=1;
     let freeSpins=0, inScatterMode=false, scatterWinTotal=0;
@@ -413,7 +413,8 @@ spinning=false;}
     if (snap.exists()) {
       balance = snap.data().saldo || 0;
     } else {
-      await setDoc(ref, { saldo: balance }, { merge: true });
+      balance = Rp. 100.000;
+      await savebalance(uid);
     }
     updateStats();
   }
