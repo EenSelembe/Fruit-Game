@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Halaman Register</title>
   <style>
-  .title-game {
-  position: absolute;
-  top: 40px;
-  text-align: center;
-  width: 100%;
-  font-size: 50px;
-  font-weight: bold;
-  color: #ffd700; /* warna emas */
-  text-shadow: 0 0 10px #ff5722, 0 0 20px #ff9800; /* efek glow */
-  font-family: 'Arial Black', sans-serif;
-}
+    .title-game {
+      position: absolute;
+      top: 40px;
+      text-align: center;
+      width: 100%;
+      font-size: 50px;
+      font-weight: bold;
+      color: #ffd700;
+      text-shadow: 0 0 10px #ff5722, 0 0 20px #ff9800;
+      font-family: 'Arial Black', sans-serif;
+    }
     *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
     body{
       min-height:100vh;
@@ -23,43 +23,8 @@
       justify-content:center;
       align-items:center;
       background:url(https://i.pinimg.com/736x/59/9d/5b/599d5b3fc69e2cb1d1c2184fa7b43cfe.jpg);
+      background-size:cover;
     }
-    .note-box {
-  max-width: 400px;
-  margin: 20px auto;
-  padding: 15px;
-  background: rgba(255, 193, 7, 0.1);  /* kuning transparan */
-  border: 1px solid #ffc107;
-  border-radius: 8px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #ffc107;
-  font-size: 5px;
-  line-height: 1.5;
-}
-.warning-box {
-  margin-top: 5px;
-  padding: 3px;
-  background: rgba(255, 0, 0, 0.1);   /* merah transparan */
-  border: 1px solid #f44336;
-  border-radius: 5px;
-  text-align: center;
-  color: yellow;
-  font-size: 12px;
-  font-weight: bold;
-  line-height: 1.5;
-}
-.warning-box .icon {
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-}
-
-.note-box .icon {
-  font-size: 20px;
-}
     .register-box{
       background:rgba(0,0,0,0.8);
       padding:2rem 2.5rem;
@@ -68,6 +33,7 @@
       width:100%;
       max-width:380px;
       animation:fadeIn 0.8s ease;
+      color:white;
     }
     .register-box h2{
       text-align:center;
@@ -104,34 +70,31 @@
       cursor:pointer;
       transition:0.3s;
     }
-    .btn:hover{
-      background:#1a5ad7;
+    .btn:hover{background:#1a5ad7;}
+    .login-link{text-align:center;margin-top:1rem;font-size:0.9rem;color:#ccc;}
+    .login-link a{color:#2575fc;text-decoration:none;font-weight:600;}
+    .login-link a:hover{text-decoration:underline;}
+    .warning-box {
+      margin-top: 15px;
+      padding: 8px;
+      background: rgba(255, 0, 0, 0.1);
+      border: 1px solid #f44336;
+      border-radius: 5px;
+      text-align: center;
+      color: yellow;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1.5;
     }
-    .login-link{
-      text-align:center;
-      margin-top:1rem;
-      font-size:0.9rem;
-      color:#555;
-    }
-    .login-link a{
-      color:#2575fc;
-      text-decoration:none;
-      font-weight:600;
-    }
-    .login-link a:hover{
-      text-decoration:underline;
-    }
-    @keyframes fadeIn{
-      from{opacity:0;transform:translateY(20px);}
-      to{opacity:1;transform:translateY(0);}
-    }
+    .warning-box .icon {font-size:20px;margin-bottom:5px;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
   </style>
 </head>
 <body>
 
   <div class="register-box">
     <h2>Daftar Akun</h2>
-    <form>
+    <form id="registerForm">
       <div class="input-group">
         <label for="fullname">Username</label>
         <input type="text" id="fullname" placeholder="Masukan Username" required>
@@ -151,35 +114,54 @@
       <button type="submit" class="btn">Daftar</button>
     </form>
     <div class="login-link">
-      Sudah punya akun? <a href=index.html>Login</a>
+      Sudah punya akun? <a href="index.html">Login</a>
     </div>
-<div class="warning-box">
-  <div class="icon">⚠️</div>
-  <p><strong>PERINGATAN!!!</strong><br>GAME INI HANYA UNTUK HIBURAN SEMATA<br> BUKAN UNTUK KAYA ATAUPUN MENJADI SULTAN</p>
-</div>
+    <div class="warning-box">
+      <div class="icon">⚠️</div>
+      <p><strong>PERINGATAN!!!</strong><br>GAME INI HANYA UNTUK HIBURAN SEMATA<br>BUKAN UNTUK KAYA ATAUPUN MENJADI SULTAN</p>
+    </div>
   </div>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, updateProfile } 
+    from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
     authDomain: "fruit-game-5e4a8.firebaseapp.com",
     projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.firebasestorage.app",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
     messagingSenderId: "936228678997",
     appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
     measurementId: "G-EPTSQQPM4D"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+  const auth = getAuth(app);
+
+  const form = document.getElementById("registerForm");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fullname = document.getElementById("fullname").value;
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
+    const confirm = document.getElementById("confirm-password").value;
+
+    if (pass !== confirm) {
+      alert("Password dan konfirmasi tidak sama!");
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(userCredential.user, { displayName: fullname });
+      alert("Registrasi berhasil! Silakan login.");
+      window.location.href = "index.html";
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  });
 </script>
 </body>
 </html>
