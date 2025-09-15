@@ -369,5 +369,55 @@ spinning=false;}
 
     updateStats(); updateAutoLabel();
   </script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+// 🔧 Config Firebase kamu
+const firebaseConfig = {
+  apiKey: "APIKEYMU",
+  authDomain: "fruit-game-xxxx.firebaseapp.com",
+  projectId: "fruit-game-xxxx",
+  storageBucket: "fruit-game-xxxx.appspot.com",
+  messagingSenderId: "xxxx",
+  appId: "1:xxxx:web:xxxx",
+};
+
+// Init Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser;
+
+// Cek login
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    // Ambil saldo dari Firestore
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+      balance = snap.data().saldo || 0;
+      updateStats();
+    }
+  } else {
+    // Kalau belum login, balik ke index.html
+    window.location.href = "index.html";
+  }
+});
+
+// 🟢 Modifikasi di bagian game saat saldo berubah
+// Tambahkan ini di function updateStats():
+async function saveBalance() {
+  if (currentUser) {
+    const userRef = doc(db, "users", currentUser.uid);
+    await updateDoc(userRef, { saldo: balance });
+  }
+}
+
+// Jadi setelah baris: updateStats();
+// tambahkan: saveBalance();
 </body>
 </html>
