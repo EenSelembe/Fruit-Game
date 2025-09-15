@@ -410,6 +410,7 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
 
   // fungsi ambil saldo dari Firestore
 async function loadBalance(uid) {
+  try {
   const ref = doc(db, "users", uid);
   const docSnap = await getDoc(ref);
 
@@ -421,7 +422,10 @@ async function loadBalance(uid) {
     balance = 100000;
     await saveBalance(uid); // simpan hanya sekali di awal
   }
-
+} catch (e) {
+    console.error("Gagal load saldo:", e);
+    // jangan overwrite saldo lama
+  }
   updateStats(); // update tampilan saldo
 }
 // fungsi simpan saldo ke Firestore
