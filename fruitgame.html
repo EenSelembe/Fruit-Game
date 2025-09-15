@@ -319,19 +319,29 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
           inScatterMode=false;
           overlayAmount.textContent="RP. "+formatRupiah(scatterWinTotal);
           overlay.classList.add("show");
-          setTimeout(()=>{
-            overlay.classList.remove("show");
-            balance+=scatterWinTotal;
-            updateStats();
-            if (currentUser) {
-  await window.updateGameBalance(balance);
-            }
-            scatterWinTotal=0;
-            document.body.classList.remove("scatter-mode");
-            turboBtn.disabled=false;
-            if(autoSpinCount>0){ autoSpinCount--; updateAutoLabel(); if(autoSpinCount>0){ setTimeout(spin,800); } else { unlockControls(); } }
-            else { unlockControls(); }
-          },4000);
+          setTimeout(async ()=>{
+  overlay.classList.remove("show");
+  balance += scatterWinTotal;
+  updateStats();
+  if (currentUser) {
+    await window.updateGameBalance(balance); // ✅ aman dieksekusi
+  }
+  scatterWinTotal = 0;
+  document.body.classList.remove("scatter-mode");
+  turboBtn.disabled = false;
+
+  if (autoSpinCount > 0) {
+    autoSpinCount--;
+    updateAutoLabel();
+    if (autoSpinCount > 0) {
+      setTimeout(spin, 800);
+    } else {
+      unlockControls();
+    }
+  } else {
+    unlockControls();
+  }
+}, 4000);
         } else {
           setTimeout(spin,1200);
         }
