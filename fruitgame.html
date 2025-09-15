@@ -245,8 +245,11 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
           win+=winNow;
           if(inScatterMode){ scatterWinTotal+=winNow; updateBanner(); }
           else {
-  balance+=winNow;
+  balance += winNow;
   updateStats();
+  if (currentUser) {
+    await window.updateGameBalance(balance); // simpan saldo ke Firestore
+  }
 }
           updateStats();
           result.highlights.forEach(pos=>{
