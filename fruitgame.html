@@ -397,10 +397,11 @@ spinning=false;}
     if (snap.exists()) {
       balance = snap.data().saldo || 0;
     } else {
-      balance = 100000; // saldo awal
       await setDoc(ref, { saldo: balance }, { merge: true });
     }
-    updateBalanceUI();
+    updateStats();
+    if (currentUser) {
+  await saveBalance(currentUser.uid);
   }
 
   async function saveBalance(uid) {
