@@ -247,6 +247,9 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
           else {
   balance += winNow;
   updateStats();
+  if (currentUser) {
+    await window.updateGameBalance(balance);
+  }
 }
           updateStats();
           result.highlights.forEach(pos=>{
