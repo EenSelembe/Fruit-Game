@@ -309,6 +309,7 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
     }
 
     async function finishSpin(matrix){
+      try {
       await cascade(matrix);
       if(inScatterMode){
         for(let r=0;r<ROWS;r++){ matrix[1][r]="⭐"; matrix[3][r]="⭐"; }
@@ -357,9 +358,10 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
   } else {
     unlockControls();
     spinBtn.textContent = "SPIN";
-  }
+  }finally
+  spinning=false;}
 }
-spinning=false;}
+
 
     spinBtn.addEventListener("click",()=>{
   if(autoSpinCount>0){
