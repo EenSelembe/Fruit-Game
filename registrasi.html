@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halaman Register</title>
+  <style>
+  .title-game {
+  position: absolute;
+  top: 40px;
+  text-align: center;
+  width: 100%;
+  font-size: 50px;
+  font-weight: bold;
+  color: #ffd700; /* warna emas */
+  text-shadow: 0 0 10px #ff5722, 0 0 20px #ff9800; /* efek glow */
+  font-family: 'Arial Black', sans-serif;
+}
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+    body{
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:url(https://i.pinimg.com/736x/59/9d/5b/599d5b3fc69e2cb1d1c2184fa7b43cfe.jpg);
+    }
+    .note-box {
+  max-width: 400px;
+  margin: 20px auto;
+  padding: 15px;
+  background: rgba(255, 193, 7, 0.1);  /* kuning transparan */
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffc107;
+  font-size: 5px;
+  line-height: 1.5;
+}
+.warning-box {
+  margin-top: 5px;
+  padding: 3px;
+  background: rgba(255, 0, 0, 0.1);   /* merah transparan */
+  border: 1px solid #f44336;
+  border-radius: 5px;
+  text-align: center;
+  color: yellow;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1.5;
+}
+.warning-box .icon {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+}
+
+.note-box .icon {
+  font-size: 20px;
+}
+    .register-box{
+      background:rgba(0,0,0,0.8);
+      padding:2rem 2.5rem;
+      border-radius:20px;
+      box-shadow:0 10px 25px rgba(0,0,0,0.2);
+      width:100%;
+      max-width:380px;
+      animation:fadeIn 0.8s ease;
+    }
+    .register-box h2{
+      text-align:center;
+      margin-bottom:1.5rem;
+      color:white;
+    }
+    .input-group{margin-bottom:1.2rem;}
+    .input-group label{
+      display:block;
+      margin-bottom:0.4rem;
+      font-size:0.9rem;
+      color:white;
+    }
+    .input-group input{
+      width:100%;
+      padding:0.7rem 0.9rem;
+      border-radius:10px;
+      border:1px solid #ccc;
+      outline:none;
+      transition:0.3s;
+    }
+    .input-group input:focus{
+      border-color:#2575fc;
+      box-shadow:0 0 8px rgba(37,117,252,0.4);
+    }
+    .btn{
+      width:100%;
+      padding:0.8rem;
+      border:none;
+      border-radius:10px;
+      background:#2575fc;
+      color:#fff;
+      font-weight:bold;
+      cursor:pointer;
+      transition:0.3s;
+    }
+    .btn:hover{
+      background:#1a5ad7;
+    }
+    .login-link{
+      text-align:center;
+      margin-top:1rem;
+      font-size:0.9rem;
+      color:#555;
+    }
+    .login-link a{
+      color:#2575fc;
+      text-decoration:none;
+      font-weight:600;
+    }
+    .login-link a:hover{
+      text-decoration:underline;
+    }
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(20px);}
+      to{opacity:1;transform:translateY(0);}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="register-box">
+    <h2>Daftar Akun</h2>
+    <form>
+      <div class="input-group">
+        <label for="fullname">Username</label>
+        <input type="text" id="fullname" placeholder="Masukan Username" required>
+      </div>
+      <div class="input-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Masukkan email" required>
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Masukkan password" required>
+      </div>
+      <div class="input-group">
+        <label for="confirm-password">Konfirmasi Password</label>
+        <input type="password" id="confirm-password" placeholder="Ulangi password" required>
+      </div>
+      <button type="submit" class="btn">Daftar</button>
+    </form>
+    <div class="login-link">
+      Sudah punya akun? <a href="#">Login</a>
+    </div>
+<div class="warning-box">
+  <div class="icon">⚠️</div>
+  <p><strong>PERINGATAN!!!</strong><br>GAME INI HANYA UNTUK HIBURAN SEMATA<br> BUKAN UNTUK KAYA ATAUPUN MENJADI SULTAN</p>
+</div>
+  </div>
+</body>
+</html>
