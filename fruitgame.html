@@ -403,13 +403,13 @@ spinning=false;}
       await setDoc(ref, { saldo: balance }, { merge: true });
     }
     updateStats();
-
+  }
 
   // fungsi simpan saldo ke Firestore
   async function saveBalance(uid) {
     const ref = doc(db, "users", uid);
     await setDoc(ref, { saldo: balance });
-  }
+ { merge: true }); }
 
   // cek login user
   onAuthStateChanged(auth, async (user) => {
