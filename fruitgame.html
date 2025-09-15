@@ -409,16 +409,19 @@ spinning=false;}
   // fungsi ambil saldo dari Firestore
 async function loadBalance(uid) {
   const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  if (snap.exists()) {
-    balance = snap.data().saldo || 0;
-  } else {
-    balance = 100000; // default user baru
-    await saveBalance(uid); // ✅ nama fungsi betul
-  }
-  updateStats();
-}
+  const docSnap = await getDoc(ref);
 
+  if (docSnap.exists()) {
+    // Ambil saldo lama dari Firestore
+    balance = docSnap.data().saldo || 0;
+  } else {
+    // User baru → saldo default Rp100.000
+    balance = 100000;
+    await saveBalance(uid); // simpan hanya sekali di awal
+  }
+
+  updateStats(); // update tampilan saldo
+}
 // fungsi simpan saldo ke Firestore
 async function saveBalance(uid) {
   const ref = doc(db, "users", uid);
