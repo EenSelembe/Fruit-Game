@@ -2,85 +2,103 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-  <title>FRUIT GAME</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home - Fruit Game</title>
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: url(https://i.pinimg.com/736x/22/76/9a/22769a0cf12be68e2be2e862c9e46964.jpg) no-repeat center center fixed;
+      background: url("https://i.pinimg.com/736x/22/76/9a/22769a0cf12be68e2be2e862c9e46964.jpg") no-repeat center center fixed;
       background-size: cover;
       color: #fff;
+      text-align: center;
     }
-    .title-game {text-align:center;font-size:36px;font-weight:bold;color:white;text-shadow:0 0 10px green,0 0 20px blue;margin:20px 10px;}
-    .profile-box {max-width:90%;margin:0 auto 15px;padding:15px;background:rgba(0,0,0,0.8);border:1px solid #444;border-radius:10px;text-align:center;}
-    .profile-box p {margin:6px 0;font-size:14px;}
-    .logout-btn,.topup-btn{margin:6px 4px;padding:10px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;color:#fff;transition:0.3s;font-size:14px;}
-    .logout-btn{background:#e53935;}
-    .logout-btn:hover{background:#b71c1c;}
-    .game-card{width:90%;max-width:250px;margin:20px auto;padding:15px;background:rgba(0,0,0,0.85);border:1px solid #ccc;border-radius:12px;text-align:center;box-shadow:0 4px 9px rgba(0,0,0,0.3);}
-    .game-title{font-size:20px;font-weight:bold;margin-bottom:12px;color:#ffd700;text-shadow:0 0 6px #ff9800,0 0 12px #ff5722;}
-    .game-thumb{width:100%;max-width:200px;border-radius:8px;margin-bottom:12px;}
-    .play-btn{margin-top:5px;padding:10px 20px;background:linear-gradient(45deg,#ff9800,#f44336);border:none;border-radius:6px;color:white;font-size:16px;font-weight:bold;cursor:pointer;transition:0.3s;}
-    .play-btn:hover{background:linear-gradient(45deg,#f44336,#ff9800);}
-    @media(max-width:480px){.title-game{font-size:28px;}.play-btn{width:100%;}}
+    .profile-box {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 10px;
+      max-width: 400px;
+    }
+    .game-card {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 10px;
+      max-width: 400px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .logout-btn {
+      background: crimson;
+      color: #fff;
+    }
+    .play-btn {
+      background: gold;
+      color: #000;
+    }
   </style>
 </head>
 <body>
-  <h1 class="title-game">SELAMAT DATANG</h1>
+  <h1>FRUIT GAME</h1>
 
   <div class="profile-box">
-    <p id="username"><strong>Username:</strong> </p>
-    <p id="userid"><strong>ID:</strong> </p>
-    <p id="saldo"><strong>Saldo:</strong> Rp 100.000</p>
+    <p>Username: <span id="username">Loading...</span></p>
+    <p>ID: <span id="userid">-</span></p>
+    <p>Saldo: Rp 100.000</p>
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
 
   <div class="game-card">
-    <h2 class="game-title">FRUIT GAME</h2>
-    <img src="https://i.ibb.co/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game" class="game-thumb">
-    <button class="play-btn" id="playBtn">Play</button>
+    <h2>Fruit Game</h2>
+    <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game" style="width:100%;border-radius:10px;">
+    <br>
+    <button class="play-btn" onclick="window.location.href='fruitgame.html'">Mainkan</button>
   </div>
 
   <!-- Firebase SDK -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+    // 🔹 Config dari project Firebase kamu
     const firebaseConfig = {
-      apiKey: "API_KEY_KAMU",
-      authDomain: "PROJECT_ID.firebaseapp.com",
-      projectId: "PROJECT_ID",
-      storageBucket: "PROJECT_ID.appspot.com",
-      messagingSenderId: "XXX",
-      appId: "XXX"
+      apiKey: "AIzaSyBI-rj7O2LAV9oOrLUas6UmWDAZWo5i1E4",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "169445195482",
+      appId: "1:169445195482:web:e58c9b57c0b1372958781a",
+      measurementId: "G-93BPKH8PH3"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // cek user login
+    // 🔹 Cek status login
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        document.getElementById("username").innerHTML = "<strong>Username:</strong> " + (user.displayName || "Anonim");
-        document.getElementById("userid").innerHTML = "<strong>ID:</strong> " + user.uid;
+        document.getElementById("username").textContent = user.displayName || user.email;
+        document.getElementById("userid").textContent = user.uid;
       } else {
-        // jika tidak login, balik ke index
+        // Kalau belum login, balik ke index.html
         window.location.href = "index.html";
       }
     });
 
-    // tombol logout
+    // 🔹 Tombol logout
     document.getElementById("logoutBtn").addEventListener("click", () => {
       signOut(auth).then(() => {
-        alert("Berhasil logout");
         window.location.href = "index.html";
+      }).catch((error) => {
+        alert("Gagal logout: " + error.message);
       });
-    });
-
-    // tombol play
-    document.getElementById("playBtn").addEventListener("click", () => {
-      window.location.href = "fruitgame.html";
     });
   </script>
 </body>
