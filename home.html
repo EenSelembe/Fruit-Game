@@ -60,11 +60,12 @@
     <br>
     <button class="play-btn" onclick="window.location.href='fruitgame.html'">Mainkan</button>
   </div>
-
+  
   <!-- Firebase SDK -->
-  <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -78,11 +79,33 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const saldoEl = document.createElement("span");
+  saldoEl.id = "saldo";
+  document.querySelector(".profile-box").children[1].innerHTML = "Saldo: Rp <span id='saldo'>Loading...</span>";
 
   // cek apakah user login atau tidak
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
       document.getElementById("username").textContent = user.displayName || "Anonim";
+
+      try {
+        // ambil saldo dari Firestore
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+
+        if (snap.exists()) {
+          const data = snap.data();
+          document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
+        } else {
+          document.getElementById("saldo").textContent = "0";
+        }
+      } catch (e) {
+        console.error("Gagal ambil saldo:", e);
+        document.getElementById("saldo").textContent = "0";
+      }
+
     } else {
       // kalau tidak login diarahkan ke index
       window.location.href = "index.html";
