@@ -6,35 +6,158 @@
   <title>FRUIT GAME - Login</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #1b5e20, #4caf50);
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       margin: 0;
+      font-family: Arial, sans-serif;
+      background: url(https://i.pinimg.com/736x/56/df/32/56df3210ce9a9e994cf47cdc89e629f6.jpg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #fff;
+    }
+    .title-game {
+      font-size: 48px;
+      font-weight: bold;
+      color: red;
+      text-shadow: 0 0 10px black, 0 0 20px black;
+      margin-bottom: 20px;
+      text-align: center;
     }
     .login-box {
-      background: rgba(0,0,0,0.7);
-      padding: 20px 30px;
+      width: 350px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 30px;
       border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.7);
       text-align: center;
-      width: 300px;
     }
-    h1 {
-      margin-bottom: 20px;
-      color: gold;
-      text-shadow: 0 0 10px #ff0;
-    }
-    input {
-      display: block;
-      margin: 10px auto;
+    .login-box h2 { margin-bottom: 20px; font-size: 22px; }
+    .input-box { position: relative; margin-bottom: 20px; }
+    .input-box input {
+      width: 100%;
       padding: 10px;
-      width: 90%;
       border: none;
-      border-radius: 5px;
+      outline: none;
+      border-bottom: 2px solid #fff;
+      background: transparent;
+      color: #fff;
+      font-size: 14px;
     }
+    .input-box label {
+      position: absolute;
+      top: 10px;
+      left: 0;
+      color: #ccc;
+      font-size: 14px;
+      pointer-events: none;
+      transition: 0.3s ease;
+    }
+    .input-box input:focus ~ label,
+    .input-box input:valid ~ label {
+      top: -10px;
+      font-size: 12px;
+      color: #ffd700;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      background: #ffd700;
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn:hover { background: #e0b600; }
+    .register-link { margin-top: 15px; font-size: 14px; }
+    .register-link a { color: #4cafef; font-weight: bold; text-decoration: none; }
+    .register-link a:hover { text-decoration: underline; }
+    .warning-box {
+      max-width: 500px;
+      margin-top: 25px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid #f44336;
+      border-radius: 8px;
+      text-align: center;
+      color: #f44336;
+      font-size: 15px;
+      font-weight: bold;
+      line-height: 1.5;
+    }
+    .warning-box .icon {
+      font-size: 40px;
+      display: block;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="title-game">FRUIT GAME</h1>
+
+  <div class="login-box">
+    <h2>Login Akun</h2>
+    <form id="loginForm">
+      <div class="input-box">
+        <input type="email" id="email" required>
+        <label>Masukan Email</label>
+      </div>
+      <div class="input-box">
+        <input type="password" id="password" required>
+        <label>Masukan Password</label>
+      </div>
+      <button type="submit" class="btn">Login</button>
+    </form>
+    <p class="register-link">
+      Belum punya akun? <a href="register.html">Daftar di sini</a>
+    </p>
+  </div>
+
+  <div class="warning-box">
+    <div class="icon">⚠️</div>
+    <p><strong>PERINGATAN !!!</strong><br>
+    GAME INI HANYA UNTUK HIBURAN SEMATA<br>
+    BUKAN UNTUK KAYA ATAU MENJADI SULTAN.</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const loginForm = document.getElementById("loginForm");
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          alert("Login berhasil!");
+          window.location.href = "gamefruit.html"; // arahkan ke halaman game
+        })
+        .catch((error) => {
+          alert("Login gagal: " + error.message);
+        });
+    });
+  </script>
+</body>
+</html>    }
     button {
       background: gold;
       border: none;
