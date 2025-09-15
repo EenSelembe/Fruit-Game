@@ -247,9 +247,6 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
           else {
   balance += winNow;
   updateStats();
-  if (currentUser) {
-    await window.updateGameBalance(balance); // simpan saldo ke Firestore
-  }
 }
           updateStats();
           result.highlights.forEach(pos=>{
@@ -415,7 +412,7 @@ spinning=false;}
   // fungsi simpan saldo ke Firestore
   async function saveBalance(uid) {
     const ref = doc(db, "users", uid);
-    await updateDoc(ref, { saldo: balance });
+    await SetDoc(ref, { saldo: balance });
   }
 
   // cek login user
