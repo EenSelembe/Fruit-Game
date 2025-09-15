@@ -2,47 +2,50 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- penting untuk HP -->
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: url(https://i.pinimg.com/736x/22/76/9a/22769a0cf12be68e2be2e862c9e46964.jpg);
+      background: url(https://i.pinimg.com/736x/22/76/9a/22769a0cf12be68e2be2e862c9e46964.jpg) no-repeat center center fixed;
+      background-size: cover;
       color: #fff;
     }
 
     .title-game {
       text-align: center;
-      font-size: 48px;
+      font-size: 36px;
       font-weight: bold;
       color: white;
       text-shadow: 0 0 10px green, 0 0 20px blue;
-      margin: 20px 0;
+      margin: 20px 10px;
     }
 
     .profile-box {
-      max-width: 250px;
-      margin: 0 auto 10px;
-      padding: 10px;
-      background: rgba(0,0,0,0.9);
+      max-width: 90%;
+      margin: 0 auto 15px;
+      padding: 15px;
+      background: rgba(0,0,0,0.8);
       border: 1px solid #444;
       border-radius: 10px;
       text-align: center;
     }
 
     .profile-box p {
-      margin: 8px 0;
+      margin: 6px 0;
+      font-size: 14px;
     }
 
     .logout-btn, .topup-btn {
-      margin: 8px;
-      padding: 8px 16px;
+      margin: 6px 4px;
+      padding: 10px 16px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
       color: #fff;
       transition: 0.3s;
+      font-size: 14px;
     }
 
     .logout-btn {
@@ -60,10 +63,11 @@
     }
 
     .game-card {
-      width: 150px;
-      margin: 0 auto 40px;
+      width: 90%;
+      max-width: 250px;
+      margin: 20px auto;
       padding: 15px;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.85);
       border: 1px solid #ccc;
       border-radius: 12px;
       text-align: center;
@@ -71,7 +75,7 @@
     }
 
     .game-title {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       margin-bottom: 12px;
       color: #ffd700;
@@ -80,6 +84,7 @@
 
     .game-thumb {
       width: 100%;
+      max-width: 200px;
       border-radius: 8px;
       margin-bottom: 12px;
     }
@@ -99,6 +104,16 @@
     .play-btn:hover {
       background: linear-gradient(45deg, #f44336, #ff9800);
     }
+
+    /* Media query untuk layar kecil (HP) */
+    @media (max-width: 480px) {
+      .title-game {
+        font-size: 28px;
+      }
+      .play-btn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -113,7 +128,8 @@
   </div>
 
   <div class="game-card">
-    <img src=https://i.ibb.co.com/VpCxBYdp/file-00000000a74061f9b36078319c0e7f58-2.png alt="Fruit Game" class="game-thumb">
+    <div class="game-title">FRUIT GAME</div>
+    <img src="https://i.ibb.co.com/VpCxBYdp/file-00000000a74061f9b36078319c0e7f58-2.png" alt="Fruit Game" class="game-thumb">
     <button class="play-btn">Play</button>
   </div>
 </body>
