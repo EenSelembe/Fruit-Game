@@ -407,9 +407,9 @@ spinning=false;}
 
   // fungsi simpan saldo ke Firestore
   async function saveBalance(uid) {
-    const ref = doc(db, "users", uid);
-    await setDoc(ref, { saldo: balance });
- { merge: true }); }
+  const ref = doc(db, "users", uid);
+  await setDoc(ref, { saldo: balance }, { merge: true });
+}
 
   // cek login user
   onAuthStateChanged(auth, async (user) => {
