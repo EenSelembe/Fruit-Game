@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fruit Slots – 5x4 1024 Cara</title>
+
+  <!-- BAGIAN CSS -->
+  <style>
+    :root{--bg:#1b5e20;--gold:#f7c33e;--gap-size:12px;--rows:4;}
+    body {
+      margin: 0;
+      background: url("https://api.imghippo.com/files/zJwC4021OSg.jpg") no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      transition: none;
+    }
+    body.scatter-mode {
+      background: url("https://e0.pxfuel.com/wallpapers/597/442/desktop-wallpaper-gold-coins-gold-bullion.jpg") no-repeat center center fixed;
+      background-size: cover;
+    }
+    .hud{display:flex;align-items:center;justify-content:center;gap:16px;margin:10px auto;}
+    .pill{display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.7);border:1px solid #fff3;padding:6px 12px;border-radius:12px;min-width:100px;}
+    .label{font-size:0.85rem;opacity:0.8;}
+    #balance{font-size:1rem;font-weight:bold;color:#ffd700;}
+    #win{font-size:1rem;font-weight:bold;color:#00ffcc;}
+    .turbo-btn{background:#ff4444;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:bold;box-shadow:0 3px 0 #aa2222;transition:background 0.3s ease;}
+    .turbo-btn.active{background:#00c851;box-shadow:0 3px 0 #007e33;}
+    .multis{display:flex;gap:14px;justify-content:center;padding:10px;width:100%;max-width:860px;background:linear-gradient(180deg,#9c6b3d 0%, #7a4c26 100%);}
+    .multi{min-width:56px;text-align:center;font-weight:900;color:#ffd77a;background:linear-gradient(180deg,#7a4c26,#5b3317);padding:6px 10px;border-radius:10px}
+    .multi.active{background:linear-gradient(180deg,#f7b733,#e09f1a);color:#fff}
+    .wrap{width:100%;max-width:860px;margin:10px auto;padding:16px;box-sizing:border-box}
+    .board{border-radius:16px;padding:14px;background:linear-gradient(180deg,#111 0%, #000 50%, #111 100%);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap-size);width:100%;max-width:420px;aspect-ratio:5/4;box-sizing:border-box;overflow:hidden;border:3px solid var(--gold);box-shadow:0 0 12px #f7c33e80 inset,0 0 16px #f7c33e80;}
+    .reel{display:flex;flex-direction:column;overflow:hidden;border-radius:10px;}
+    .symbols{display:flex;flex-direction:column;gap:var(--gap-size)}
+    .tile{flex:none;width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:2.4rem;background:none}
+    .tile.wild{text-shadow:0 0 8px #0ff,0 0 16px #0ff}
+    @keyframes wildGlow{from{transform:scale(1);}to{transform:scale(1.15);}}
+    .tile.scatter{text-shadow:0 0 8px #ff0,0 0 16px #ff0}
+    .highlight{animation:glowWin 0.8s ease-in-out infinite alternate}
+    @keyframes blinkGlow {0%{color:#fff176;text-shadow:0 0 6px #fff176,0 0 12px #ffeb3b;}50%{color:#ffeb3b;text-shadow:0 0 10px #ffeb3b,0 0 20px #fdd835;}100%{color:#fff176;text-shadow:0 0 6px #fff176,0 0 12px #ffeb3b;}}
+    body:not(.scatter-mode) #banner {animation: blinkGlow 1s infinite alternate;}
+    body.scatter-mode .btn-spin {opacity: 0.4;pointer-events: none;}
+    body.scatter-mode #banner {animation: none;color: #ffe7a1;text-shadow: none;}
+    @keyframes blinkGlow {0%{color:red;text-shadow:0 0 6px black,0 0 12px green;}50%{color:yellow;text-shadow:0 0 10px pink,0 0 20px silver;}100%{color:red;text-shadow:0 0 6px black,0 0 12px #00ccff;}}
+    .ways-container {width:100%;max-width:600px;overflow:hidden;position:relative;}
+    .ways {display:inline-block;white-space:nowrap;font-weight:bold;animation:marquee 8s linear infinite, colorChange 3s linear infinite;}
+    @keyframes marquee {0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
+    @keyframes colorChange {0%{color:red;}25%{color:yellow;}50%{color:lime;}75%{color:cyan;}100%{color:red;}}
+    @keyframes glowWin{from{transform:scale(1);filter:drop-shadow(0 0 6px gold)}to{transform:scale(1.2);filter:drop-shadow(0 0 12px gold)}}
+    .explode{animation:explodeAnim 0.6s forwards}
+    @keyframes explodeAnim{0%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:0.8}100%{transform:scale(0);opacity:0}}
+    .fall{transform:translateY(-150%);animation:fallAnim 0.4s ease forwards}
+    @keyframes fallAnim{to{transform:translateY(0)}}
+    .spinning{animation:scrollLoop 1s linear infinite}
+    @keyframes scrollLoop{0%{transform:translateY(-100%)}100%{transform:translateY(0)}}
+    @keyframes shake{0%{transform:rotate(0);}25%{transform:rotate(15deg);}50%{transform:rotate(-15deg);}75%{transform:rotate(10deg);}100%{transform:rotate(0);}}
+    .shake{animation:shake 0.5s infinite;}
+    .banner{text-align:center;font-weight:bold;margin:12px auto;width:100%;max-width:720px;background:linear-gradient(180deg,gold,#00ccff);padding:10px;border-radius:12px;color:#ffe7a1}
+    .controls{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:12px;width:100%;max-width:860px}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 40px;width:100%;max-width:860px;justify-content:center;}
+    .stats-col{display:flex;flex-direction:column;gap:8px;}
+    .bet-control {display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 10px;min-width:80px;}
+    .bet-control .row {display:flex;align-items:center;justify-content:center;gap:8px;}
+    .bet-control .row .label {font-size:0.9rem;font-weight:bold;}
+    .bet-control .value {font-size:1rem;font-weight:bold;text-align:center;}
+    .bet-control button {padding:2px 8px;font-size:0.9rem;}
+    .spin-container {position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:1000;}
+    .btn-spin {cursor:pointer;width:80px;height:80px;border-radius:50%;font-size:1.5rem;font-weight:bold;color:#fff;background:radial-gradient(circle at 30% 30%, red 0%, blue 70%);box-shadow:0 8px 0 red,0 0 20px rgba(0,0,0,0.4);border:none;transition:transform 0.2s ease;}
+    .btn-spin:active {transform:scale(0.95);}
+    .overlay-win{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffd700;font-size:2rem;font-weight:bold;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.6s ease;text-align:center;}
+    .overlay-win.show{opacity:1;pointer-events:auto;}
+    .overlay-win .amount{font-size:3rem;margin-top:10px;text-shadow:0 0 10px gold,0 0 20px orange;}
+  </style>
+</head>
+<body>
+
+  <!-- BAGIAN HTML -->
+  <div class="top">
+    <div class="ways-container">
+      <div class="ways">MAU KAYA ??? YA KERJA !!! JANGAN JUDOL !!!</div>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="pill"><span class="label">Saldo</span><span id="balance">Rp. 100.000</span></div>
+    <button id="turboBtn" class="turbo-btn">TURBO: OFF</button>
+    <div class="pill"><span class="label">Menang</span><span id="win">Rp. 0</span></div>
+  </div>
+
+  <div class="multis">
+    <div class="multi active">x1</div><div class="multi">x2</div><div class="multi">x3</div><div class="multi">x5</div>
+  </div>
+
+  <div class="wrap">
+    <div class="board" id="board"></div>
+    <div class="banner" id="banner">CARI 4 LONCENG UNTUK SCATTER</div>
+    <div class="controls">
+      <div class="stats">
+        <div class="stats-col">
+          <span class="pill bet-control">
+            <div class="row">
+              <button class="bet-btn" id="betMinus">-</button>
+              <span class="label">Bet</span>
+              <button class="bet-btn" id="betPlus">+</button>
+            </div>
+            <div class="value" id="bet">Rp. 500</div>
+          </span>
+        </div>
+        <div class="stats-col">
+          <span class="pill bet-control" id="autoControl">
+            <div class="row">
+              <button class="bet-btn" id="autoMinus">-</button>
+              <span class="label">Auto</span>
+              <button class="bet-btn" id="autoPlus">+</button>
+            </div>
+            <div class="value" id="autoCount">0</div>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spin-container"><button class="btn-spin" id="spinBtn">SPIN</button></div>
+  <div class="overlay-win" id="overlayWin"><div>ANDA MEMENANGKAN</div><div class="amount" id="overlayAmount">RP. 0</div></div>
+
+  <!-- BAGIAN JS -->
+  <script>
+   let winChance = 30; // atur persen peluang menang
+    const COLS=5, ROWS=4;
+    const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍊","🍊","🍊","🍊","🍊","🍊","🍉","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🍏","🍏","🍏","🍏","🍎","🍎","🍎","🍎","🥭","🥭","🥭","🍌","🍌","🥥","🍈","⭐","🔔"]
+    const PAYTABLE={"🍒":0.5,"🍋":0.5,"🍊":0.5,"🍉":1,"🍇":1,"🍓":1,"🍍":2,"🥝":3,"🍏":3,"🍎":2,"🍐":4,"🥭":3,"🍌":4,"🍑":5,"🥥":5,"🍈":5,"💎":8,"⭐":10};
+    let balance=100000, bet=500, win=0, spinning=false;
+    const betStep=500, betMin=500, betMax=100000;
+    let cascadeCount=0, currentMulti=1;
+    let freeSpins=0, inScatterMode=false, scatterWinTotal=0;
+    let autoSpinValue=0, autoSpinCount=0;
+    let turbo=false;
+    const balEl=document.getElementById("balance"), winEl=document.getElementById("win"), betEl=document.getElementById("bet");
+    const banner=document.getElementById("banner"), overlay=document.getElementById("overlayWin"), overlayAmount=document.getElementById("overlayAmount");
+    const spinBtn=document.getElementById("spinBtn"), betMinus=document.getElementById("betMinus"), betPlus=document.getElementById("betPlus");
+    const autoMinus=document.getElementById("autoMinus"), autoPlus=document.getElementById("autoPlus"), autoCount=document.getElementById("autoCount");
+    const autoControl=document.getElementById("autoControl"), board=document.getElementById("board"), turboBtn=document.getElementById("turboBtn");
+
+    function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(num); }
+    function updateStats(){ balEl.textContent="Rp. "+formatRupiah(balance); winEl.textContent="Rp. "+formatRupiah(win); betEl.textContent="Rp. "+formatRupiah(bet); }
+    function updateBanner(){ if(inScatterMode){ banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; document.body.classList.add("scatter-mode"); } else { banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; document.body.classList.remove("scatter-mode"); } }
+    function lockControls(){ betMinus.disabled=true; betPlus.disabled=true; autoMinus.disabled=true; autoPlus.disabled=true; }
+    function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
+    function updateAutoLabel(){ if(autoSpinCount>0){ autoCount.textContent=autoSpinCount; } else { autoCount.textContent=autoSpinValue; } }
+
+    betMinus.addEventListener("click",()=>{ if(bet>betMin){ bet-=betStep; updateStats(); }});
+    betPlus.addEventListener("click",()=>{ if(bet<betMax){ bet+=betStep; updateStats(); }});
+    autoMinus.addEventListener("click",()=>{ if(autoSpinValue>0){ autoSpinValue-=10; updateAutoLabel(); }});
+    autoPlus.addEventListener("click",()=>{ autoSpinValue+=10; updateAutoLabel(); });
+
+    function valOf(cell){ return (typeof cell==="object") ? (cell.val || cell) : cell; }
+    function getRandomFruit(colIndex){ if(inScatterMode){ if(colIndex===1||colIndex===3) return "⭐"; const pool=FRUITS.filter(v=>v!=="⭐"); return pool[Math.floor(Math.random()*pool.length)]; } return FRUITS[Math.floor(Math.random()*FRUITS.length)]; }
+    function makeTile(fruit){ const tile=document.createElement("div"); tile.className="tile"; const value=valOf(fruit); if(value==="⭐") tile.classList.add("wild"); if(value==="🔔") tile.classList.add("scatter"); tile.textContent=value; return tile; }
+
+    for(let c=0;c<COLS;c++){ const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c; const container=document.createElement("div"); container.className="symbols"; for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); } reel.appendChild(container); board.appendChild(reel); }
+
+    async function spin(){ 
+ if(balance < bet){
+  banner.textContent = "Saldo tidak cukup! Atur Bet dulu.";
+  unlockControls();
+  spinBtn.disabled = false;
+  return;
+}
+      if(spinning) return; if(!inScatterMode&&balance<bet){ alert("Saldo tidak cukup!"); autoSpinCount=0; updateAutoLabel(); return; } lockControls(); spinning=true; if(!inScatterMode){ balance-=bet; updateStats(); } win=0; updateStats(); cascadeCount=0; currentMulti=1; updateBanner(); let matrix=[]; for(let c=0;c<COLS;c++){ const container=document.getElementById("reel"+c).querySelector(".symbols"); container.innerHTML=""; for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); } container.classList.add("spinning"); } if(turbo){ await new Promise(r=>setTimeout(r,600)); for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); } } else { for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); } } finishSpin(matrix); }
+
+    function stopReel(c){ 
+      return new Promise(resolve=>{ 
+        const container=document.getElementById("reel"+c).querySelector(".symbols"); 
+        container.classList.remove("spinning"); 
+        let final=[]; 
+        container.innerHTML=""; 
+        for(let i=0;i<ROWS;i++){ 
+          const fruit=getRandomFruit(c); 
+          const tile=makeTile(fruit); 
+          tile.classList.add("fall"); 
+          setTimeout(()=>tile.classList.remove("fall"),400); 
+          container.appendChild(tile); 
+          final.push(fruit); 
+        } 
+        resolve(final); 
+      }); 
+    }
+
+    function calculateWin(matrix){ 
+  let totalWin=0, highlights=[], scatterCount=0; 
+  for(const fruit of FRUITS){ 
+    let count=0, reelsMatched=[]; 
+    for(let c=0;c<COLS;c++){ 
+      let matches=[]; 
+      matrix[c].forEach((f,r)=>{ 
+        const v=valOf(f); 
+        if(v===fruit||v==="⭐"){ matches.push({c,r}); } 
+      }); 
+      if(matches.length>0){ 
+        count++; 
+        reelsMatched.push(matches); 
+      } else break; 
+    } 
+    if(fruit!=="🔔" && count>=3){ 
+      const base=PAYTABLE[fruit]||1; 
+      const mult=(count===3?1:(count===4?2:5)); 
+      totalWin+=(bet*base*mult)/10; 
+      reelsMatched.flat().forEach(pos=>highlights.push(pos)); 
+    } 
+  } 
+  scatterCount=matrix.flat().filter(f=>valOf(f)==="🔔").length; 
+// --- kontrol peluang kalah ---
+if(totalWin === 0){ // hanya kalau memang tidak ada win
+  if(Math.random() * 100 > winChance){
+    // dipaksa kalah total
+    totalWin = 0;
+    highlights = [];
+    
+  }
+}
+  return { totalWin, highlights, scatterCount }; 
+}
+    function updateMultiplierDisplay(){
+      const items=document.querySelectorAll(".multi");
+      items.forEach(el=>el.classList.remove("active"));
+      if(cascadeCount>=4){ currentMulti=5; items[3].classList.add("active"); }
+      else if(cascadeCount===3){ currentMulti=3; items[2].classList.add("active"); }
+      else if(cascadeCount===2){ currentMulti=2; items[1].classList.add("active"); }
+      else { currentMulti=1; items[0].classList.add("active"); }
+    }
+
+    async function cascade(matrix){
+      while(true){
+        const result=calculateWin(matrix);
+        if(result.highlights && result.highlights.length>0){
+          cascadeCount++;
+          updateMultiplierDisplay();
+          const winNow=result.totalWin*currentMulti;
+          win+=winNow;
+          if(inScatterMode){ scatterWinTotal+=winNow; updateBanner(); }
+          else {
+  balance+=winNow;
+  updateStats();
+}
+          updateStats();
+          result.highlights.forEach(pos=>{
+            const reel=document.getElementById("reel"+pos.c);
+            const tile=reel.querySelectorAll(".tile")[pos.r];
+            if(tile) tile.classList.add("explode");
+          });
+          await new Promise(r=>setTimeout(r,600));
+          for(const pos of result.highlights){ matrix[pos.c][pos.r]=null; }
+          for(let c=0;c<COLS;c++){
+            let col=matrix[c], newCol=[], shift=0;
+            for(let r=ROWS-1;r>=0;r--){
+              if(col[r]!==null){
+                let obj={val:valOf(col[r])};
+                if(shift>0) obj._fall=true;
+                newCol.unshift(obj);
+              } else shift++;
+            }
+            for(let i=0;i<shift;i++){ newCol.unshift({val:getRandomFruit(c),_fall:true}); }
+            matrix[c]=newCol;
+          }
+          if(inScatterMode){ for(let r=0;r<ROWS;r++){ matrix[1][r]="⭐"; matrix[3][r]="⭐"; } }
+          for(let c=0;c<COLS;c++){
+            const container=document.getElementById("reel"+c).querySelector(".symbols");
+            container.innerHTML="";
+            for(let r=0;r<ROWS;r++){
+              const fruit=matrix[c][r];
+              const tile=makeTile(fruit);
+              if(fruit && typeof fruit==="object" && fruit._fall){
+                tile.classList.add("fall");
+                setTimeout(()=>tile.classList.remove("fall"),400);
+                delete fruit._fall;
+              }
+              container.appendChild(tile);
+            }
+          }
+          await new Promise(r=>setTimeout(r,500));
+        } else {
+          if(result.scatterCount>=4){
+            lockControls();
+            document.querySelectorAll(".tile.scatter").forEach(t=>t.classList.add("shake"));
+            await new Promise(r=>setTimeout(r,2000));
+            document.querySelectorAll(".tile.scatter").forEach(t=>t.classList.remove("shake"));
+            if(!inScatterMode && freeSpins===0){
+              inScatterMode=true;
+              freeSpins=20;
+              document.body.classList.add("scatter-mode");
+            } else if(inScatterMode){
+              freeSpins+=20;
+              banner.textContent=`+20 FREE SPIN (Sisa: ${freeSpins})`;
+              setTimeout(updateBanner,2500);
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    async function finishSpin(matrix){
+      await cascade(matrix);
+      if(inScatterMode){
+        for(let r=0;r<ROWS;r++){ matrix[1][r]="⭐"; matrix[3][r]="⭐"; }
+        freeSpins--;
+        updateBanner();
+        turbo=false; turboBtn.classList.remove("active"); turboBtn.disabled=true;
+        if(freeSpins<=0){
+          inScatterMode=false;
+          overlayAmount.textContent="RP. "+formatRupiah(scatterWinTotal);
+          overlay.classList.add("show");
+          setTimeout(()=>{
+            overlay.classList.remove("show");
+            balance+=scatterWinTotal;
+            updateStats();
+            scatterWinTotal=0;
+            document.body.classList.remove("scatter-mode");
+            turboBtn.disabled=false;
+            if(autoSpinCount>0){ autoSpinCount--; updateAutoLabel(); if(autoSpinCount>0){ setTimeout(spin,800); } else { unlockControls(); } }
+            else { unlockControls(); }
+          },4000);
+        } else {
+          setTimeout(spin,1200);
+        }
+      } else {
+  if(autoSpinCount>0){
+    autoSpinCount--; updateAutoLabel();
+    if(autoSpinCount>0){
+      setTimeout(spin,800);
+    } else {
+      unlockControls();
+      spinBtn.textContent = "SPIN";
+    }
+  } else {
+    unlockControls();
+    spinBtn.textContent = "SPIN";
+  }
+}
+spinning=false;}
+
+    spinBtn.addEventListener("click",()=>{
+  if(autoSpinCount>0){
+    // kalau auto sedang jalan → klik spin jadi STOP
+    autoSpinCount = 0;
+    updateAutoLabel();
+    spinBtn.textContent = "SPIN";
+    return;
+  }
+  if(autoSpinValue>0){
+    autoSpinCount = autoSpinValue;
+    spinBtn.textContent = "STOP";
+  }
+  updateAutoLabel();
+  spin();
+});
+
+    turboBtn.addEventListener("click",()=>{
+      turbo=!turbo;
+      if(turbo){ turboBtn.textContent="TURBO: ON"; turboBtn.classList.add("active"); }
+      else { turboBtn.textContent="TURBO: OFF"; turboBtn.classList.remove("active"); }
+    });
+
+    updateStats(); updateAutoLabel();
+  </script>
+</body>
+</html>
