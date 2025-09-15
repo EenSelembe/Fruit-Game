@@ -50,7 +50,6 @@
 
   <div class="profile-box">
     <p>Username: <span id="username">Loading...</span></p>
-    <p>ID: <span id="userid">-</span></p>
     <p>Saldo: Rp 100.000</p>
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
@@ -84,7 +83,6 @@
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("username").textContent = user.displayName || "Anonim";
-      document.getElementById("userid").textContent = user.uid;
     } else {
       // kalau tidak login diarahkan ke index
       window.location.href = "index.html";
