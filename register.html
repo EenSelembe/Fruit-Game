@@ -154,6 +154,14 @@
     }
 
     try {
+    // Cek username sudah ada atau belum
+    const usernameRef = doc(db, "usernames", fullname.toLowerCase());
+    const snap = await getDoc(usernameRef);
+
+    if (snap.exists()) {
+      alert("Username sudah dipakai, silakan pilih yang lain");
+      return;
+    }
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: fullname });
       alert("Registrasi berhasil! Silakan login.");
