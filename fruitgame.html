@@ -407,23 +407,23 @@ spinning=false;}
   let currentUser;
 
   // fungsi ambil saldo dari Firestore
-  async function loadBalance(uid) {
-    const ref = doc(db, "users", uid);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      balance = snap.data().saldo || 0;
-    } else {
-      balance = Rp. 100.000;
-      await savebalance(uid);
-    }
-    updateStats();
+async function loadBalance(uid) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    balance = snap.data().saldo || 0;
+  } else {
+    balance = 100000; // saldo awal untuk user baru
+    await saveBalance(uid);
   }
+  updateStats();
+}
 
-  // fungsi simpan saldo ke Firestore
+// fungsi simpan saldo ke Firestore
 async function saveBalance(uid) {
   const ref = doc(db, "users", uid);
   await setDoc(ref, { saldo: balance }, { merge: true });
-  }
+}
   
   // cek login user
   onAuthStateChanged(auth, async (user) => {
