@@ -254,14 +254,13 @@
 
     // animasi explode
     result.highlights.forEach(pos => {
-      const reel = document.getElementById("reel" + pos.c);
-      const tile = reel.querySelectorAll(".tile")[pos.r];
+      const tile = document.querySelector(`.tile[data-c="${pos.c}"][data-r="${pos.r}"]`);
       if (tile) tile.classList.add("explode");
     });
 
     await new Promise(r => setTimeout(r, 600));
 
-    // hapus simbol yang pecah
+    // hapus simbol yang pecah di matrix
     for (const pos of result.highlights) {
       matrix[pos.c][pos.r] = null;
     }
@@ -275,13 +274,15 @@
       matrix[c] = col;
     }
 
-    // redraw reel
+    // redraw reel + update data posisi
     for (let c = 0; c < COLS; c++) {
       const container = document.getElementById("reel" + c).querySelector(".symbols");
       container.innerHTML = "";
       for (let r = 0; r < ROWS; r++) {
         const fruit = matrix[c][r];
         const tile = makeTile(fruit);
+        tile.dataset.c = c; // simpan posisi kolom
+        tile.dataset.r = r; // simpan posisi baris
         if (fruit && fruit._fall) {
           tile.classList.add("fall");
           setTimeout(() => tile.classList.remove("fall"), 400);
