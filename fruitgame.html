@@ -399,14 +399,22 @@ function autoSpinNext() {
     await new Promise(r => setTimeout(r, 0));
   }
 }
+function safeSpinNext(delay) {
+  setTimeout(() => {
+    if (!spinning) {
+      spin();
+    } else {
+      // kalau masih spinning, tunggu 100ms lalu coba lagi
+      safeSpinNext(100);
+    }
+  }, delay);
+}
 function autoSpinNext() {
   if (autoSpinCount > 0) {
     autoSpinCount--;
     updateAutoLabel();
     if (autoSpinCount > 0) {
-      setTimeout(() => {
-        if (!spinning) spin();   // cek ulang sebelum jalan spin berikutnya
-      }, turbo ? 200 : 800);     // turbo lebih cepat
+      safeSpinNext(turbo ? 200 : 800);   // turbo lebih cepat
     } else {
       unlockControls();
       spinBtn.textContent = "SPIN";
