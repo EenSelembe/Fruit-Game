@@ -308,6 +308,24 @@ if (currentUser) {
       }
     }
 
+ function autoSpinNext() {
+  if (autoSpinCount > 0) {
+    autoSpinCount--;
+    updateAutoLabel();
+    if (autoSpinCount > 0) {
+      setTimeout(() => {
+        spinning = false;   // pastikan dilepas dulu
+        spin();
+      }, 800); // delay bisa disesuaikan
+    } else {
+      unlockControls();
+      spinBtn.textContent = "SPIN";
+    }
+  } else {
+    unlockControls();
+    spinBtn.textContent = "SPIN";
+  }
+    }
     
 async function finishSpin(matrix) {
   try {
