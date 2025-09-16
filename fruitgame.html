@@ -367,19 +367,7 @@ async function finishSpin(matrix) {
           turboBtn.disabled = false;
 
           // Lanjutkan autospin bila masih ada
-          if (autoSpinCount > 0) {
-            autoSpinCount--;
-            updateAutoLabel();
-            if (autoSpinCount > 0) {
-              setTimeout(spin, 1200);
-            } else {
-              unlockControls();
-              spinBtn.textContent = "SPIN";
-            }
-          } else {
-            unlockControls();
-            spinBtn.textContent = "SPIN";
-          }
+        autoSpinNext();
         }, 4000);
       } else {
         // Masih ada free spin → lanjut otomatis
@@ -390,19 +378,7 @@ async function finishSpin(matrix) {
     }
 
     // === BUKAN scatter mode ===
-    if (autoSpinCount > 0) {
-      autoSpinCount--;
-      updateAutoLabel();
-      if (autoSpinCount > 0) {
-        setTimeout(spin, 1200);
-      } else {
-        unlockControls();
-        spinBtn.textContent = "SPIN";
-      }
-    } else {
-      unlockControls();
-      spinBtn.textContent = "SPIN";
-    }
+    autoSpinNext();
   } finally {
     // PENTING: selalu reset supaya klik berikutnya tidak diblokir
     spinning = false;
