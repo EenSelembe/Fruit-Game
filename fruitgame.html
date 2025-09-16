@@ -396,9 +396,26 @@ function autoSpinNext() {
     }
   } finally {
     spinning = false; // SELALU reset
+    await new Promise(r => setTimeout(r, 0));
   }
 }
-
+function autoSpinNext() {
+  if (autoSpinCount > 0) {
+    autoSpinCount--;
+    updateAutoLabel();
+    if (autoSpinCount > 0) {
+      setTimeout(() => {
+        if (!spinning) spin();   // cek ulang sebelum jalan spin berikutnya
+      }, turbo ? 200 : 800);     // turbo lebih cepat
+    } else {
+      unlockControls();
+      spinBtn.textContent = "SPIN";
+    }
+  } else {
+    unlockControls();
+    spinBtn.textContent = "SPIN";
+  }
+        }
     spinBtn.addEventListener("click",()=>{
       if(autoSpinCount>0){
         // kalau auto sedang jalan → klik spin jadi STOP
