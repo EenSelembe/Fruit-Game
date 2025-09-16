@@ -245,8 +245,11 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
           win+=winNow;
           if(inScatterMode){ scatterWinTotal+=winNow; updateBanner(); }
           else {
-  balance+=winNow;
-  updateStats();
+  balance += winNow;
+updateStats();
+if (currentUser) {
+  await window.updateGameBalance(balance); // simpan saldo ke Firestore
+    }
 }
           updateStats();
           result.highlights.forEach(pos=>{
@@ -318,8 +321,11 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
           overlay.classList.add("show");
           setTimeout(()=>{
             overlay.classList.remove("show");
-            balance+=scatterWinTotal;
-            updateStats();
+            balance += scatterWinTotal;
+updateStats();
+if (currentUser) {
+  await window.updateGameBalance(balance); // simpan saldo ke Firestore
+}
             scatterWinTotal=0;
             document.body.classList.remove("scatter-mode");
             turboBtn.disabled=false;
@@ -369,5 +375,78 @@ spinning=false;}
 
     updateStats(); updateAutoLabel();
   </script>
+<script type="module">
+  // --- Import Firebase ---
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  // --- Config Firebase (ganti dengan data project kamu) ---
+  const firebaseConfig = {
+ apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+  authDomain: "fruit-game-5e4a8.firebaseapp.com",
+  projectId: "fruit-game-5e4a8",
+  storageBucket: "fruit-game-5e4a8.firebasestorage.app",
+  messagingSenderId: "936228678997",
+  appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+  measurementId: "G-EPTSQQPM4D"
+};
+
+  // --- Init ---
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+
+  // --- Fungsi load saldo dari Firestore ---
+  async function loadBalance(uid) {
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      balance = snap.data().saldo || 0;   // pakai saldo Firestore
+    } else {
+      balance = 100000;                   // saldo default user baru
+      await setDoc(ref, { saldo: balance }, { merge: true });
+    }
+    updateStats(); // update tampilan UI saldo
+  }
+
+  // --- Fungsi simpan saldo ke Firestore ---
+  async function saveBalance(uid) {
+    const ref = doc(db, "users", uid);
+    await setDoc(ref, { saldo: balance }, { merge: true });
+  }
+
+  // --- Global supaya bisa dipanggil dari spin/cascade ---
+  window.updateGameBalance = async function(newBalance) {
+    balance = newBalance;
+    updateStats();
+    if (currentUser) {
+      await saveBalance(currentUser.uid);
+    }
+  }
+
+  // --- Listener auth login/logout ---
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      await loadBalance(user.uid);
+    } else {
+      window.location.href = "index.html"; // balik ke login kalau belum login
+    }
+  });
+
+  // --- Logout ---
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    });
+  }
+</script>
+</body>
+</html>
 </body>
 </html>
