@@ -355,10 +355,12 @@ if (currentUser) {
         } else {
           unlockControls();
         }
+        spinning=false;
       }, 4000);
 
     } else {
       setTimeout(spin, 1200);
+      spinning=false;
     }
 
   } else {
