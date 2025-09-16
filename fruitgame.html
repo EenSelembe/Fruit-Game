@@ -166,13 +166,40 @@
     for(let c=0;c<COLS;c++){ const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c; const container=document.createElement("div"); container.className="symbols"; for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); } reel.appendChild(container); board.appendChild(reel); }
 
     async function spin(){ 
- if(balance < bet){
-  banner.textContent = "Saldo tidak cukup! Atur Bet dulu.";
-  unlockControls();
-  spinBtn.disabled = false;
-  return;
-}
-      if(spinning) return; if(!inScatterMode&&balance<bet){ alert("Saldo tidak cukup!"); autoSpinCount=0; updateAutoLabel(); return; } lockControls(); spinning=true; if(!inScatterMode){ balance-=bet; updateStats(); } win=0; updateStats(); cascadeCount=0; currentMulti=1; updateBanner(); let matrix=[]; for(let c=0;c<COLS;c++){ const container=document.getElementById("reel"+c).querySelector(".symbols"); container.innerHTML=""; for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); } container.classList.add("spinning"); } if(turbo){ await new Promise(r=>setTimeout(r,600)); for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); } } else { for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); } } finishSpin(matrix); }
+      if(balance < bet){
+        banner.textContent = "Saldo tidak cukup! Atur Bet dulu.";
+        unlockControls();
+        spinBtn.disabled = false;
+        return;
+      }
+      if(spinning) return;
+      if(!inScatterMode && balance<bet){
+        alert("Saldo tidak cukup!");
+        autoSpinCount=0; updateAutoLabel(); 
+        return;
+      }
+      lockControls();
+      spinning=true;
+
+      if(!inScatterMode){ balance-=bet; updateStats(); }
+      win=0; updateStats(); cascadeCount=0; currentMulti=1; updateBanner();
+
+      let matrix=[];
+      for(let c=0;c<COLS;c++){
+        const container=document.getElementById("reel"+c).querySelector(".symbols");
+        container.innerHTML="";
+        for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); }
+        container.classList.add("spinning");
+      }
+
+      if(turbo){
+        await new Promise(r=>setTimeout(r,600));
+        for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); }
+      } else {
+        for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); }
+      }
+      finishSpin(matrix);
+    }
 
     function stopReel(c){ 
       return new Promise(resolve=>{ 
@@ -193,39 +220,38 @@
     }
 
     function calculateWin(matrix){ 
-  let totalWin=0, highlights=[], scatterCount=0; 
-  for(const fruit of FRUITS){ 
-    let count=0, reelsMatched=[]; 
-    for(let c=0;c<COLS;c++){ 
-      let matches=[]; 
-      matrix[c].forEach((f,r)=>{ 
-        const v=valOf(f); 
-        if(v===fruit||v==="⭐"){ matches.push({c,r}); } 
-      }); 
-      if(matches.length>0){ 
-        count++; 
-        reelsMatched.push(matches); 
-      } else break; 
-    } 
-    if(fruit!=="🔔" && count>=3){ 
-      const base=PAYTABLE[fruit]||1; 
-      const mult=(count===3?1:(count===4?2:5)); 
-      totalWin+=(bet*base*mult)/10; 
-      reelsMatched.flat().forEach(pos=>highlights.push(pos)); 
-    } 
-  } 
-  scatterCount=matrix.flat().filter(f=>valOf(f)==="🔔").length; 
-// --- kontrol peluang kalah ---
-if(totalWin === 0){ // hanya kalau memang tidak ada win
-  if(Math.random() * 100 > winChance){
-    // dipaksa kalah total
-    totalWin = 0;
-    highlights = [];
-    
-  }
-}
-  return { totalWin, highlights, scatterCount }; 
-}
+      let totalWin=0, highlights=[], scatterCount=0; 
+      for(const fruit of FRUITS){ 
+        let count=0, reelsMatched=[]; 
+        for(let c=0;c<COLS;c++){ 
+          let matches=[]; 
+          matrix[c].forEach((f,r)=>{ 
+            const v=valOf(f); 
+            if(v===fruit||v==="⭐"){ matches.push({c,r}); } 
+          }); 
+          if(matches.length>0){ 
+            count++; 
+            reelsMatched.push(matches); 
+          } else break; 
+        } 
+        if(fruit!=="🔔" && count>=3){ 
+          const base=PAYTABLE[fruit]||1; 
+          const mult=(count===3?1:(count===4?2:5)); 
+          totalWin+=(bet*base*mult)/10; 
+          reelsMatched.flat().forEach(pos=>highlights.push(pos)); 
+        } 
+      } 
+      scatterCount=matrix.flat().filter(f=>valOf(f)==="🔔").length; 
+      // --- kontrol peluang kalah ---
+      if(totalWin === 0){
+        if(Math.random() * 100 > winChance){
+          totalWin = 0;
+          highlights = [];
+        }
+      }
+      return { totalWin, highlights, scatterCount }; 
+    }
+
     function updateMultiplierDisplay(){
       const items=document.querySelectorAll(".multi");
       items.forEach(el=>el.classList.remove("active"));
@@ -243,14 +269,18 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
           updateMultiplierDisplay();
           const winNow=result.totalWin*currentMulti;
           win+=winNow;
-          if(inScatterMode){ scatterWinTotal+=winNow; updateBanner(); }
-          else {
-  balance += winNow;
-  updateStats();
-  if (currentUser) {
-    await window.updateGameBalance(balance);
-  }
-}
+
+          if(inScatterMode){
+            scatterWinTotal+=winNow; 
+            updateBanner();
+          } else {
+            balance += winNow;
+            updateStats();
+            if (currentUser && window.updateGameBalance) {
+              await window.updateGameBalance(balance);
+            }
+          }
+
           updateStats();
           result.highlights.forEach(pos=>{
             const reel=document.getElementById("reel"+pos.c);
@@ -258,7 +288,9 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
             if(tile) tile.classList.add("explode");
           });
           await new Promise(r=>setTimeout(r,600));
+
           for(const pos of result.highlights){ matrix[pos.c][pos.r]=null; }
+
           for(let c=0;c<COLS;c++){
             let col=matrix[c], newCol=[], shift=0;
             for(let r=ROWS-1;r>=0;r--){
@@ -271,7 +303,9 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
             for(let i=0;i<shift;i++){ newCol.unshift({val:getRandomFruit(c),_fall:true}); }
             matrix[c]=newCol;
           }
+
           if(inScatterMode){ for(let r=0;r<ROWS;r++){ matrix[1][r]="⭐"; matrix[3][r]="⭐"; } }
+
           for(let c=0;c<COLS;c++){
             const container=document.getElementById("reel"+c).querySelector(".symbols");
             container.innerHTML="";
@@ -309,36 +343,52 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
     }
 
     async function finishSpin(matrix) {
-  try {
-    await cascade(matrix);
+      try {
+        await cascade(matrix);
 
-    if (inScatterMode) {
-      for (let r = 0; r < ROWS; r++) {
-        matrix[1][r] = "⭐";
-        matrix[3][r] = "⭐";
-      }
-      freeSpins--;
-      updateBanner();
-      turbo = false;
-      turboBtn.classList.remove("active");
-      turboBtn.disabled = true;
-
-      if (freeSpins <= 0) {
-        inScatterMode = false;
-        overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
-        overlay.classList.add("show");
-
-        setTimeout(async () => {
-          overlay.classList.remove("show");
-          balance += scatterWinTotal;
-          updateStats();
-          if (currentUser) {
-            await window.updateGameBalance(balance);
+        if (inScatterMode) {
+          for (let r = 0; r < ROWS; r++) {
+            matrix[1][r] = "⭐";
+            matrix[3][r] = "⭐";
           }
-          scatterWinTotal = 0;
-          document.body.classList.remove("scatter-mode");
-          turboBtn.disabled = false;
+          freeSpins--;
+          updateBanner();
+          turbo = false;
+          turboBtn.classList.remove("active");
+          turboBtn.disabled = true;
 
+          if (freeSpins <= 0) {
+            inScatterMode = false;
+            overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
+            overlay.classList.add("show");
+
+            setTimeout(async () => {
+              overlay.classList.remove("show");
+              balance += scatterWinTotal;
+              updateStats();
+              if (currentUser && window.updateGameBalance) {
+                await window.updateGameBalance(balance);
+              }
+              scatterWinTotal = 0;
+              document.body.classList.remove("scatter-mode");
+              turboBtn.disabled = false;
+
+              if (autoSpinCount > 0) {
+                autoSpinCount--;
+                updateAutoLabel();
+                if (autoSpinCount > 0) {
+                  setTimeout(spin, 800);
+                } else {
+                  unlockControls();
+                }
+              } else {
+                unlockControls();
+              }
+            }, 4000);
+          } else {
+            setTimeout(spin, 1200);
+          }
+        } else {
           if (autoSpinCount > 0) {
             autoSpinCount--;
             updateAutoLabel();
@@ -346,50 +396,33 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
               setTimeout(spin, 800);
             } else {
               unlockControls();
+              spinBtn.textContent = "SPIN";
             }
           } else {
             unlockControls();
+            spinBtn.textContent = "SPIN";
           }
-        }, 4000);
-      } else {
-        setTimeout(spin, 1200);
-      }
-    } else {
-      if (autoSpinCount > 0) {
-        autoSpinCount--;
-        updateAutoLabel();
-        if (autoSpinCount > 0) {
-          setTimeout(spin, 800);
-        } else {
-          unlockControls();
-          spinBtn.textContent = "SPIN";
         }
-      } else {
-        unlockControls();
-        spinBtn.textContent = "SPIN";
+      } finally {
+        spinning = false;  // ← reset status spin SELALU
       }
     }
-  } finally {
-    spinning = false;  // ← reset status spin SELALU
-  }
-}
-
 
     spinBtn.addEventListener("click",()=>{
-  if(autoSpinCount>0){
-    // kalau auto sedang jalan → klik spin jadi STOP
-    autoSpinCount = 0;
-    updateAutoLabel();
-    spinBtn.textContent = "SPIN";
-    return;
-  }
-  if(autoSpinValue>0){
-    autoSpinCount = autoSpinValue;
-    spinBtn.textContent = "STOP";
-  }
-  updateAutoLabel();
-  spin();
-});
+      if(autoSpinCount>0){
+        // kalau auto sedang jalan → klik spin jadi STOP
+        autoSpinCount = 0;
+        updateAutoLabel();
+        spinBtn.textContent = "SPIN";
+        return;
+      }
+      if(autoSpinValue>0){
+        autoSpinCount = autoSpinValue;
+        spinBtn.textContent = "STOP";
+      }
+      updateAutoLabel();
+      spin();
+    });
 
     turboBtn.addEventListener("click",()=>{
       turbo=!turbo;
@@ -399,69 +432,71 @@ if(totalWin === 0){ // hanya kalau memang tidak ada win
 
     updateStats(); updateAutoLabel();
   </script>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
-  };
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
 
-  let currentUser;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  // fungsi ambil saldo dari Firestore
-async function loadBalance(uid) {
-  try {
-  const ref = doc(db, "users", uid);
-  const docSnap = await getDoc(ref);
+    let currentUser;
 
-  if (docSnap.exists()) {
-    // Ambil saldo lama dari Firestore
-    balance = docSnap.data().saldo || 0;
-  } else {
-    // User baru → saldo default Rp100.000
-    balance = 100000;
-    await saveBalance(uid); // simpan hanya sekali di awal
-  }
-} catch (e) {
-    console.error("Gagal load saldo:", e);
-    // jangan overwrite saldo lama
-  }
-  updateStats(); // update tampilan saldo
-}
-// fungsi simpan saldo ke Firestore
-async function saveBalance(uid) {
-  const ref = doc(db, "users", uid);
-  await setDoc(ref, { saldo: balance }, { merge: true });
-}
-  
-  // cek login user
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      currentUser = user;
-      await loadBalance(user.uid);
+    // fungsi ambil saldo dari Firestore
+    async function loadBalance(uid) {
+      try {
+        const ref = doc(db, "users", uid);
+        const docSnap = await getDoc(ref);
 
-      // hook agar game bisa panggil ini setiap saldo berubah
-      window.updateGameBalance = async (newBalance) => {
-        balance = newBalance;
-        updateStats(); // update UI
-        await saveBalance(user.uid);
-      };
-    } else {
-      window.location.href = "index.html";
+        if (docSnap.exists()) {
+          // Ambil saldo lama dari Firestore
+          balance = docSnap.data().saldo || 0;
+        } else {
+          // User baru → saldo default Rp100.000
+          balance = 100000;
+          await saveBalance(uid); // simpan hanya sekali di awal
+        }
+      } catch (e) {
+        console.error("Gagal load saldo:", e);
+        // jangan overwrite saldo lama
+      }
+      updateStats(); // update tampilan saldo
     }
-  });
-</script>
+
+    // fungsi simpan saldo ke Firestore
+    async function saveBalance(uid) {
+      const ref = doc(db, "users", uid);
+      await setDoc(ref, { saldo: balance }, { merge: true });
+    }
+    
+    // cek login user
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        await loadBalance(user.uid);
+
+        // hook agar game bisa panggil ini setiap saldo berubah
+        window.updateGameBalance = async (newBalance) => {
+          balance = newBalance;
+          updateStats(); // update UI
+          await saveBalance(user.uid);
+        };
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+  </script>
 </body>
-</html>
+  </html>
