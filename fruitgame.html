@@ -308,45 +308,75 @@ if (currentUser) {
       }
     }
 
-    async function finishSpin(matrix){
-      await cascade(matrix);
-      if(inScatterMode){
-        for(let r=0;r<ROWS;r++){ matrix[1][r]="⭐"; matrix[3][r]="⭐"; }
-        freeSpins--;
-        updateBanner();
-        turbo=false; turboBtn.classList.remove("active"); turboBtn.disabled=true;
-        if(freeSpins<=0){
-          inScatterMode=false;
-          overlayAmount.textContent="RP. "+formatRupiah(scatterWinTotal);
-          overlay.classList.add("show");
-          setTimeout(()=>{
-            overlay.classList.remove("show");
-            balance += scatterWinTotal;
-updateStats();
-if (currentUser) {
-  await window.updateGameBalance(balance); // simpan saldo ke Firestore
-}
-            scatterWinTotal=0;
-            document.body.classList.remove("scatter-mode");
-            turboBtn.disabled=false;
-            if(autoSpinCount>0){ autoSpinCount--; updateAutoLabel(); if(autoSpinCount>0){ setTimeout(spin,800); } else { unlockControls(); } }
-            else { unlockControls(); }
-          },4000);
-        } else {
-          setTimeout(spin,1200);
+    async function finishSpin(matrix) {
+  await cascade(matrix);
+
+  if (inScatterMode) {
+    for (let r = 0; r < ROWS; r++) {
+      matrix[1][r] = "⭐";
+      matrix[3][r] = "⭐";
+    }
+    freeSpins--;
+    updateBanner();
+
+    turbo = false;
+    turboBtn.classList.remove("active");
+    turboBtn.disabled = true;
+
+    if (freeSpins <= 0) {
+      inScatterMode = false;
+      overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
+      overlay.classList.add("show");
+
+      setTimeout(async () => {
+        overlay.classList.remove("show");
+
+        // Tambahkan saldo dari scatter
+        balance += scatterWinTotal;
+        updateStats();
+
+        // Simpan saldo ke Firestore
+        if (currentUser) {
+          await window.updateGameBalance(balance);
         }
+
+        scatterWinTotal = 0;
+        document.body.classList.remove("scatter-mode");
+        turboBtn.disabled = false;
+
+        if (autoSpinCount > 0) {
+          autoSpinCount--;
+          updateAutoLabel();
+          if (autoSpinCount > 0) {
+            setTimeout(spin, 800);
+          } else {
+            unlockControls();
+          }
+        } else {
+          unlockControls();
+        }
+      }, 4000);
+
+    } else {
+      setTimeout(spin, 1200);
+    }
+
+  } else {
+    if (autoSpinCount > 0) {
+      autoSpinCount--;
+      updateAutoLabel();
+
+      if (autoSpinCount > 0) {
+        setTimeout(spin, 800);
       } else {
-  if(autoSpinCount>0){
-    autoSpinCount--; updateAutoLabel();
-    if(autoSpinCount>0){
-      setTimeout(spin,800);
+        unlockControls();
+        spinBtn.textContent = "SPIN";
+      }
+
     } else {
       unlockControls();
       spinBtn.textContent = "SPIN";
     }
-  } else {
-    unlockControls();
-    spinBtn.textContent = "SPIN";
   }
 }
 spinning=false;}
