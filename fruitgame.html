@@ -364,25 +364,87 @@ if (currentUser) {
     }
 
   } else {
+async function finishSpin(matrix) {
+  try {
+    // Jalankan cascade & selesaikan hitungan
+    await cascade(matrix);
+
+    if (inScatterMode) {
+      // Tetapkan kolom 2 & 4 jadi wild selama free spin
+      for (let r = 0; r < ROWS; r++) {
+        matrix[1][r] = "⭐";
+        matrix[3][r] = "⭐";
+      }
+      freeSpins--;
+      updateBanner();
+
+      // Matikan turbo selama free spin (tampilan tetap sama)
+      turbo = false;
+      turboBtn.classList.remove("active");
+      turboBtn.disabled = true;
+
+      if (freeSpins <= 0) {
+        // Selesai free spin → tampilkan overlay total
+        inScatterMode = false;
+        overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
+        overlay.classList.add("show");
+
+        // Lakukan update saldo tetapi JANGAN tahan spinning di sini
+        setTimeout(async () => {
+          overlay.classList.remove("show");
+
+          balance += scatterWinTotal;
+          updateStats();
+          if (currentUser) {
+            await window.updateGameBalance(balance);
+          }
+
+          scatterWinTotal = 0;
+          document.body.classList.remove("scatter-mode");
+          turboBtn.disabled = false;
+
+          // Lanjutkan autospin bila masih ada
+          if (autoSpinCount > 0) {
+            autoSpinCount--;
+            updateAutoLabel();
+            if (autoSpinCount > 0) {
+              setTimeout(spin, 1200);
+            } else {
+              unlockControls();
+              spinBtn.textContent = "SPIN";
+            }
+          } else {
+            unlockControls();
+            spinBtn.textContent = "SPIN";
+          }
+        }, 4000);
+      } else {
+        // Masih ada free spin → lanjut otomatis
+        setTimeout(spin, 1200);
+      }
+
+      return; // biarkan finally tetap jalan untuk reset flag
+    }
+
+    // === BUKAN scatter mode ===
     if (autoSpinCount > 0) {
       autoSpinCount--;
       updateAutoLabel();
-
       if (autoSpinCount > 0) {
         setTimeout(spin, 1200);
       } else {
         unlockControls();
         spinBtn.textContent = "SPIN";
       }
-
     } else {
       unlockControls();
       spinBtn.textContent = "SPIN";
     }
+  } finally {
+    // PENTING: selalu reset supaya klik berikutnya tidak diblokir
+    spinning = false;
   }
-spinning=false;
 }
-
     spinBtn.addEventListener("click",()=>{
   if(autoSpinCount>0){
     // kalau auto sedang jalan → klik spin jadi STOP
