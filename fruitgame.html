@@ -135,7 +135,7 @@
     const COLS=5, ROWS=4;
     const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍊","🍊","🍊","🍊","🍊","🍊","🍉","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🍏","🍏","🍏","🍏","🍎","🍎","🍎","🍎","🥭","🥭","🥭","🍌","🍌","🥥","🍈","⭐","🔔"]
     const PAYTABLE={"🍒":0.5,"🍋":0.5,"🍊":0.5,"🍉":1,"🍇":1,"🍓":1,"🍍":2,"🥝":3,"🍏":3,"🍎":2,"🍐":4,"🥭":3,"🍌":4,"🍑":5,"🥥":5,"🍈":5,"💎":8,"⭐":10};
-    let balance=100000, bet=500, win=0, spinning=false;
+    let balance=0, bet=500, win=0, spinning=false;
     const betStep=500, betMin=500, betMax=100000;
     let cascadeCount=0, currentMulti=1;
     let freeSpins=0, inScatterMode=false, scatterWinTotal=0;
@@ -172,7 +172,7 @@
   spinBtn.disabled = false;
   return;
 }
-      if(spinning) return; if(!inScatterMode&&balance<bet){ alert("Saldo tidak cukup!"); autoSpinCount=0; updateAutoLabel(); return; } lockControls(); spinning=true; if(!inScatterMode){ balance-=bet; updateStats(); } win=0; updateStats(); cascadeCount=0; currentMulti=1; updateBanner(); let matrix=[]; for(let c=0;c<COLS;c++){ const container=document.getElementById("reel"+c).querySelector(".symbols"); container.innerHTML=""; for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); } container.classList.add("spinning"); } if(turbo){ await new Promise(r=>setTimeout(r,600)); for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); } } else { for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); } } finishSpin(matrix); }
+      if(spinning) return; if(!inScatterMode&&balance<bet){ alert("Saldo tidak cukup!"); autoSpinCount=0; updateAutoLabel(); return; } lockControls(); spinning=true; if(!inScatterMode){ balance-=bet; updateStats()saveBalance();; } win=0; updateStats(); cascadeCount=0; currentMulti=1; updateBanner(); let matrix=[]; for(let c=0;c<COLS;c++){ const container=document.getElementById("reel"+c).querySelector(".symbols"); container.innerHTML=""; for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); } container.classList.add("spinning"); } if(turbo){ await new Promise(r=>setTimeout(r,600)); for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); } } else { for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); } } finishSpin(matrix); }
 
     function stopReel(c){ 
       return new Promise(resolve=>{ 
