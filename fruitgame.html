@@ -363,11 +363,11 @@
 
         if (!inScatterMode && freeSpins === 0) {
           inScatterMode = true;
-          freeSpins = 20;
+          freeSpins = 15;
           document.body.classList.add("scatter-mode");
         } else if (inScatterMode) {
-          freeSpins += 20;
-          banner.textContent = `+20 FREE SPIN (Sisa: ${freeSpins})`;
+          freeSpins += 10;
+          banner.textContent = `+10 FREE SPIN (Sisa: ${freeSpins})`;
           setTimeout(updateBanner, 2500);
         }
       }
