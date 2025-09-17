@@ -493,14 +493,14 @@
   // contoh pemakaian di game:
   // setelah taruhan
   function deductBet(amount) {
-    balance -= amount;
+    window.balance -= amount;
     updateStats();
     saveBalance();
   }
 
   // setelah menang
   function addWin(amount) {
-    balance += amount;
+    window.balance += amount;
     updateStats();
     saveBalance();
   }
