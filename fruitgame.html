@@ -138,7 +138,7 @@
     let balance=0, bet=500, win=0, spinning=false;
     const betStep=500, betMin=500, betMax=100000;
     let cascadeCount=0, currentMulti=1;
-    let freeSpins=0, inScatterMode=false, scatterWinTotal=0;
+    let freeSpins=0, =false, scatterWinTotal=0;
     let autoSpinValue=0, autoSpinCount=0;
     let turbo=false;
     const balEl=document.getElementById("balance"), winEl=document.getElementById("win"), betEl=document.getElementById("bet");
@@ -149,7 +149,7 @@
 
     function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(num); }
     function updateStats(){ balEl.textContent="Rp. "+formatRupiah(balance); winEl.textContent="Rp. "+formatRupiah(win); betEl.textContent="Rp. "+formatRupiah(bet); }
-    function updateBanner(){ if(inScatterMode){ banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; document.body.classList.add("scatter-mode"); } else { banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; document.body.classList.remove("scatter-mode"); } }
+    function updateBanner(){ if(){ banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; document.body.classList.add("scatter-mode"); } else { banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; document.body.classList.remove("scatter-mode"); } }
     function lockControls(){ betMinus.disabled=true; betPlus.disabled=true; autoMinus.disabled=true; autoPlus.disabled=true; }
     function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
     function updateAutoLabel(){ if(autoSpinCount>0){ autoCount.textContent=autoSpinCount; } else { autoCount.textContent=autoSpinValue; } }
@@ -172,7 +172,7 @@
   spinBtn.disabled = false;
   return;
 }
-      if(spinning) return; if(!inScatterMode&&balance<bet){ alert("Saldo tidak cukup!"); autoSpinCount=0; updateAutoLabel(); return; } lockControls(); spinning=true; if(!inScatterMode){ balance-=bet; updateStats()saveBalance();; } win=0; updateStats(); cascadeCount=0; currentMulti=1; updateBanner(); let matrix=[]; for(let c=0;c<COLS;c++){ const container=document.getElementById("reel"+c).querySelector(".symbols"); container.innerHTML=""; for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); } container.classList.add("spinning"); } if(turbo){ await new Promise(r=>setTimeout(r,600)); for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); } } else { for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); } } finishSpin(matrix); }
+      if(spinning) return; if(!inScatterMode&&balance<bet){ alert("Saldo tidak cukup!"); autoSpinCount=0; updateAutoLabel(); return; } lockControls(); spinning=true; if(!inScatterMode){ balance-=bet; updateStats();saveBalance(); } win=0; updateStats(); cascadeCount=0; currentMulti=1; updateBanner(); let matrix=[]; for(let c=0;c<COLS;c++){ const container=document.getElementById("reel"+c).querySelector(".symbols"); container.innerHTML=""; for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); } container.classList.add("spinning"); } if(turbo){ await new Promise(r=>setTimeout(r,600)); for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); } } else { for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); } } finishSpin(matrix); }
 
     function stopReel(c){ 
       return new Promise(resolve=>{ 
