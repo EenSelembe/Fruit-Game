@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Admin</title>
+  <style>
+    body {
+      display:flex; justify-content:center; align-items:center;
+      height:100vh; background:#222; color:#fff; font-family:Arial;
+    }
+    .box {
+      background:#333; padding:20px; border-radius:10px; text-align:center;
+      width:300px;
+    }
+    input {
+      width:90%; padding:8px; margin:8px 0; border:none; border-radius:5px;
+    }
+    button {
+      padding:10px 15px; border:none; border-radius:5px;
+      background:#4caf50; color:white; font-weight:bold; cursor:pointer;
+    }
+    button:hover { background:#45a049; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Login Admin</h2>
+    <input type="email" id="email" placeholder="Email admin" required><br>
+    <input type="password" id="password" placeholder="Password" required><br>
+    <button id="loginBtn">Login</button>
+    <p id="status"></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut }
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // ganti dengan UID admin kamu (lihat di Firebase Console → Authentication → Users)
+    const ADMIN_UID = "UID_ADMIN";
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const statusEl = document.getElementById("status");
+
+      try {
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        const uid = userCred.user.uid;
+
+        if (uid === ADMIN_UID) {
+          statusEl.textContent = "Login berhasil, mengalihkan...";
+          window.location.href = "user.html"; // buka panel admin
+        } else {
+          statusEl.textContent = "Anda bukan admin!";
+          await signOut(auth);
+        }
+      } catch (err) {
+        statusEl.textContent = "Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
