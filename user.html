@@ -14,7 +14,8 @@
 </head>
 <body>
   <h2>📋 Daftar User</h2>
-  <table id="usersTable">
+  <div id="status">🔒 Harus login sebagai admin dulu...</div>
+  <table id="usersTable" style="display:none;">
     <thead>
       <tr>
         <th>UID</th>
@@ -29,53 +30,84 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, collection, getDocs, doc, updateDoc } 
       from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+    // Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // ambil semua user
+    // Ganti dengan UID akun admin
+    const ADMIN_UID = "UID_ADMIN"; 
+
+    // Ambil semua user
     async function loadUsers() {
-      const querySnapshot = await getDocs(collection(db, "users"));
-      const tableBody = document.querySelector("#usersTable tbody");
-      tableBody.innerHTML = "";
+      try {
+        const querySnapshot = await getDocs(collection(db, "users"));
+        const tableBody = document.querySelector("#usersTable tbody");
+        tableBody.innerHTML = "";
 
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const tr = document.createElement("tr");
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const tr = document.createElement("tr");
 
-        tr.innerHTML = `
-          <td>${docSnap.id}</td>
-          <td>${data.username}</td>
-          <td>${data.email}</td>
-          <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
-          <td><button class="btn btn-update" onclick="updateSaldo('${docSnap.id}')">Update</button></td>
-        `;
-        tableBody.appendChild(tr);
-      });
+          tr.innerHTML = `
+            <td>${docSnap.id}</td>
+            <td>${data.username}</td>
+            <td>${data.email}</td>
+            <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
+            <td><button class="btn btn-update" onclick="updateSaldo('${docSnap.id}')">Update</button></td>
+          `;
+          tableBody.appendChild(tr);
+        });
+
+        document.getElementById("status").textContent = "✅ Login admin berhasil";
+        document.getElementById("usersTable").style.display = "table";
+
+      } catch (err) {
+        console.error("Firestore error:", err);
+        alert("Gagal load users: " + err.message);
+      }
     }
 
-    // fungsi update saldo
+    // Update saldo user
     window.updateSaldo = async function(uid) {
       const newSaldo = document.getElementById("saldo-" + uid).value;
       const userDocRef = doc(db, "users", uid);
       await updateDoc(userDocRef, { saldo: Number(newSaldo) });
       alert("Saldo user " + uid + " berhasil diupdate!");
-      loadUsers(); // refresh tabel
+      loadUsers();
     }
 
-    loadUsers();
+    // Cek login status
+    onAuthStateChanged(auth, (user) => {
+      if (user && user.uid === ADMIN_UID) {
+        loadUsers();
+      } else if (user) {
+        document.getElementById("status").textContent = "🚫 Kamu bukan admin!";
+      } else {
+        // Kalau belum login → tampilkan prompt login cepat
+        const email = prompt("Masukkan email admin:");
+        const password = prompt("Masukkan password admin:");
+        if (email && password) {
+          signInWithEmailAndPassword(auth, email, password)
+            .catch(err => alert("Login gagal: " + err.message));
+        }
+      }
+    });
   </script>
 </body>
 </html>
