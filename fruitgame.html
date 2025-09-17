@@ -290,7 +290,7 @@
           const winNow=result.totalWin*currentMulti;
           win+=winNow;
           if(inScatterMode){ scatterWinTotal+=winNow; updateBanner(); }
-          else {
+        } else {
   balance+=winNow;
   updateStats();
   if (typeof saveBalance === "function") {
