@@ -281,10 +281,10 @@
       else { currentMulti=1; items[0].classList.add("active"); }
     }
 
-    async function cascade(matrix){
+    async function cascade(matrix)
       while(true){
         const result=calculateWin(matrix);
-        if(result.highlights && result.highlights.length>0){
+        if(result.highlights && result.highlights.length>0)
           cascadeCount++;
           updateMultiplierDisplay();
           const winNow=result.totalWin*currentMulti;
