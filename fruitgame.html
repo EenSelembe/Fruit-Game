@@ -407,7 +407,7 @@ spinning=false;}
       await updateDoc(userDocRef, { saldo: balance });
     }
   }
-
+  window.saveBalance = saveBalance;
   // contoh pemakaian di game:
   // setelah taruhan
   function deductBet(amount) {
