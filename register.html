@@ -124,10 +124,12 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, updateProfile } 
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc } 
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { 
+    getAuth, createUserWithEmailAndPassword, updateProfile 
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { 
+    getFirestore, doc, getDoc, setDoc 
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -144,10 +146,12 @@
   const db = getFirestore(app);
 
   const form = document.getElementById("registerForm");
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const fullname = document.getElementById("fullname").value;
-    const email = document.getElementById("email").value;
+
+    const fullname = document.getElementById("fullname").value.trim();
+    const email = document.getElementById("email").value.trim();
     const pass = document.getElementById("password").value;
     const confirm = document.getElementById("confirm-password").value;
 
@@ -157,40 +161,43 @@
     }
 
     try {
-  // cek username sudah ada atau belum
-  const usernameRef = doc(db, "usernames", fullname.toLowerCase());
-  const snap = await getDoc(usernameRef);
+      // 1️⃣ cek username sudah ada atau belum
+      const usernameRef = doc(db, "usernames", fullname.toLowerCase());
+      const snap = await getDoc(usernameRef);
 
-  if (snap.exists()) {
-    alert("Username sudah dipakai, silakan pilih yang lain");
-    return;
-  }
+      if (snap.exists()) {
+        alert("Username sudah dipakai, silakan pilih yang lain");
+        return;
+      }
 
-  // buat akun
-  const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-  await updateProfile(userCredential.user, { displayName: fullname });
+      // 2️⃣ buat akun di Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      const user = userCredential.user;
 
-  // simpan username ke firestore biar unik
-  await setDoc(usernameRef, { uid: userCredential.user.uid });
+      // set displayName
+      await updateProfile(user, { displayName: fullname });
 
-  // 🔥 buat dokumen profil user di Firestore (koleksi "users")
-  const userDocRef = doc(db, "users", userCredential.user.uid);
-  await setDoc(userDocRef, {
-    username: fullname,
-    email: email,
-    saldo: 100000,   // saldo awal Rp 100.000
-    createdAt: new Date().toISOString()
-  });
+      // 3️⃣ simpan username → UID (unik)
+      await setDoc(usernameRef, { uid: user.uid });
 
-  alert("Registrasi berhasil! Saldo awal Rp 100.000 sudah ditambahkan.");
-  window.location.href = "index.html";
+      // 4️⃣ buat dokumen user baru di Firestore
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, {
+        username: fullname,
+        email: email,
+        saldo: 100000,   // saldo awal Rp 100.000
+        createdAt: new Date().toISOString()
+      });
 
-} catch (err) {
-  console.error("Firebase Error:", err.code, err.message);
-  alert("Error: " + err.code + " - " + err.message);
-}
+      alert("Registrasi berhasil! Saldo awal Rp 100.000 ditambahkan.");
+      window.location.href = "index.html";
 
+    } catch (err) {
+      console.error("Firebase Error:", err.code, err.message);
+      alert("Error: " + err.code + " - " + err.message);
+    }
   });
 </script>
+
 </body>
 </html>
