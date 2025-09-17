@@ -2,39 +2,35 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Login Admin</title>
+  <title>Admin Panel - Daftar User</title>
   <style>
-    body {
-      display:flex; justify-content:center; align-items:center;
-      height:100vh; background:#222; color:#fff; font-family:Arial;
-    }
-    .box {
-      background:#333; padding:20px; border-radius:10px; text-align:center;
-      width:300px;
-    }
-    input {
-      width:90%; padding:8px; margin:8px 0; border:none; border-radius:5px;
-    }
-    button {
-      padding:10px 15px; border:none; border-radius:5px;
-      background:#4caf50; color:white; font-weight:bold; cursor:pointer;
-    }
-    button:hover { background:#45a049; }
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+    th { background: #333; }
+    .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 5px; }
+    .btn-update { background: #4caf50; color: white; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>Login Admin</h2>
-    <input type="email" id="email" placeholder="Email admin" required><br>
-    <input type="password" id="password" placeholder="Password" required><br>
-    <button id="loginBtn">Login</button>
-    <p id="status"></p>
-  </div>
+  <h2>📋 Daftar User</h2>
+  <table id="usersTable">
+    <thead>
+      <tr>
+        <th>UID</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Saldo</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut }
-      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -47,31 +43,39 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    // ganti dengan UID admin kamu (lihat di Firebase Console → Authentication → Users)
-    const ADMIN_UID = "8u7EcJi0mjaBw80WxkI3WnxDQoB2";
+    // ambil semua user
+    async function loadUsers() {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const tableBody = document.querySelector("#usersTable tbody");
+      tableBody.innerHTML = "";
 
-    document.getElementById("loginBtn").addEventListener("click", async () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      const statusEl = document.getElementById("status");
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const tr = document.createElement("tr");
 
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, email, password);
-        const uid = userCred.user.uid;
+        tr.innerHTML = `
+          <td>${docSnap.id}</td>
+          <td>${data.username}</td>
+          <td>${data.email}</td>
+          <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
+          <td><button class="btn btn-update" onclick="updateSaldo('${docSnap.id}')">Update</button></td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
 
-        if (uid === ADMIN_UID) {
-          statusEl.textContent = "Login berhasil, mengalihkan...";
-          window.location.href = "user.html"; // buka panel admin
-        } else {
-          statusEl.textContent = "Anda bukan admin!";
-          await signOut(auth);
-        }
-      } catch (err) {
-        statusEl.textContent = "Error: " + err.message;
-      }
-    });
+    // fungsi update saldo
+    window.updateSaldo = async function(uid) {
+      const newSaldo = document.getElementById("saldo-" + uid).value;
+      const userDocRef = doc(db, "users", uid);
+      await updateDoc(userDocRef, { saldo: Number(newSaldo) });
+      alert("Saldo user " + uid + " berhasil diupdate!");
+      loadUsers(); // refresh tabel
+    }
+
+    loadUsers();
   </script>
 </body>
 </html>
