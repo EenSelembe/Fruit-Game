@@ -474,9 +474,10 @@
       userDocRef = doc(db, "users", user.uid);
       const snap = await getDoc(userDocRef);
       if (snap.exists()) {
-        balance = snap.data().saldo;
-        updateStats();
-      }
+  window.balance = snap.data().saldo;
+  updateStats();
+}
+
     } else {
       window.location.href = "index.html"; // kalau belum login balik ke login
     }
