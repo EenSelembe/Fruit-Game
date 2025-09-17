@@ -165,16 +165,69 @@
 
     for(let c=0;c<COLS;c++){ const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c; const container=document.createElement("div"); container.className="symbols"; for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); } reel.appendChild(container); board.appendChild(reel); }
 
-    async function spin(){ 
- if(balance < bet){
-  banner.textContent = "Saldo tidak cukup! Atur Bet dulu.";
-  unlockControls();
-  spinBtn.disabled = false;
-  return;
+    async function spin() { 
+  // kalau saldo kurang
+  if (balance < bet) {
+    banner.textContent = "Saldo tidak cukup! Atur Bet dulu.";
+    unlockControls();
+    spinBtn.disabled = false;
+    return;
+  }
+
+  // kalau lagi spinning → stop
+  if (spinning) return;
+
+  // cek saldo di luar scatter mode
+  if (!inScatterMode && balance < bet) {
+    alert("Saldo tidak cukup!");
+    autoSpinCount = 0;
+    updateAutoLabel();
+    return;
+  }
+
+  lockControls();
+  spinning = true;
+
+  // potong saldo kalau bukan scatter
+  if (!inScatterMode) {
+    balance -= bet;
+    win = 0;
+    updateStats();
+    if (typeof saveBalance === "function") saveBalance();
+  }
+
+  // reset cascade & multiplier
+  cascadeCount = 0;
+  currentMulti = 1;
+  updateBanner();
+
+  // animasi reel jalan
+  let matrix = [];
+  for (let c = 0; c < COLS; c++) {
+    const container = document.getElementById("reel" + c).querySelector(".symbols");
+    container.innerHTML = "";
+    for (let i = 0; i < 80; i++) {
+      container.appendChild(makeTile(getRandomFruit(c)));
+    }
+    container.classList.add("spinning");
+  }
+
+  // stop reel satu per satu
+  if (turbo) {
+    await new Promise(r => setTimeout(r, 600));
+    for (let c = 0; c < COLS; c++) {
+      matrix.push(await stopReel(c));
+    }
+  } else {
+    for (let c = 0; c < COLS; c++) {
+      await new Promise(r => setTimeout(r, 600));
+      matrix.push(await stopReel(c));
+    }
+  }
+
+  // selesai spin → hitung hasil
+  finishSpin(matrix);
 }
-      if(spinning) return; if(!inScatterMode&&balance<bet){ alert("Saldo tidak cukup!"); autoSpinCount=0; updateAutoLabel(); return; } lockControls(); spinning=true; if(!inScatterMode){ balance-=bet; updateStats();if (typeof saveBalance === "function") {
-    saveBalance(); } win=0; updateStats();if (typeof saveBalance === "function") {
-    saveBalance(); cascadeCount=0; currentMulti=1; updateBanner(); let matrix=[]; for(let c=0;c<COLS;c++){ const container=document.getElementById("reel"+c).querySelector(".symbols"); container.innerHTML=""; for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); } container.classList.add("spinning"); } if(turbo){ await new Promise(r=>setTimeout(r,600)); for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); } } else { for(let c=0;c<COLS;c++){ await new Promise(r=>setTimeout(r,600)); matrix.push(await stopReel(c)); } } finishSpin(matrix); }
 
     function stopReel(c){ 
       return new Promise(resolve=>{ 
