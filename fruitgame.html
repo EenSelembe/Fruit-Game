@@ -238,6 +238,7 @@
           else {
   balance+=winNow;
   updateStats();
+  saveBalance();
 }
           updateStats();
           result.highlights.forEach(pos=>{
@@ -311,6 +312,7 @@
             overlay.classList.remove("show");
             balance+=scatterWinTotal;
             updateStats();
+            saveBalance();
             scatterWinTotal=0;
             document.body.classList.remove("scatter-mode");
             turboBtn.disabled=false;
