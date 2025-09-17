@@ -471,11 +471,11 @@
 
     updateStats(); updateAutoLabel();
   </script>
-  <script type="module">
+ <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
+  import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
     authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -492,37 +492,38 @@
 
   let userDocRef = null;
 
-  // saat user login → ambil saldo
-  onAuthStateChanged(auth, async (user) => {
+  // saat user login → realtime saldo
+  onAuthStateChanged(auth, (user) => {
     if (user) {
       userDocRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userDocRef);
-      if (snap.exists()) {
-  window.balance = snap.data().saldo;
-  updateStats();
-}
+
+      onSnapshot(userDocRef, (snap) => {
+        if (snap.exists()) {
+          window.balance = snap.data().saldo;
+          updateStats();
+        }
+      });
 
     } else {
-      window.location.href = "index.html"; // kalau belum login balik ke login
+      window.location.href = "index.html"; 
     }
   });
 
-  // fungsi untuk simpan saldo ke Firestore
+  // fungsi simpan saldo
   async function saveBalance() {
     if (userDocRef) {
       await updateDoc(userDocRef, { saldo: window.balance });
     }
   }
   window.saveBalance = saveBalance;
-  // contoh pemakaian di game:
-  // setelah taruhan
+
+  // helper fungsi saldo
   function deductBet(amount) {
     window.balance -= amount;
     updateStats();
     saveBalance();
   }
 
-  // setelah menang
   function addWin(amount) {
     window.balance += amount;
     updateStats();
