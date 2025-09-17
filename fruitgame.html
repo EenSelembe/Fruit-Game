@@ -354,46 +354,76 @@
     }
 
     async function finishSpin(matrix){
-      await cascade(matrix);
-      if(inScatterMode){
-        for(let r=0;r<ROWS;r++){ matrix[1][r]="⭐"; matrix[3][r]="⭐"; }
-        freeSpins--;
-        updateBanner();
-        turbo=false; turboBtn.classList.remove("active"); turboBtn.disabled=true;
-        if(freeSpins<=0){
-          inScatterMode=false;
-          overlayAmount.textContent="RP. "+formatRupiah(scatterWinTotal);
-          overlay.classList.add("show");
-          setTimeout(()=>{
-            overlay.classList.remove("show");
-            balance+=scatterWinTotal;
-            updateStats();
-            if (typeof saveBalance === "function") {
-    saveBalance();
-            scatterWinTotal=0;
-            document.body.classList.remove("scatter-mode");
-            turboBtn.disabled=false;
-            if(autoSpinCount>0){ autoSpinCount--; updateAutoLabel(); if(autoSpinCount>0){ setTimeout(spin,800); } else { unlockControls(); } }
-            else { unlockControls(); }
-          },4000);
-        } else {
-          setTimeout(spin,1200);
+  await cascade(matrix);
+
+  if (inScatterMode) {
+    // paksa wild di reel 2 & 4 saat free spin berjalan
+    for (let r = 0; r < ROWS; r++) { 
+      matrix[1][r] = "⭐"; 
+      matrix[3][r] = "⭐"; 
+    }
+
+    freeSpins--;
+    updateBanner();
+
+    // nonaktifkan turbo saat free spin
+    turbo = false; 
+    turboBtn.classList.remove("active"); 
+    turboBtn.disabled = true;
+
+    if (freeSpins <= 0) {
+      inScatterMode = false;
+      overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
+      overlay.classList.add("show");
+
+      setTimeout(() => {
+        overlay.classList.remove("show");
+        balance += scatterWinTotal;
+        updateStats();
+
+        if (typeof saveBalance === "function") {
+          saveBalance();
         }
+
+        scatterWinTotal = 0;
+        document.body.classList.remove("scatter-mode");
+        turboBtn.disabled = false;
+
+        if (autoSpinCount > 0) {
+          autoSpinCount--;
+          updateAutoLabel();
+          if (autoSpinCount > 0) {
+            setTimeout(spin, 800);
+          } else {
+            unlockControls();
+          }
+        } else {
+          unlockControls();
+        }
+      }, 4000);
+    } else {
+      setTimeout(spin, 1200);
+    }
+  } else {
+    // mode normal (bukan free spin)
+    if (autoSpinCount > 0) {
+      autoSpinCount--;
+      updateAutoLabel();
+      if (autoSpinCount > 0) {
+        setTimeout(spin, 800);
       } else {
-  if(autoSpinCount>0){
-    autoSpinCount--; updateAutoLabel();
-    if(autoSpinCount>0){
-      setTimeout(spin,800);
+        unlockControls();
+        spinBtn.textContent = "SPIN";
+      }
     } else {
       unlockControls();
       spinBtn.textContent = "SPIN";
     }
-  } else {
-    unlockControls();
-    spinBtn.textContent = "SPIN";
   }
+
+  spinning = false;
 }
-spinning=false;}
+
 
     spinBtn.addEventListener("click",()=>{
   if(autoSpinCount>0){
