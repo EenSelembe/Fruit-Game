@@ -157,27 +157,39 @@
     }
 
     try {
-      // cek username sudah ada atau belum
-      const usernameRef = doc(db, "usernames", fullname.toLowerCase());
-      const snap = await getDoc(usernameRef);
+  // cek username sudah ada atau belum
+  const usernameRef = doc(db, "usernames", fullname.toLowerCase());
+  const snap = await getDoc(usernameRef);
 
-      if (snap.exists()) {
-        alert("Username sudah dipakai, silakan pilih yang lain");
-        return;
-      }
+  if (snap.exists()) {
+    alert("Username sudah dipakai, silakan pilih yang lain");
+    return;
+  }
 
-      // buat akun
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(userCredential.user, { displayName: fullname });
+  // buat akun
+  const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+  await updateProfile(userCredential.user, { displayName: fullname });
 
-      // simpan username ke firestore biar unik
-      await setDoc(usernameRef, { uid: userCredential.user.uid });
+  // simpan username ke firestore biar unik
+  await setDoc(usernameRef, { uid: userCredential.user.uid });
 
-      alert("Registrasi berhasil! Silakan login.");
-      window.location.href = "index.html";
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
+  // 🔥 buat dokumen profil user di Firestore (koleksi "users")
+  const userDocRef = doc(db, "users", userCredential.user.uid);
+  await setDoc(userDocRef, {
+    username: fullname,
+    email: email,
+    saldo: 100000,   // saldo awal Rp 100.000
+    createdAt: new Date().toISOString()
+  });
+
+  alert("Registrasi berhasil! Saldo awal Rp 100.000 sudah ditambahkan.");
+  window.location.href = "index.html";
+
+} catch (err) {
+  console.error("Firebase Error:", err.code, err.message);
+  alert("Error: " + err.code + " - " + err.message);
+}
+
   });
 </script>
 </body>
