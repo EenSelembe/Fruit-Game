@@ -499,7 +499,7 @@
 
       onSnapshot(userDocRef, (snap) => {
         if (snap.exists()) {
-          window.balance = snap.data().saldo || 0;
+          balance = snap.data().saldo || 0;
           updateStats();
         }
       });
@@ -512,20 +512,20 @@
   // fungsi simpan saldo
   async function saveBalance() {
     if (userDocRef) {
-      await updateDoc(userDocRef, { saldo: window.balance });
+      await updateDoc(userDocRef, { saldo:balance });
     }
   }
   window.saveBalance = saveBalance;
 
   // helper fungsi saldo
   function deductBet(amount) {
-    window.balance -= amount;
+    balance = Math.max(balance - amount, 0);
     updateStats();
     saveBalance();
   }
 
   function addWin(amount) {
-    window.balance += amount;
+    balance += amount;
     updateStats();
     saveBalance();
   }
