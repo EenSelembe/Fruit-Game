@@ -450,6 +450,11 @@
     }
 
     spinBtn.addEventListener("click",()=>{
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err=>{
+      console.warn("Fullscreen gagal:", err);
+    });
+  }
   if(autoSpinCount>0){
     // kalau auto sedang jalan → klik spin jadi STOP
     autoSpinCount = 0;
