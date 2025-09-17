@@ -486,7 +486,7 @@
   // fungsi untuk simpan saldo ke Firestore
   async function saveBalance() {
     if (userDocRef) {
-      await updateDoc(userDocRef, { saldo: balance });
+      await updateDoc(userDocRef, { saldo: window.balance });
     }
   }
   window.saveBalance = saveBalance;
