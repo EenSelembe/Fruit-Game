@@ -135,7 +135,7 @@
   <script>
     // atur persen peluang menang
     const COLS=5, ROWS=4;
-    const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍊","🍊","🍊","🍊","🍊","🍊","🍉","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🍏","🍏","🍏","🍏","🍎","🍎","🍎","🍎","🥭","🥭","🥭","🍌","🍌","🥥","🍈","⭐","⭐","🔔"]
+    const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍊","🍊","🍊","🍊","🍊","🍊","🍊","🍊","🍊","🍊","🍊","🍊","🍉","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🍏","🍏","🍏","🍏","🍎","🍎","🍎","🍎","🥭","🥭","🥭","🍌","🍌","🥥","🍈","⭐","🔔","🔔"]
     const PAYTABLE={"🍒":0.5,"🍋":0.5,"🍊":0.5,"🍉":1,"🍇":1,"🍓":1,"🍍":2,"🥝":3,"🍏":3,"🍎":2,"🍐":4,"🥭":3,"🍌":4,"🍑":5,"🥥":5,"🍈":5,"💎":8,"⭐":10};
     let balance=0; bet=500, win=0, spinning=false;
     const betStep=500, betMin=500, betMax=100000;
@@ -162,7 +162,7 @@
     autoPlus.addEventListener("click",()=>{ autoSpinValue+=10; updateAutoLabel(); });
 
     function valOf(cell){ return (typeof cell==="object") ? (cell.val || cell) : cell; }
-    function getRandomFruit(colIndex){ if(inScatterMode){ if(colIndex===1||colIndex===3) return "⭐"; const pool=FRUITS.filter(v=>v!=="⭐"); return pool[Math.floor(Math.random()*pool.length)]; } return FRUITS[Math.floor(Math.random()*FRUITS.length)]; }
+    function getRandomFruit(colIndex){ if(inScatterMode){ if(colIndex===2) return "⭐"; const pool=FRUITS.filter(v=>v!=="⭐"); return pool[Math.floor(Math.random()*pool.length)]; } return FRUITS[Math.floor(Math.random()*FRUITS.length)]; }
     function makeTile(fruit){ const tile=document.createElement("div"); tile.className="tile"; const value=valOf(fruit); if(value==="⭐") tile.classList.add("wild"); if(value==="🔔") tile.classList.add("scatter"); tile.textContent=value; return tile; }
 
     for(let c=0;c<COLS;c++){ const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c; const container=document.createElement("div"); container.className="symbols"; for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); } reel.appendChild(container); board.appendChild(reel); }
