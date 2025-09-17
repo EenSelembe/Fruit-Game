@@ -215,15 +215,6 @@
     } 
   } 
   scatterCount=matrix.flat().filter(f=>valOf(f)==="🔔").length; 
-// --- kontrol peluang kalah ---
-if(totalWin === 0){ // hanya kalau memang tidak ada win
-  if(Math.random() * 100 > winChance){
-    // dipaksa kalah total
-    totalWin = 0;
-    highlights = [];
-    
-  }
-}
   return { totalWin, highlights, scatterCount }; 
 }
     function updateMultiplierDisplay(){
