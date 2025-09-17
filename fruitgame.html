@@ -88,7 +88,7 @@
   </div>
 
   <div class="hud">
-    <div class="pill"><span class="label">Saldo</span><span id="balance">Rp. 100.000</span></div>
+    <div class="pill"><span class="label">Saldo</span><span id="balance">Rp. 0</span></div>
     <button id="turboBtn" class="turbo-btn">TURBO: OFF</button>
     <div class="pill"><span class="label">Menang</span><span id="win">Rp. 0</span></div>
   </div>
@@ -131,7 +131,7 @@
 
   <!-- BAGIAN JS -->
   <script>
-   let winChance = 30; // atur persen peluang menang
+    // atur persen peluang menang
     const COLS=5, ROWS=4;
     const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍊","🍊","🍊","🍊","🍊","🍊","🍉","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🍏","🍏","🍏","🍏","🍎","🍎","🍎","🍎","🥭","🥭","🥭","🍌","🍌","🥥","🍈","⭐","🔔"]
     const PAYTABLE={"🍒":0.5,"🍋":0.5,"🍊":0.5,"🍉":1,"🍇":1,"🍓":1,"🍍":2,"🥝":3,"🍏":3,"🍎":2,"🍐":4,"🥭":3,"🍌":4,"🍑":5,"🥥":5,"🍈":5,"💎":8,"⭐":10};
@@ -282,78 +282,99 @@
     }
 
     async function cascade(matrix) {
-      while(true){
-        const result=calculateWin(matrix);
-        if(result.highlights && result.highlights.length>0) {
-          cascadeCount++;
-          updateMultiplierDisplay();
-          const winNow=result.totalWin*currentMulti;
-          win+=winNow;
-          if(inScatterMode){ scatterWinTotal+=winNow; updateBanner(); }
-        } else {
-  balance+=winNow;
-  updateStats();
-  if (typeof saveBalance === "function") {
-    saveBalance();
-    }
-}
-          updateStats();
-          result.highlights.forEach(pos=>{
-            const reel=document.getElementById("reel"+pos.c);
-            const tile=reel.querySelectorAll(".tile")[pos.r];
-            if(tile) tile.classList.add("explode");
-          });
-          await new Promise(r=>setTimeout(r,600));
-          for(const pos of result.highlights){ matrix[pos.c][pos.r]=null; }
-          for(let c=0;c<COLS;c++){
-            let col=matrix[c], newCol=[], shift=0;
-            for(let r=ROWS-1;r>=0;r--){
-              if(col[r]!==null){
-                let obj={val:valOf(col[r])};
-                if(shift>0) obj._fall=true;
-                newCol.unshift(obj);
-              } else shift++;
-            }
-            for(let i=0;i<shift;i++){ newCol.unshift({val:getRandomFruit(c),_fall:true}); }
-            matrix[c]=newCol;
-          }
-          if(inScatterMode){ for(let r=0;r<ROWS;r++){ matrix[1][r]="⭐"; matrix[3][r]="⭐";
-         }  
+  while (true) {
+    const result = calculateWin(matrix);
+
+    if (result.highlights && result.highlights.length > 0) {
+      cascadeCount++;
+      updateMultiplierDisplay();
+
+      const winNow = result.totalWin * currentMulti;
+      win += winNow;
+
+      if (inScatterMode) {
+        scatterWinTotal += winNow;
+        updateBanner();
+      } else {
+        balance += winNow;
+        updateStats();
+        if (typeof saveBalance === "function") saveBalance();
+      }
+
+      result.highlights.forEach(pos => {
+        const reel = document.getElementById("reel" + pos.c);
+        const tile = reel.querySelectorAll(".tile")[pos.r];
+        if (tile) tile.classList.add("explode");
+      });
+
+      await new Promise(r => setTimeout(r, 600));
+
+      for (const pos of result.highlights) {
+        matrix[pos.c][pos.r] = null;
+      }
+
+      for (let c = 0; c < COLS; c++) {
+        let col = matrix[c], newCol = [], shift = 0;
+        for (let r = ROWS - 1; r >= 0; r--) {
+          if (col[r] !== null) {
+            let obj = { val: valOf(col[r]) };
+            if (shift > 0) obj._fall = true;
+            newCol.unshift(obj);
+          } else shift++;
         }
-          for(let c=0;c<COLS;c++){
-            const container=document.getElementById("reel"+c).querySelector(".symbols");
-            container.innerHTML="";
-            for(let r=0;r<ROWS;r++){
-              const fruit=matrix[c][r];
-              const tile=makeTile(fruit);
-              if(fruit && typeof fruit==="object" && fruit._fall){
-                tile.classList.add("fall");
-                setTimeout(()=>tile.classList.remove("fall"),400);
-                delete fruit._fall;
-              }
-              container.appendChild(tile);
-            }
-          }
-          await new Promise(r=>setTimeout(r,500));
-        } else {
-          if(result.scatterCount>=4){
-            lockControls();
-            document.querySelectorAll(".tile.scatter").forEach(t=>t.classList.add("shake"));
-            await new Promise(r=>setTimeout(r,2000));
-            document.querySelectorAll(".tile.scatter").forEach(t=>t.classList.remove("shake"));
-            if(!inScatterMode && freeSpins===0){
-              inScatterMode=true;
-              freeSpins=20;
-              document.body.classList.add("scatter-mode");
-            } else if(inScatterMode){
-              freeSpins+=20;
-              banner.textContent=`+20 FREE SPIN (Sisa: ${freeSpins})`;
-              setTimeout(updateBanner,2500);
-            }
-          }
-          break;
+        for (let i = 0; i < shift; i++) {
+          newCol.unshift({ val: getRandomFruit(c), _fall: true });
+        }
+        matrix[c] = newCol;
+      }
+
+      if (inScatterMode) {
+        for (let r = 0; r < ROWS; r++) {
+          matrix[1][r] = "⭐";
+          matrix[3][r] = "⭐";
         }
       }
+
+      for (let c = 0; c < COLS; c++) {
+        const container = document.getElementById("reel" + c).querySelector(".symbols");
+        container.innerHTML = "";
+        for (let r = 0; r < ROWS; r++) {
+          const fruit = matrix[c][r];
+          const tile = makeTile(fruit);
+          if (fruit && typeof fruit === "object" && fruit._fall) {
+            tile.classList.add("fall");
+            setTimeout(() => tile.classList.remove("fall"), 400);
+            delete fruit._fall;
+          }
+          container.appendChild(tile);
+        }
+      }
+
+      await new Promise(r => setTimeout(r, 500));
+
+    } else {
+      // cek scatter kalau tidak ada highlight
+      if (result.scatterCount >= 4) {
+        lockControls();
+        document.querySelectorAll(".tile.scatter").forEach(t => t.classList.add("shake"));
+        await new Promise(r => setTimeout(r, 2000));
+        document.querySelectorAll(".tile.scatter").forEach(t => t.classList.remove("shake"));
+
+        if (!inScatterMode && freeSpins === 0) {
+          inScatterMode = true;
+          freeSpins = 20;
+          document.body.classList.add("scatter-mode");
+        } else if (inScatterMode) {
+          freeSpins += 20;
+          banner.textContent = `+20 FREE SPIN (Sisa: ${freeSpins})`;
+          setTimeout(updateBanner, 2500);
+        }
+      }
+      break; // keluar dari while loop
+    }
+  }
+}
+
     
     async function finishSpin(matrix){
   await cascade(matrix);
