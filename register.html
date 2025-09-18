@@ -124,14 +124,14 @@
 
 <script type="module">
  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { 
+ import { 
     getAuth, createUserWithEmailAndPassword, updateProfile 
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { 
+ } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+ import { 
     getFirestore, doc, getDoc, setDoc 
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+ } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  const firebaseConfig = {
+ const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
     authDomain: "fruit-game-5e4a8.firebaseapp.com",
     projectId: "fruit-game-5e4a8",
@@ -139,15 +139,15 @@
     messagingSenderId: "936228678997",
     appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
     measurementId: "G-EPTSQQPM4D"
-  };
+ };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+ const app = initializeApp(firebaseConfig);
+ const auth = getAuth(app);
+ const db = getFirestore(app);
 
-  const form = document.getElementById("registerForm");
+ const form = document.getElementById("registerForm");
 
-  form.addEventListener("submit", async (e) => {
+ form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const fullname = document.getElementById("fullname").value.trim().toLowerCase();
@@ -161,6 +161,9 @@
     }
 
     try {
+      // 🔎 Debug awal
+      console.log(">>> Mulai proses register");
+
       // 1️⃣ cek username dulu
       const usernameRef = doc(db, "usernames", fullname);
       const snap = await getDoc(usernameRef);
@@ -174,38 +177,47 @@
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
 
+      console.log("Auth UID setelah create:", user.uid);
+      console.log("Auth currentUser:", auth.currentUser?.uid);
+
+      // pastikan auth sinkron
+      await auth.updateCurrentUser(user);
+      console.log("Auth currentUser setelah update:", auth.currentUser?.uid);
+
       await updateProfile(user, { displayName: fullname });
 
-      // 3️⃣ simpan username (hanya sekali, rules akan lolos karena dokumen belum ada)
-      await setDoc(usernameRef, { uid: user.uid },{ merge: true });
+      // 3️⃣ simpan username
+      await setDoc(usernameRef, { uid: user.uid }, { merge: true });
+      console.log("Username disimpan:", fullname);
 
       // 4️⃣ buat dokumen user
-const userDocRef = doc(db, "users", user.uid);
-const userDocSnap = await getDoc(userDocRef);
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-if (!userDocSnap.exists()) {
-  // hanya buat kalau dokumen belum ada
-  await setDoc(userDocRef, {
-    username: fullname,
-    email: email,
-    saldo: 100000,
-    createdAt: new Date().toISOString()
-  });
-  console.log("User baru dibuat:", user.uid);
-} else {
-  console.log("Dokumen user sudah ada, skip create:", user.uid);
-}
+      console.log("Cek dokumen path:", userDocRef.path);
+      console.log("Dokumen sudah ada?", userDocSnap.exists());
 
+      if (!userDocSnap.exists()) {
+        await setDoc(userDocRef, {
+          username: fullname,
+          email: email,
+          saldo: 100000,
+          createdAt: new Date().toISOString()
+        });
+        console.log("User baru dibuat:", user.uid);
+      } else {
+        console.log("Dokumen user sudah ada, skip create:", user.uid);
+      }
 
       alert("Registrasi berhasil! Saldo awal Rp 100.000 ditambahkan.");
       window.location.href = "index.html";
 
     } catch (err) {
-  console.error(`Firebase Error: ${err.code} - ${err.message}`);
-  alert(`Error: ${err.code} - ${err.message}`);
-}
-
-  });
+      console.error(`Firebase Error: ${err.code} - ${err.message}`);
+      alert(`Error: ${err.code} - ${err.message}`);
+    }
+ });
 </script>
+
 </body>
 </html>
