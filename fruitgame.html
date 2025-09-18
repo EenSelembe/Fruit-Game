@@ -143,6 +143,7 @@
     let freeSpins=0, inScatterMode=false, scatterWinTotal=0;
     let autoSpinValue=0, autoSpinCount=0;
     let turbo=false;
+    let currentSpinWin = 0;
     const balEl=document.getElementById("balance"), winEl=document.getElementById("win"), betEl=document.getElementById("bet");
     const banner=document.getElementById("banner"), overlay=document.getElementById("overlayWin"), overlayAmount=document.getElementById("overlayAmount");
     const spinBtn=document.getElementById("spinBtn"), betMinus=document.getElementById("betMinus"), betPlus=document.getElementById("betPlus");
@@ -194,6 +195,7 @@
   if (!inScatterMode) {
     balance -= bet;
     win = 0;
+    currentSpinWin = 0;
     updateStats();
     if (typeof saveBalance === "function") saveBalance();
   }
