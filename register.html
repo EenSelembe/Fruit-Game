@@ -177,7 +177,7 @@
       await updateProfile(user, { displayName: fullname });
 
       // 3️⃣ simpan username (hanya sekali, rules akan lolos karena dokumen belum ada)
-      await setDoc(usernameRef, { uid: user.uid });
+      await setDoc(usernameRef, { uid: user.uid }{ merge: true });
 
       // 4️⃣ buat dokumen user
       const userDocRef = doc(db, "users", user.uid);
