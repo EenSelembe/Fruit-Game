@@ -384,6 +384,8 @@
   await cascade(matrix);
 
   if (inScatterMode) {
+    win = 0;
+    updateStats();
     // paksa wild di reel 2 & 4 saat free spin berjalan
     for (let r = 0; r < ROWS; r++) { 
       matrix[2][r] = "⭐";  
