@@ -178,7 +178,7 @@
       await updateProfile(user, { displayName: fullname });
 
       // 3️⃣ simpan username → UID (unik)
-      await setDoc(usernameRef, { uid: user.uid });
+      await setDoc(usernameRef, { uid: user.uid },{ merge: false });
 
       // 4️⃣ buat dokumen user baru di Firestore
       const userDocRef = doc(db, "users", user.uid);
