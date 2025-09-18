@@ -191,12 +191,14 @@
   lockControls();
   spinning = true;
 
+      
   // potong saldo kalau bukan scatter
-  win = 0;
+    win = 0;
     currentSpinWin = 0;
-  if (!inScatterMode) {
-    balance -= bet;
     updateStats();
+      
+  if (!inScatterMode) {
+    balance -= bet;  
     if (typeof saveBalance === "function") saveBalance();
   }
 
