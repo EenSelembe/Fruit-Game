@@ -192,9 +192,10 @@
       window.location.href = "index.html";
 
     } catch (err) {
-      console.error("Firebase Error:", err.code, err.message);
-      alert("Error: " + err.code + " - " + err.message);
-    }
+  console.error(`Firebase Error: ${err.code} - ${err.message}`);
+  alert(`Error: ${err.code} - ${err.message}`);
+}
+
   });
 </script>
 </body>
