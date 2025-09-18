@@ -144,6 +144,7 @@
     let autoSpinValue=0, autoSpinCount=0;
     let turbo=false;
     let currentSpinWin = 0;
+    let autoSpinInfinite = false;
     const balEl=document.getElementById("balance"), winEl=document.getElementById("win"), betEl=document.getElementById("bet");
     const banner=document.getElementById("banner"), overlay=document.getElementById("overlayWin"), overlayAmount=document.getElementById("overlayAmount");
     const spinBtn=document.getElementById("spinBtn"), betMinus=document.getElementById("betMinus"), betPlus=document.getElementById("betPlus");
@@ -155,12 +156,43 @@
     function updateBanner(){ if(inScatterMode){ banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; document.body.classList.add("scatter-mode"); } else { banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; document.body.classList.remove("scatter-mode"); } }
     function lockControls(){ betMinus.disabled=true; betPlus.disabled=true; autoMinus.disabled=true; autoPlus.disabled=true; }
     function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
-    function updateAutoLabel(){ if(autoSpinCount>0){ autoCount.textContent=autoSpinCount; } else { autoCount.textContent=autoSpinValue; } }
+    function updateAutoLabel(){ if (autoSpinInfinite) {
+    autoCount.textContent = "∞";
+  } else if(autoSpinCount>0){ autoCount.textContent=autoSpinCount; } else { autoCount.textContent=autoSpinValue; } }
 
     betMinus.addEventListener("click",()=>{ if(bet>betMin){ bet-=betStep; updateStats(); }});
     betPlus.addEventListener("click",()=>{ if(bet<betMax){ bet+=betStep; updateStats(); }});
     autoMinus.addEventListener("click",()=>{ if(autoSpinValue>0){ autoSpinValue-=10; updateAutoLabel(); }});
-    autoPlus.addEventListener("click",()=>{ autoSpinValue+=10; updateAutoLabel(); });
+    autoPlus.addEventListener("click",()=>{
+  if (autoSpinInfinite) {
+    // dari ∞ → ke 10
+    autoSpinInfinite = false;
+    autoSpinValue = 10;
+  } else {
+    autoSpinValue += 10;
+    if (autoSpinValue > 100) { // misalnya batas 100, bisa diubah
+      autoSpinInfinite = true;
+      autoSpinValue = 0;
+    }
+  }
+  updateAutoLabel();
+});
+
+autoMinus.addEventListener("click",()=>{
+  if (autoSpinInfinite) {
+    // dari ∞ → ke 100
+    autoSpinInfinite = false;
+    autoSpinValue = 100;
+  } else {
+    if (autoSpinValue > 10) {
+      autoSpinValue -= 10;
+    } else {
+      autoSpinInfinite = true;
+      autoSpinValue = 0;
+    }
+  }
+  updateAutoLabel();
+});
 
     function valOf(cell){ return (typeof cell==="object") ? (cell.val || cell) : cell; }
     function getRandomFruit(colIndex){ if(inScatterMode){ if(colIndex===2) return "⭐"; const pool=FRUITS.filter(v=>v!=="⭐"); return pool[Math.floor(Math.random()*pool.length)]; } return FRUITS[Math.floor(Math.random()*FRUITS.length)]; }
@@ -435,6 +467,9 @@
     }
   } else {
     // mode normal (bukan free spin)
+    if (autoSpinInfinite) {
+  setTimeout(spin, 800);
+} else
     if (autoSpinCount > 0) {
       autoSpinCount--;
       updateAutoLabel();
