@@ -161,9 +161,6 @@
     }
 
     try {
-      // 🔎 Debug awal
-      console.log(">>> Mulai proses register");
-
       // 1️⃣ cek username dulu
       const usernameRef = doc(db, "usernames", fullname);
       const snap = await getDoc(usernameRef);
@@ -177,25 +174,14 @@
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
 
-      console.log("Auth UID setelah create:", user.uid);
-      console.log("Auth currentUser:", auth.currentUser?.uid);
-
-      // pastikan auth sinkron
-      await auth.updateCurrentUser(user);
-      console.log("Auth currentUser setelah update:", auth.currentUser?.uid);
-
       await updateProfile(user, { displayName: fullname });
 
-      // 3️⃣ simpan username
-      await setDoc(usernameRef, { uid: user.uid }, { merge: true });
-      console.log("Username disimpan:", fullname);
+      // 3️⃣ simpan username (tanpa merge, biar selalu dianggap create)
+      await setDoc(usernameRef, { uid: user.uid });
 
       // 4️⃣ buat dokumen user
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
-
-      console.log("Cek dokumen path:", userDocRef.path);
-      console.log("Dokumen sudah ada?", userDocSnap.exists());
 
       if (!userDocSnap.exists()) {
         await setDoc(userDocRef, {
@@ -204,9 +190,6 @@
           saldo: 100000,
           createdAt: new Date().toISOString()
         });
-        console.log("User baru dibuat:", user.uid);
-      } else {
-        console.log("Dokumen user sudah ada, skip create:", user.uid);
       }
 
       alert("Registrasi berhasil! Saldo awal Rp 100.000 ditambahkan.");
@@ -218,6 +201,5 @@
     }
  });
 </script>
-
 </body>
 </html>
