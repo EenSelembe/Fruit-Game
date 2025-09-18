@@ -125,7 +125,7 @@
 <script type="module">
  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
  import { 
-    getAuth, createUserWithEmailAndPassword, updateProfile 
+    getAuth, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged
  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
  import { 
     getFirestore, doc, getDoc, setDoc 
@@ -161,42 +161,38 @@
     }
 
     try {
-      // 1️⃣ cek username dulu
-      const usernameRef = doc(db, "usernames", fullname);
-      const snap = await getDoc(usernameRef);
-
-      if (snap.exists()) {
-        alert("Username sudah dipakai, silakan pilih yang lain");
-        return;
-      }
-
-      // 2️⃣ buat akun di Firebase Auth
+      // buat akun baru
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
-
       await updateProfile(user, { displayName: fullname });
 
-      // 3️⃣ simpan username (tanpa merge, biar selalu dianggap create)
-      await setDoc(usernameRef, { uid: user.uid });
+      console.log("User created:", user.uid);
 
-      // 4️⃣ buat dokumen user
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
+      // tunggu auth siap
+      onAuthStateChanged(auth, async (currentUser) => {
+        if (currentUser) {
+          console.log("Auth siap:", currentUser.uid);
 
-      if (!userDocSnap.exists()) {
-        await setDoc(userDocRef, {
-          username: fullname,
-          email: email,
-          saldo: 100000,
-          createdAt: new Date().toISOString()
-        });
-      }
+          // simpan username
+          const usernameRef = doc(db, "usernames", fullname);
+          await setDoc(usernameRef, { uid: currentUser.uid });
 
-      alert("Registrasi berhasil! Saldo awal Rp 100.000 ditambahkan.");
-      window.location.href = "index.html";
+          // simpan data user
+          const userDocRef = doc(db, "users", currentUser.uid);
+          await setDoc(userDocRef, {
+            username: fullname,
+            email: email,
+            saldo: 100000,
+            createdAt: new Date().toISOString()
+          });
+
+          alert("Registrasi berhasil! Saldo awal Rp 100.000 ditambahkan.");
+          window.location.href = "index.html";
+        }
+      });
 
     } catch (err) {
-      console.error(`Firebase Error: ${err.code} - ${err.message}`);
+      console.error("Firebase Error:", err.code, err.message);
       alert(`Error: ${err.code} - ${err.message}`);
     }
  });
