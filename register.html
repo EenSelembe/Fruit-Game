@@ -180,13 +180,22 @@
       await setDoc(usernameRef, { uid: user.uid },{ merge: true });
 
       // 4️⃣ buat dokumen user
-      const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, {
-        username: fullname,
-        email: email,
-        saldo: 100000,
-        createdAt: new Date().toISOString()
-      });
+const userDocRef = doc(db, "users", user.uid);
+const userDocSnap = await getDoc(userDocRef);
+
+if (!userDocSnap.exists()) {
+  // hanya buat kalau dokumen belum ada
+  await setDoc(userDocRef, {
+    username: fullname,
+    email: email,
+    saldo: 100000,
+    createdAt: new Date().toISOString()
+  });
+  console.log("User baru dibuat:", user.uid);
+} else {
+  console.log("Dokumen user sudah ada, skip create:", user.uid);
+}
+
 
       alert("Registrasi berhasil! Saldo awal Rp 100.000 ditambahkan.");
       window.location.href = "index.html";
