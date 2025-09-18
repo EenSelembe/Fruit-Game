@@ -295,6 +295,8 @@
       win += winNow;
 
       if (inScatterMode) {
+        scatterWinTotal += winNow;
+        updateBanner();
         updateStats();
       } else {
         balance += winNow;
