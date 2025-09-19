@@ -215,7 +215,8 @@ const sounds = {
   scatter: new Audio("sonds/scater.mp3"),
   totalWin: new Audio("sonds/total-win.mp3")
 };
-
+sounds.roll.loop = true;
+    
 function playSound(name) {
   if (sounds[name]) {
     sounds[name].currentTime = 0;
