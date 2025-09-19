@@ -506,11 +506,14 @@ autoMinus.addEventListener("click",()=>{
   if(autoSpinValue>0){
     autoSpinCount = autoSpinValue;
     spinBtn.textContent = "STOP";
+    spin();
   } else if (autoSpinInfinite){
     spinBtn.textContent = "STOP";
-    }
+    spin();
+    }else{
+    spin();
   updateAutoLabel();
-  spin();
+  
 });
 
     turboBtn.addEventListener("click",()=>{
