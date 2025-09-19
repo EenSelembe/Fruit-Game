@@ -18,7 +18,7 @@
       margin: 20px auto;
       padding: 20px;
       border-radius: 10px;
-      max-width: 600px;
+      max-width: 700px;
     }
     table {
       width: 100%;
@@ -32,9 +32,8 @@
     th {
       background: rgba(255,255,255,0.2);
     }
-    .status-sukses { color: #4caf50; font-weight: bold; }
-    .status-gagal { color: #f44336; font-weight: bold; }
-    .status-proses { color: #ffc107; font-weight: bold; }
+    .status-transfer { color: #f44336; font-weight: bold; } /* merah */
+    .status-terima { color: #4caf50; font-weight: bold; }   /* hijau */
     .btn {
       display: inline-block;
       margin: 10px;
@@ -55,10 +54,10 @@
     <table>
       <thead>
         <tr>
-          <th>Email Tujuan</th>
+          <th>Email</th>
           <th>Nominal</th>
           <th>Tanggal</th>
-          <th>Status</th>
+          <th>Keterangan</th>
         </tr>
       </thead>
       <tbody id="historyTable">
@@ -75,7 +74,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -95,8 +94,9 @@
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
+        // ambil history dari koleksi global "transfers"
         const q = query(
-          collection(db, "users", user.uid, "transfers"),
+          collection(db, "transfers"),
           orderBy("date", "desc")
         );
 
@@ -106,16 +106,33 @@
             historyTable.innerHTML = "<tr><td colspan='4'>Belum ada history transfer</td></tr>";
             return;
           }
+
           snap.forEach((doc) => {
             const data = doc.data();
-            const tr = document.createElement("tr");
-            const date = new Date(data.date).toLocaleString("id-ID");
+            const ts = data.date?.seconds ? new Date(data.date.seconds * 1000) : new Date();
+            const date = ts.toLocaleString("id-ID");
+            const nominal = data.nominal || 0;
 
+            // cek apakah user pengirim atau penerima
+            let keterangan = "";
+            let emailTampil = "";
+
+            if (data.from === user.email) {
+              keterangan = "Transfer";
+              emailTampil = data.to;
+            } else if (data.to === user.email) {
+              keterangan = "Terima";
+              emailTampil = data.from;
+            } else {
+              return; // bukan history milik user
+            }
+
+            const tr = document.createElement("tr");
             tr.innerHTML = `
-              <td>${data.to}</td>
-              <td>Rp ${data.amount.toLocaleString("id-ID")}</td>
+              <td>${emailTampil}</td>
+              <td>Rp ${nominal.toLocaleString("id-ID")}</td>
               <td>${date}</td>
-              <td class="status-${data.status}">${data.status}</td>
+              <td class="status-${keterangan.toLowerCase()}">${keterangan}</td>
             `;
             historyTable.appendChild(tr);
           });
