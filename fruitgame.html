@@ -30,6 +30,10 @@
   font-weight: normal;
   margin-top: 4px;
 }
+#buyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .spin-container {
   margin-top: 25px; /* agak ke bawah */
@@ -236,7 +240,18 @@ buyBtn.addEventListener("click", () => {
 
     function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(num); }
     
-    function updateBanner(){ if(inScatterMode){ banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; document.body.classList.add("scatter-mode"); } else { banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; document.body.classList.remove("scatter-mode"); } }
+    function updateBanner(){ 
+  if(inScatterMode){ 
+    banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; 
+    document.body.classList.add("scatter-mode"); 
+    buyBtn.disabled = true;   // nonaktifkan BUY FS saat scatter
+  } else { 
+    banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; 
+    document.body.classList.remove("scatter-mode"); 
+    buyBtn.disabled = false;  // aktifkan kembali kalau sudah normal
+  } 
+}
+
     function lockControls(){ betMinus.disabled=true; betPlus.disabled=true; autoMinus.disabled=true; autoPlus.disabled=true; }
     function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
     function updateAutoLabel(){ 
