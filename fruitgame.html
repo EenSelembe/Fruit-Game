@@ -348,7 +348,9 @@ if (inScatterMode) {
           setTimeout(()=>tile.classList.remove("fall"),400); 
           container.appendChild(tile); 
           final.push(fruit); 
-        } 
+        if (valOf(fruit) === "🔔") {
+  playSound("lonceng");
+} 
         resolve(final); 
       }); 
     }
