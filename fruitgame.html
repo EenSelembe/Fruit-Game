@@ -171,7 +171,6 @@
     autoSpinValue += 10;
     if (autoSpinValue > 100) { // misalnya batas 100, bisa diubah
       autoSpinInfinite = true;
-      autoSpinValue = 0;
     }
   }
   updateAutoLabel();
@@ -187,7 +186,6 @@ autoMinus.addEventListener("click",()=>{
       autoSpinValue -= 10;
     } else {
       autoSpinInfinite = true;
-      autoSpinValue = 0;
     }
   }
   updateAutoLabel();
@@ -503,13 +501,14 @@ autoMinus.addEventListener("click",()=>{
     unlockControls();
     return;
   }
-  if(autoSpinValue>0){
+   if (autoSpinInfinite){
+    spinBtn.textContent = "STOP";
+    spin();
+   } else if(autoSpinValue>0){
     autoSpinCount = autoSpinValue;
     spinBtn.textContent = "STOP";
     spin();
-  } else if (autoSpinInfinite){
-    spinBtn.textContent = "STOP";
-    spin();
+  
     }else{
     spin();
   }
