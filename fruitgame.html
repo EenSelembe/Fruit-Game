@@ -206,6 +206,24 @@ autoMinus.addEventListener("click",()=>{
 
     for(let c=0;c<COLS;c++){ const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c; const container=document.createElement("div"); container.className="symbols"; for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); } reel.appendChild(container); board.appendChild(reel); }
 
+// ====== AUDIO SYSTEM ======
+const sounds = {
+  spin: new Audio("sons/spin.mp3"),
+  drop: new Audio("sons/drop.mp3"),
+  lonceng: new Audio("sons/lonceng.mp3"),
+  win: new Audio("sons/win.mp3"),
+  scatter: new Audio("sons/scater.mp3"),
+  totalWin: new Audio("sons/total-win.mp3")
+};
+
+function playSound(name) {
+  if (sounds[name]) {
+    sounds[name].currentTime = 0;
+    sounds[name].play().catch(e => console.warn("Audio error:", e));
+  }
+}
+
+    
     async function spin() { 
   // kalau saldo kurang
   if (balance < bet) {
@@ -345,7 +363,8 @@ autoMinus.addEventListener("click",()=>{
         updateStats();
         if (typeof saveBalance === "function") saveBalance();
       }
-
+      
+    playSound("win");
       result.highlights.forEach(pos => {
         const reel = document.getElementById("reel" + pos.c);
         const tile = reel.querySelectorAll(".tile")[pos.r];
@@ -399,6 +418,7 @@ autoMinus.addEventListener("click",()=>{
     } else {
       // cek scatter kalau tidak ada highlight
       if (result.scatterCount >= 4) {
+        playSound("scatter");
         lockControls();
         document.querySelectorAll(".tile.scatter").forEach(t => t.classList.add("shake"));
         await new Promise(r => setTimeout(r, 2000));
@@ -442,6 +462,8 @@ autoMinus.addEventListener("click",()=>{
       inScatterMode = false;
       overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
       overlay.classList.add("show");
+      playSound("totalwin");
+
 
       setTimeout(() => {
         overlay.classList.remove("show");
@@ -499,6 +521,7 @@ autoMinus.addEventListener("click",()=>{
 
 
 spinBtn.addEventListener("click", () => {
+  playSound("spin");
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(err => {
       console.warn("Fullscreen gagal:", err);
