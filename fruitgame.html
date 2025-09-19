@@ -7,6 +7,30 @@
 
   <!-- BAGIAN CSS -->
   <style>
+    .buy-container {
+  margin-top: 10px;
+  text-align: center;
+}
+#buyBtn {
+  background: orange;
+  color: #000;
+  border: none;
+  border-radius: 8px;  /* sudut agak membulat, bisa 0 kalau mau kotak full */
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  display: block;
+  width: 160px;
+  margin: 0 auto;
+}
+#buyBtn span {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: normal;
+  margin-top: 4px;
+}
+
     :root{--bg:#1b5e20;--gold:#f7c33e;--gap-size:12px;--rows:4;}
     body {
       margin: 0;
@@ -128,11 +152,16 @@
 
   <div class="spin-container">
     <button class="btn-spin" id="spinBtn">SPIN</button>
-    <button class="btn-spin" id="buyBtn" style="background:orange;">BUY FS</button>
+    <button class="btn-spin" id="buyBtn" style="background:orange;">
+  BUY FS<br><span id="buyPrice">Harga: Rp. 50.000</span>
+</button>
+
   </div>
   
   <div class="overlay-win" id="overlayWin"><div>ANDA MEMENANGKAN</div>
-  <div class="amount" id="overlayAmount">RP. 0
+  <div id="overlayAmount" class="amount"></div>
+</div>
+
   </div>
   </div>
 
@@ -158,6 +187,18 @@
     const autoMinus=document.getElementById("autoMinus"), autoPlus=document.getElementById("autoPlus"), autoCount=document.getElementById("autoCount");
     const autoControl=document.getElementById("autoControl"), board=document.getElementById("board"), turboBtn=document.getElementById("turboBtn");
     const buyBtn = document.getElementById("buyBtn");
+const buyPrice = document.getElementById("buyPrice");
+    function updateBuyPrice() {
+  const cost = bet * 100;
+  buyPrice.textContent = "Harga: Rp. " + formatRupiah(cost);
+}
+    function updateStats() {
+  balEl.textContent = "Rp. " + formatRupiah(balance);
+  winEl.textContent = "Rp. " + formatRupiah(win);
+  betEl.textContent = "Rp. " + formatRupiah(bet);
+  updateBuyPrice(); // update harga buy free spin
+}
+
 
 buyBtn.addEventListener("click", () => {
   const cost = bet * 100;
@@ -183,7 +224,7 @@ buyBtn.addEventListener("click", () => {
 
 
     function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(num); }
-    function updateStats(){ balEl.textContent="Rp. "+formatRupiah(balance); winEl.textContent="Rp. "+formatRupiah(win); betEl.textContent="Rp. "+formatRupiah(bet); }
+    
     function updateBanner(){ if(inScatterMode){ banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; document.body.classList.add("scatter-mode"); } else { banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; document.body.classList.remove("scatter-mode"); } }
     function lockControls(){ betMinus.disabled=true; betPlus.disabled=true; autoMinus.disabled=true; autoPlus.disabled=true; }
     function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
