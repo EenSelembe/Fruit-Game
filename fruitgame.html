@@ -334,25 +334,34 @@ if (inScatterMode) {
   finishSpin(matrix);
 }
 
-    function stopReel(c){ 
-      return new Promise(resolve=>{ 
-        const container=document.getElementById("reel"+c).querySelector(".symbols"); 
-        container.classList.remove("spinning"); 
-        let final=[]; 
-        container.innerHTML=""; 
-        for(let i=0;i<ROWS;i++){ 
-          const fruit=getRandomFruit(c); 
-          const tile=makeTile(fruit); 
-          tile.classList.add("fall"); 
-          setTimeout(()=>tile.classList.remove("fall"),400); 
-          container.appendChild(tile); 
-          final.push(fruit); 
-        if (valOf(fruit) === "🔔") {
-  playBell();
-} 
-        }  resolve(final); 
-      }); 
+    function stopReel(c) {
+  return new Promise(resolve => {
+    const container = document.getElementById("reel" + c).querySelector(".symbols");
+    container.classList.remove("spinning");
+    let final = [];
+    container.innerHTML = "";
+
+    for (let i = 0; i < ROWS; i++) {
+      // simpan fruit sebagai object agar bisa punya flag _new
+      const fruit = { val: getRandomFruit(c), _new: true };
+
+      const tile = makeTile(fruit);
+      tile.classList.add("fall");
+      setTimeout(() => tile.classList.remove("fall"), 400);
+
+      container.appendChild(tile);
+      final.push(fruit);
+
+      if (fruit.val === "🔔" && fruit._new) {
+        playBell();
+        delete fruit._new;
+      }
     }
+
+    resolve(final);
+  });
+}
+
 
     function calculateWin(matrix){ 
   let totalWin=0, highlights=[], scatterCount=0; 
