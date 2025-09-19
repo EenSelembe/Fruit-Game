@@ -128,8 +128,13 @@
 
   <div class="spin-container">
     <button class="btn-spin" id="spinBtn">SPIN</button>
+    <button class="btn-spin" id="buyBtn" style="background:orange;">BUY FS</button>
   </div>
-  <div class="overlay-win" id="overlayWin"><div>ANDA MEMENANGKAN</div><div class="amount" id="overlayAmount">RP. 0</div></div>
+  
+  <div class="overlay-win" id="overlayWin"><div>ANDA MEMENANGKAN</div>
+  <div class="amount" id="overlayAmount">RP. 0
+  </div>
+  </div>
 
   <!-- BAGIAN JS -->
   <script>
@@ -152,6 +157,30 @@
     const spinBtn=document.getElementById("spinBtn"), betMinus=document.getElementById("betMinus"), betPlus=document.getElementById("betPlus");
     const autoMinus=document.getElementById("autoMinus"), autoPlus=document.getElementById("autoPlus"), autoCount=document.getElementById("autoCount");
     const autoControl=document.getElementById("autoControl"), board=document.getElementById("board"), turboBtn=document.getElementById("turboBtn");
+    const buyBtn = document.getElementById("buyBtn");
+
+buyBtn.addEventListener("click", () => {
+  const cost = bet * 100;
+  if (balance >= cost) {
+    balance -= cost;
+    updateStats();
+    if (typeof saveBalance === "function") saveBalance();
+
+    // aktifkan scatter mode manual
+    inScatterMode = true;
+    freeSpins = 15;
+    scatterWinTotal = 0;
+    document.body.classList.add("scatter-mode");
+    playBacksoundScatter();
+    updateBanner();
+
+    // langsung jalankan spin pertama free spin
+    setTimeout(spin, 500);
+  } else {
+    banner.textContent = "Saldo tidak cukup untuk Buy Free Spin!";
+  }
+});
+
 
     function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(num); }
     function updateStats(){ balEl.textContent="Rp. "+formatRupiah(balance); winEl.textContent="Rp. "+formatRupiah(win); betEl.textContent="Rp. "+formatRupiah(bet); }
