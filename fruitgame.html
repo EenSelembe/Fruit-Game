@@ -145,6 +145,8 @@
     let turbo=false;
     let currentSpinWin = 0;
     let autoSpinInfinite = false;
+    let autoRunning = false;
+    
     const balEl=document.getElementById("balance"), winEl=document.getElementById("win"), betEl=document.getElementById("bet");
     const banner=document.getElementById("banner"), overlay=document.getElementById("overlayWin"), overlayAmount=document.getElementById("overlayAmount");
     const spinBtn=document.getElementById("spinBtn"), betMinus=document.getElementById("betMinus"), betPlus=document.getElementById("betPlus");
@@ -156,10 +158,17 @@
     function updateBanner(){ if(inScatterMode){ banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`; document.body.classList.add("scatter-mode"); } else { banner.textContent="CARI 4 LONCENG UNTUK SCATTER"; document.body.classList.remove("scatter-mode"); } }
     function lockControls(){ betMinus.disabled=true; betPlus.disabled=true; autoMinus.disabled=true; autoPlus.disabled=true; }
     function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
-    function updateAutoLabel(){ if (autoSpinInfinite) {
+    function updateAutoLabel(){ 
+  if (autoSpinInfinite) {
     autoCount.textContent = "∞";
-  } else { autoCount.textContent=autoSpinValue; } }
-
+  } else if (autoRunning && autoSpinCount > 0) {
+    // kalau sedang jalan, tampilkan sisa counter
+    autoCount.textContent = autoSpinCount;
+  } else {
+    // kalau belum jalan, tampilkan nilai setting
+    autoCount.textContent = autoSpinValue;
+  }
+}
     betMinus.addEventListener("click",()=>{ if(bet>betMin){ bet-=betStep; updateStats(); }});
     betPlus.addEventListener("click",()=>{ if(bet<betMax){ bet+=betStep; updateStats(); }});
     autoPlus.addEventListener("click",()=>{
@@ -488,7 +497,6 @@ autoMinus.addEventListener("click",()=>{
   spinning = false;
     }
 
-  let autoRunning = false;
 
 spinBtn.addEventListener("click", () => {
   if (!document.fullscreenElement) {
