@@ -209,7 +209,7 @@ autoMinus.addEventListener("click",()=>{
 // ====== AUDIO SYSTEM ======
 const sounds = {
   spin: new Audio("sonds/spin.mp3"),
-  drop: new Audio("sonds/drop.mp3"),
+  roll: new Audio("sonds/drop.mp3"),
   lonceng: new Audio("sonds/lonceng.mp3"),
   win: new Audio("sonds/win.mp3"),
   scatter: new Audio("sonds/scater.mp3"),
@@ -246,7 +246,7 @@ function playSound(name) {
 
   lockControls();
   spinning = true;
-
+playSound("roll");
       
   // potong saldo kalau bukan scatter
     win = 0;
@@ -442,7 +442,7 @@ function playSound(name) {
     
     async function finishSpin(matrix){
   await cascade(matrix);
-
+stopSound("roll");
   if (inScatterMode) {
     updateBanner();
     // paksa wild di reel 2 & 4 saat free spin berjalan
