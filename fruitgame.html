@@ -162,7 +162,6 @@
 
     betMinus.addEventListener("click",()=>{ if(bet>betMin){ bet-=betStep; updateStats(); }});
     betPlus.addEventListener("click",()=>{ if(bet<betMax){ bet+=betStep; updateStats(); }});
-    autoMinus.addEventListener("click",()=>{ if(autoSpinValue>0){ autoSpinValue-=10; updateAutoLabel(); }});
     autoPlus.addEventListener("click",()=>{
   if (autoSpinInfinite) {
     // dari ∞ → ke 0
