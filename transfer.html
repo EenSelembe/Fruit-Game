@@ -92,8 +92,9 @@
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { 
-    getFirestore, collection, doc, getDocs, query, where, updateDoc, getDoc, addDoc 
+  import {
+    getFirestore, collection, doc, getDocs, query, where,
+    updateDoc, getDoc, addDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -111,85 +112,77 @@
   const db = getFirestore(app);
 
   let currentUser = null;
-  const msgBox = document.getElementById("msg");
-
-  function showMessage(text, type="success") {
-    msgBox.textContent = text;
-    msgBox.className = "msg " + type;
-  }
-
   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUser = user;
-    } else {
-      window.location.href = "index.html";
-    }
+    if (user) currentUser = user;
+    else window.location.href = "index.html";
   });
 
-  document.getElementById("transferForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const emailTujuan = document.getElementById("emailTujuan").value.trim();
-    const nominal = parseInt(document.getElementById("nominal").value);
+  const form = document.getElementById("transferForm");
+  const msg  = document.getElementById("msg");
 
-    if (!currentUser) {
-      showMessage("❌ Anda harus login!", "error");
-      return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.textContent = "";
+
+    const emailTujuan = document.getElementById("emailTujuan").value.trim().toLowerCase();
+    const nominal = parseInt(document.getElementById("nominal").value, 10);
+
+    if (!currentUser) { alert("Anda harus login!"); return; }
+    if (!emailTujuan || !Number.isInteger(nominal) || nominal <= 0) {
+      alert("Data tidak valid!"); return;
     }
-    if (!emailTujuan || nominal <= 0) {
-      showMessage("❌ Data tidak valid!", "error");
-      return;
+    if (emailTujuan === currentUser.email?.toLowerCase()) {
+      alert("Tidak bisa transfer ke email sendiri."); return;
     }
 
     try {
-      // Cari user tujuan
+      // cari penerima by email
       const q = query(collection(db, "users"), where("email", "==", emailTujuan));
       const snap = await getDocs(q);
-
-      if (snap.empty) {
-        showMessage("❌ User tujuan tidak ditemukan!", "error");
-        return;
-      }
+      if (snap.empty) { alert("❌ User tujuan tidak ditemukan!"); return; }
 
       const targetDoc = snap.docs[0];
       const targetRef = doc(db, "users", targetDoc.id);
 
-      // Ambil saldo pengirim
+      // saldo pengirim
       const pengirimRef = doc(db, "users", currentUser.uid);
       const pengirimSnap = await getDoc(pengirimRef);
-
-      if (!pengirimSnap.exists()) {
-        showMessage("❌ Data Anda tidak ditemukan!", "error");
-        return;
-      }
+      if (!pengirimSnap.exists()) { alert("❌ Data Anda tidak ditemukan!"); return; }
 
       const saldoPengirim = pengirimSnap.data().saldo || 0;
-
       if (saldoPengirim - nominal < 100000) {
-        showMessage("❌ Saldo tidak mencukupi (minimal Rp100.000 tersisa)!", "error");
-        return;
+        alert("❌ Saldo tidak mencukupi (minimal tersisa Rp100.000)!"); return;
       }
 
-      // Update saldo
+      // Update saldo (sederhana; untuk produksi sebaiknya pakai transaction)
       await updateDoc(pengirimRef, { saldo: saldoPengirim - nominal });
       const saldoPenerima = targetDoc.data().saldo || 0;
       await updateDoc(targetRef, { saldo: saldoPenerima + nominal });
 
-      // Simpan history
-      await addDoc(collection(db, "transfers"), {
-        from: currentUser.email,
-        to: emailTujuan,
-        nominal: nominal,
-        date: new Date(),
-        status: "sukses"
-      });
+      // Simpan history (global 'transfers') — pakai serverTimestamp
+      try {
+        await addDoc(collection(db, "transfers"), {
+          from: currentUser.email,
+          to: emailTujuan,
+          nominal: nominal,
+          date: serverTimestamp(),
+          status: "sukses"
+        });
+      } catch (hErr) {
+        console.warn("History gagal disimpan:", hErr);
+        // jangan gagalkan transaksi; hanya info
+      }
 
-      showMessage(`✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${emailTujuan} berhasil!`, "success");
+      alert(`✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${emailTujuan} berhasil!`);
+      msg.textContent = "Transfer berhasil.";
+      form.reset();
 
     } catch (err) {
       console.error(err);
-      showMessage("❌ Terjadi kesalahan saat transfer!", "error");
+      alert("❌ Terjadi kesalahan saat transfer!");
+      msg.textContent = "Terjadi kesalahan saat transfer.";
     }
   });
-  </script>
+</script>
 </body>
 </html>
