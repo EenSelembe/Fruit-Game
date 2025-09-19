@@ -249,7 +249,15 @@ function playBacksoundScatter() {
     sounds.backsoundScatter.play().catch(e => console.warn("Scatter sound error:", e));
   }
 }
-
+    
+function playBacksoundNormal() {
+  stopSound("backsoundScatter");     // pastikan scatter berhenti
+  if (sounds.backsound.paused) {
+    sounds.backsound.currentTime = 0;
+    sounds.backsound.play().catch(e => console.warn("Normal sound error:", e));
+  }
+}
+    
 function playBell() {
   const a = new Audio(sounds.lonceng.src);
   a.volume = sounds.lonceng.volume ?? 1;
@@ -524,8 +532,9 @@ if (inScatterMode) {
       overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
       overlay.classList.add("show");
       playSound("totalwin");
-
-
+      
+      stopSound("backsoundScatter");
+      
       setTimeout(() => {
         overlay.classList.remove("show");
         balance += scatterWinTotal;
@@ -538,6 +547,8 @@ if (inScatterMode) {
         scatterWinTotal = 0;
         document.body.classList.remove("scatter-mode");
         turboBtn.disabled = false;
+        
+        
         playBacksoundNormal();
         
         if (autoSpinCount > 0) {
