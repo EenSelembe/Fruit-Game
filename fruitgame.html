@@ -250,12 +250,11 @@ function playBacksoundScatter() {
   }
 }
 
-function playBacksoundNormal() {
-  stopSound("backsoundScatter");
-  if (sounds.backsound.paused) {
-    sounds.backsound.currentTime = 0;
-    sounds.backsound.play().catch(e => console.warn("Normal sound error:", e));
-  }
+function playBell() {
+  const a = new Audio(sounds.lonceng.src);
+  a.volume = sounds.lonceng.volume ?? 1;
+  a.play().catch(e => console.warn("Bell audio error:", e));
+
 }
     
     async function spin() { 
@@ -349,7 +348,7 @@ if (inScatterMode) {
           container.appendChild(tile); 
           final.push(fruit); 
         if (valOf(fruit) === "🔔") {
-  playSound("lonceng");
+  playBell();
 } 
         }  resolve(final); 
       }); 
@@ -457,10 +456,10 @@ if (inScatterMode) {
           }
           container.appendChild(tile);
           if (valOf(fruit) === "🔔") {
-      playSound("lonceng");
+      playBell();
+    }
     }
         }
-      }
 
       await new Promise(r => setTimeout(r, 500));
 
