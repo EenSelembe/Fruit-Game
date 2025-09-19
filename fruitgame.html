@@ -222,6 +222,12 @@ function playSound(name) {
     sounds[name].play().catch(e => console.warn("Audio error:", e));
   }
 }
+function stopSound(name) {
+  if (sounds[name]) {
+    sounds[name].pause();        // hentikan audio
+    sounds[name].currentTime = 0; // kembalikan ke awal
+  }
+}
 
     
     async function spin() { 
