@@ -31,65 +31,30 @@
       color: #ffd700;
       text-shadow: 0 0 8px #ff5722, 0 0 14px #ff9800;
     }
-    .input-group {
-      margin-bottom: 15px;
-      text-align: left;
-    }
-    .input-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 0.9rem;
-      color: #fff;
-    }
+    .input-group { margin-bottom: 15px; text-align: left; }
+    .input-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
     .input-group input {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      outline: none;
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      font-size: 1rem; outline: none;
     }
     .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
+      width: 100%; padding: 12px; border: none; border-radius: 10px;
       background: linear-gradient(90deg, #ff9800, #f57c00);
-      color: #fff;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      margin-top: 10px;
+      color: #fff; font-size: 1rem; font-weight: bold;
+      cursor: pointer; transition: background 0.3s ease; margin-top: 10px;
     }
-    .btn:hover {
-      background: linear-gradient(90deg, #ffa726, #fb8c00);
-    }
-    .note {
-      margin-top: 12px;
-      font-size: 0.8rem;
-      color: #ccc;
-    }
+    .btn:hover { background: linear-gradient(90deg, #ffa726, #fb8c00); }
+    .note { margin-top: 12px; font-size: 0.8rem; color: #ccc; }
     .link-btns {
-      margin-top: 15px;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
+      margin-top: 15px; display: flex; justify-content: space-between; gap: 10px;
     }
     .link-btns a {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      background: #2196f3;
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-      text-align: center;
+      flex: 1; padding: 10px; border-radius: 8px; background: #2196f3;
+      color: white; text-decoration: none; font-weight: bold; text-align: center;
       transition: background 0.3s ease;
     }
-    .link-btns a:hover {
-      background: #1976d2;
-    }
+    .link-btns a:hover { background: #1976d2; }
+    .msg { margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -107,32 +72,110 @@
       <button type="submit" class="btn">Kirim</button>
     </form>
     <div class="note">⚠️ Minimal saldo tersisa Rp100.000 setelah transfer.</div>
+    <div class="msg" id="msg"></div>
 
-    <!-- Tombol navigasi -->
     <div class="link-btns">
       <a href="home.html">🏠 Home</a>
       <a href="history.html">📜 History</a>
     </div>
   </div>
 
-  <script>
-    // Dummy simulasi transfer
-    document.getElementById("transferForm").addEventListener("submit", function(e) {
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let saldoUser = 0;
+    let userRef = null;
+
+    const msgEl = document.getElementById("msg");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) saldoUser = snap.data().saldo || 0;
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+
+    document.getElementById("transferForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = document.getElementById("emailTujuan").value.trim();
+      const emailTujuan = document.getElementById("emailTujuan").value.trim().toLowerCase();
       const nominal = parseInt(document.getElementById("nominal").value);
 
-      if (!email || nominal <= 0) {
-        alert("❌ Data tidak valid!");
+      if (!emailTujuan || isNaN(nominal) || nominal <= 0) {
+        msgEl.textContent = "❌ Data tidak valid!";
+        msgEl.style.color = "red";
         return;
       }
 
-      // Simulasi sukses/gagal random
-      const sukses = Math.random() > 0.3; // 70% sukses
-      if (sukses) {
-        alert(`✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${email} berhasil!`);
-      } else {
-        alert(`❌ Transfer ke ${email} gagal. Coba lagi.`);
+      if (saldoUser - nominal < 100000) {
+        msgEl.textContent = "❌ Minimal saldo tersisa Rp100.000.";
+        msgEl.style.color = "red";
+        return;
+      }
+
+      try {
+        // cari user tujuan
+        const q = query(collection(db, "users"), where("email", "==", emailTujuan));
+        const hasil = await getDocs(q);
+
+        if (hasil.empty) {
+          msgEl.textContent = "❌ User tujuan tidak ditemukan.";
+          msgEl.style.color = "red";
+          return;
+        }
+
+        const tujuanDoc = hasil.docs[0];
+        const tujuanRef = doc(db, "users", tujuanDoc.id);
+        const tujuanSaldo = tujuanDoc.data().saldo || 0;
+
+        // update saldo
+        await updateDoc(userRef, { saldo: saldoUser - nominal });
+        saldoUser -= nominal;
+        await updateDoc(tujuanRef, { saldo: tujuanSaldo + nominal });
+
+        // simpan history pengirim
+        await addDoc(collection(db, "users", currentUser.uid, "transfers"), {
+          to: emailTujuan,
+          amount: nominal,
+          date: new Date().toISOString(),
+          status: "sukses"
+        });
+
+        // simpan history penerima
+        await addDoc(collection(db, "users", tujuanDoc.id, "transfers"), {
+          from: currentUser.email,
+          amount: nominal,
+          date: new Date().toISOString(),
+          status: "sukses"
+        });
+
+        msgEl.textContent = `✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${emailTujuan} berhasil!`;
+        msgEl.style.color = "lime";
+      } catch (err) {
+        console.error(err);
+        msgEl.textContent = "❌ Terjadi error saat transfer.";
+        msgEl.style.color = "red";
       }
     });
   </script>
