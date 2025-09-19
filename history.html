@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History Transfer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: url("https://i.ibb.co/jM3d6bY/fruit-wallpaper.jpg") no-repeat center center fixed;
+      background-size: cover;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 6px black, 0 0 12px orange;
+    }
+    table {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      border-collapse: collapse;
+      background: rgba(255,255,255,0.9);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+    th {
+      background: linear-gradient(180deg, #ff9800, #f57c00);
+      color: white;
+    }
+    tr:nth-child(even) {
+      background: rgba(255, 249, 196, 0.9);
+    }
+    .status-sukses {
+      color: green;
+      font-weight: bold;
+    }
+    .status-gagal {
+      color: red;
+      font-weight: bold;
+    }
+    .status-proses {
+      color: orange;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>History Transfer Saldo</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Email Tujuan</th>
+        <th>Nominal</th>
+        <th>Tanggal</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Contoh data dummy -->
+      <tr>
+        <td>user1@example.com</td>
+        <td>Rp 150.000</td>
+        <td>2025-09-19</td>
+        <td class="status-sukses">Sukses</td>
+      </tr>
+      <tr>
+        <td>user2@example.com</td>
+        <td>Rp 300.000</td>
+        <td>2025-09-18</td>
+        <td class="status-proses">Proses</td>
+      </tr>
+      <tr>
+        <td>user3@example.com</td>
+        <td>Rp 200.000</td>
+        <td>2025-09-17</td>
+        <td class="status-gagal">Gagal</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
