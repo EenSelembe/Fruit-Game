@@ -481,6 +481,7 @@ if (inScatterMode) {
         document.querySelectorAll(".tile.scatter").forEach(t => t.classList.add("shake"));
         await new Promise(r => setTimeout(r, 2000));
         document.querySelectorAll(".tile.scatter").forEach(t => t.classList.remove("shake"));
+        stopSound("scatter");
 
         if (!inScatterMode && freeSpins === 0) {
           inScatterMode = true;
