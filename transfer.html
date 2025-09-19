@@ -54,7 +54,15 @@
       transition: background 0.3s ease;
     }
     .link-btns a:hover { background: #1976d2; }
-    .msg { margin-top: 10px; font-weight: bold; }
+    .msg {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      display: none;
+    }
+    .msg.success { background: rgba(0, 255, 0, 0.2); color: #00ff88; display: block; }
+    .msg.error { background: rgba(255, 0, 0, 0.2); color: #ff5555; display: block; }
   </style>
 </head>
 <body>
@@ -82,102 +90,106 @@
 
   <!-- Firebase SDK -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { 
+    getFirestore, collection, doc, getDocs, query, where, updateDoc, getDoc, addDoc 
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",
+    projectId: "fruit-game-5e4a8",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
+    messagingSenderId: "936228678997",
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+    measurementId: "G-EPTSQQPM4D"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    let currentUser = null;
-    let saldoUser = 0;
-    let userRef = null;
+  let currentUser = null;
+  const msgBox = document.getElementById("msg");
 
-    const msgEl = document.getElementById("msg");
+  function showMessage(text, type="success") {
+    msgBox.textContent = text;
+    msgBox.className = "msg " + type;
+  }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUser = user;
-        userRef = doc(db, "users", user.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) saldoUser = snap.data().saldo || 0;
-      } else {
-        window.location.href = "index.html";
-      }
-    });
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+    } else {
+      window.location.href = "index.html";
+    }
+  });
 
-    document.getElementById("transferForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const emailTujuan = document.getElementById("emailTujuan").value.trim().toLowerCase();
-      const nominal = parseInt(document.getElementById("nominal").value);
+  document.getElementById("transferForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const emailTujuan = document.getElementById("emailTujuan").value.trim();
+    const nominal = parseInt(document.getElementById("nominal").value);
 
-      if (!emailTujuan || isNaN(nominal) || nominal <= 0) {
-        msgEl.textContent = "❌ Data tidak valid!";
-        msgEl.style.color = "red";
+    if (!currentUser) {
+      showMessage("❌ Anda harus login!", "error");
+      return;
+    }
+    if (!emailTujuan || nominal <= 0) {
+      showMessage("❌ Data tidak valid!", "error");
+      return;
+    }
+
+    try {
+      // Cari user tujuan
+      const q = query(collection(db, "users"), where("email", "==", emailTujuan));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        showMessage("❌ User tujuan tidak ditemukan!", "error");
         return;
       }
 
-      if (saldoUser - nominal < 100000) {
-        msgEl.textContent = "❌ Minimal saldo tersisa Rp100.000.";
-        msgEl.style.color = "red";
+      const targetDoc = snap.docs[0];
+      const targetRef = doc(db, "users", targetDoc.id);
+
+      // Ambil saldo pengirim
+      const pengirimRef = doc(db, "users", currentUser.uid);
+      const pengirimSnap = await getDoc(pengirimRef);
+
+      if (!pengirimSnap.exists()) {
+        showMessage("❌ Data Anda tidak ditemukan!", "error");
         return;
       }
 
-      try {
-        // cari user tujuan
-        const q = query(collection(db, "users"), where("email", "==", emailTujuan));
-        const hasil = await getDocs(q);
+      const saldoPengirim = pengirimSnap.data().saldo || 0;
 
-        if (hasil.empty) {
-          msgEl.textContent = "❌ User tujuan tidak ditemukan.";
-          msgEl.style.color = "red";
-          return;
-        }
-
-        const tujuanDoc = hasil.docs[0];
-        const tujuanRef = doc(db, "users", tujuanDoc.id);
-        const tujuanSaldo = tujuanDoc.data().saldo || 0;
-
-        // update saldo
-        await updateDoc(userRef, { saldo: saldoUser - nominal });
-        saldoUser -= nominal;
-        await updateDoc(tujuanRef, { saldo: tujuanSaldo + nominal });
-
-        // simpan history pengirim
-        await addDoc(collection(db, "users", currentUser.uid, "transfers"), {
-          to: emailTujuan,
-          amount: nominal,
-          date: new Date().toISOString(),
-          status: "sukses"
-        });
-
-        // simpan history penerima
-        await addDoc(collection(db, "users", tujuanDoc.id, "transfers"), {
-          from: currentUser.email,
-          amount: nominal,
-          date: new Date().toISOString(),
-          status: "sukses"
-        });
-
-        msgEl.textContent = `✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${emailTujuan} berhasil!`;
-        msgEl.style.color = "lime";
-      } catch (err) {
-        console.error(err);
-        msgEl.textContent = "❌ Terjadi error saat transfer.";
-        msgEl.style.color = "red";
+      if (saldoPengirim - nominal < 100000) {
+        showMessage("❌ Saldo tidak mencukupi (minimal Rp100.000 tersisa)!", "error");
+        return;
       }
-    });
+
+      // Update saldo
+      await updateDoc(pengirimRef, { saldo: saldoPengirim - nominal });
+      const saldoPenerima = targetDoc.data().saldo || 0;
+      await updateDoc(targetRef, { saldo: saldoPenerima + nominal });
+
+      // Simpan history
+      await addDoc(collection(db, "transfers"), {
+        from: currentUser.email,
+        to: emailTujuan,
+        nominal: nominal,
+        date: new Date(),
+        status: "sukses"
+      });
+
+      showMessage(`✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${emailTujuan} berhasil!`, "success");
+
+    } catch (err) {
+      console.error(err);
+      showMessage("❌ Terjadi kesalahan saat transfer!", "error");
+    }
+  });
   </script>
 </body>
 </html>
