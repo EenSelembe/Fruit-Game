@@ -293,7 +293,7 @@ playSound("roll");
       matrix.push(await stopReel(c));
     }
   }
-
+stopSound("roll");
   // selesai spin → hitung hasil
   finishSpin(matrix);
 }
@@ -449,7 +449,7 @@ playSound("roll");
     
     async function finishSpin(matrix){
   await cascade(matrix);
-stopSound("roll");
+
   if (inScatterMode) {
     updateBanner();
     // paksa wild di reel 2 & 4 saat free spin berjalan
