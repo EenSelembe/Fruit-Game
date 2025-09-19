@@ -214,11 +214,14 @@ const sounds = {
   win: new Audio("sonds/win.mp3"),
   scatter: new Audio("sonds/scater.mp3"),
   totalWin: new Audio("sonds/total-win.mp3"),
-  backsound: new Audio("sonds/backsondnormal.mp3") 
+  backsound: new Audio("sonds/backsondnormal.mp3"),
+  backsoundScatter: new Audio("sonds/backsondscatter.mp3")
 };
 sounds.roll.loop = true;
 sounds.backsound.loop = true;
 sounds.backsound.volume = 0.5;
+sounds.backsoundScatter.loop = true;
+sounds.backsoundScatter.volume = 0.5;
 
     window.addEventListener("load", () => {
   sounds.backsound.play().catch(e => {
@@ -238,7 +241,21 @@ function stopSound(name) {
     sounds[name].currentTime = 0; // kembalikan ke awal
   }
 }
+function playBacksoundScatter() {
+  stopSound("backsound");
+  if (sounds.backsoundScatter.paused) {
+    sounds.backsoundScatter.currentTime = 0;
+    sounds.backsoundScatter.play().catch(e => console.warn("Scatter sound error:", e));
+  }
+}
 
+function playBacksoundNormal() {
+  stopSound("backsoundScatter");
+  if (sounds.backsound.paused) {
+    sounds.backsound.currentTime = 0;
+    sounds.backsound.play().catch(e => console.warn("Normal sound error:", e));
+  }
+}
     
     async function spin() { 
   // kalau saldo kurang
@@ -444,6 +461,8 @@ stopSound("roll");
           inScatterMode = true;
           freeSpins = 15;
           document.body.classList.add("scatter-mode");
+          playBacksoundScatter();
+          
         } else if (inScatterMode) {
           freeSpins += 10;
           banner.textContent = `+10 FREE SPIN (Sisa: ${freeSpins})`;
@@ -493,7 +512,8 @@ stopSound("roll");
         scatterWinTotal = 0;
         document.body.classList.remove("scatter-mode");
         turboBtn.disabled = false;
-
+        playBacksoundNormal();
+        
         if (autoSpinCount > 0) {
           autoSpinCount--;
           updateAutoLabel();
