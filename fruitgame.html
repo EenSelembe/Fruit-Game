@@ -486,35 +486,47 @@ autoMinus.addEventListener("click",()=>{
   spinning = false;
     }
 
-    spinBtn.addEventListener("click",()=>{
+  let autoRunning = false;
+
+spinBtn.addEventListener("click", () => {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(err=>{
+    document.documentElement.requestFullscreen().catch(err => {
       console.warn("Fullscreen gagal:", err);
     });
   }
-  if(autoSpinCount>0 || autoSpinInfinite){
-    // kalau auto sedang jalan → klik spin jadi STOP
-    autoSpinCount = 0;
+
+  // Kalau auto (∞ atau angka) sedang berjalan → klik tombol jadi STOP
+  if (autoRunning) {
+    autoRunning = false;
     autoSpinInfinite = false;
+    autoSpinCount = 0;
     updateAutoLabel();
     spinBtn.textContent = "SPIN";
     unlockControls();
     return;
   }
-   if (autoSpinInfinite){
+
+  // Kalau pilih infinite di menu auto
+  if (autoSpinInfinite) {
+    autoRunning = true;
     spinBtn.textContent = "STOP";
     spin();
-   } else if(autoSpinValue>0){
+  }
+  // Kalau pilih auto angka > 0
+  else if (autoSpinValue > 0) {
+    autoRunning = true;
     autoSpinCount = autoSpinValue;
     spinBtn.textContent = "STOP";
     spin();
-  
-    }else{
+  }
+  // Kalau manual spin
+  else {
     spin();
   }
+
   updateAutoLabel();
-  
 });
+
 
     turboBtn.addEventListener("click",()=>{
       turbo=!turbo;
