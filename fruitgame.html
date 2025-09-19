@@ -507,7 +507,8 @@ autoMinus.addEventListener("click",()=>{
   if(autoSpinValue>0){
     autoSpinCount = autoSpinValue;
     spinBtn.textContent = "STOP";
-  } else if (autoSpinInfinite){
+  } else if (autoSpinValue === 0 && ! autoSpinInfinite){
+    autoSpinInfinite = true;
     spinBtn.textContent = "STOP"
     }
   updateAutoLabel();
