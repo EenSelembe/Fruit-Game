@@ -456,6 +456,9 @@ if (inScatterMode) {
             delete fruit._fall;
           }
           container.appendChild(tile);
+          if (valOf(fruit) === "🔔") {
+      playSound("lonceng");
+    }
         }
       }
 
