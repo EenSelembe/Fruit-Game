@@ -158,21 +158,21 @@
     function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
     function updateAutoLabel(){ if (autoSpinInfinite) {
     autoCount.textContent = "∞";
-  } else if(autoSpinCount>0){ autoCount.textContent=autoSpinCount; } else { autoCount.textContent=autoSpinValue; } }
+  } else { autoCount.textContent=autoSpinValue; } }
 
     betMinus.addEventListener("click",()=>{ if(bet>betMin){ bet-=betStep; updateStats(); }});
     betPlus.addEventListener("click",()=>{ if(bet<betMax){ bet+=betStep; updateStats(); }});
     autoMinus.addEventListener("click",()=>{ if(autoSpinValue>0){ autoSpinValue-=10; updateAutoLabel(); }});
     autoPlus.addEventListener("click",()=>{
   if (autoSpinInfinite) {
-    // dari ∞ → ke 10
+    // dari ∞ → ke 0
     autoSpinInfinite = false;
-    autoSpinValue = 10;
+    autoSpinValue = 0;
   } else {
     autoSpinValue += 10;
     if (autoSpinValue > 100) { // misalnya batas 100, bisa diubah
       autoSpinInfinite = true;
-      autoSpinValue = -1;
+      autoSpinValue = 0;
     }
   }
   updateAutoLabel();
@@ -507,7 +507,7 @@ autoMinus.addEventListener("click",()=>{
   if(autoSpinValue>0){
     autoSpinCount = autoSpinValue;
     spinBtn.textContent = "STOP";
-  } else if (autoSpinValue === 0 && ! autoSpinInfinite){
+  } else if (autoSpinInfinite){
     autoSpinInfinite = true;
     spinBtn.textContent = "STOP"
     }
