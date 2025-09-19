@@ -432,7 +432,7 @@ if (inScatterMode) {
           } else shift++;
         }
         for (let i = 0; i < shift; i++) {
-          newCol.unshift({ val: getRandomFruit(c), _fall: true });
+          newCol.unshift({ val: getRandomFruit(c), _fall: true, _new: true });
         }
         matrix[c] = newCol;
       }
@@ -455,8 +455,9 @@ if (inScatterMode) {
             delete fruit._fall;
           }
           container.appendChild(tile);
-          if (valOf(fruit) === "🔔") {
-      playBell();
+         if (valOf(fruit) === "🔔" && fruit._new) {
+  playBell();
+  delete fruit._new;
     }
     }
         }
