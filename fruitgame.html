@@ -464,6 +464,7 @@ autoMinus.addEventListener("click",()=>{
     }
   } else {
     // mode normal (bukan free spin)
+    if (autoRunning) {
     if (autoSpinInfinite) {
   setTimeout(spin, 800);
 } else
@@ -475,6 +476,7 @@ autoMinus.addEventListener("click",()=>{
       } else {
         unlockControls();
         spinBtn.textContent = "SPIN";
+      }
       }
     } else {
       unlockControls();
