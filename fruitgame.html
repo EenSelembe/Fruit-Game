@@ -482,6 +482,7 @@ autoMinus.addEventListener("click",()=>{
     } else {
       unlockControls();
       spinBtn.textContent = "SPIN";
+      updateAutoLabel();
     }
   }
       
@@ -494,17 +495,21 @@ autoMinus.addEventListener("click",()=>{
       console.warn("Fullscreen gagal:", err);
     });
   }
-  if(autoSpinCount>0){
+  if(autoSpinCount>0 || autoSpinInfinite){
     // kalau auto sedang jalan → klik spin jadi STOP
     autoSpinCount = 0;
+    autoSpinInfinite = false;
     updateAutoLabel();
     spinBtn.textContent = "SPIN";
+    unlockControls();
     return;
   }
   if(autoSpinValue>0){
     autoSpinCount = autoSpinValue;
     spinBtn.textContent = "STOP";
-  }
+  } else if (autoSpinInfinite){
+    spinBtn.textContent = "STOP"
+    }
   updateAutoLabel();
   spin();
 });
