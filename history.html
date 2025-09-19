@@ -72,75 +72,96 @@
 
   <!-- Firebase SDK -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import {
+    getFirestore, collection, onSnapshot, query, where
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",
+    projectId: "fruit-game-5e4a8",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
+    messagingSenderId: "936228678997",
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+    measurementId: "G-EPTSQQPM4D"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const tbody = document.getElementById("historyTable");
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) { window.location.href = "index.html"; return; }
+
+    const email = user.email?.toLowerCase();
+    const col = collection(db, "transfers");
+
+    // dua query: sebagai pengirim & penerima
+    const qFrom = query(col, where("from", "==", email));
+    const qTo   = query(col, where("to",   "==", email));
+
+    let dataFrom = [];
+    let dataTo   = [];
+
+    const render = () => {
+      const all = [...dataFrom, ...dataTo];
+
+      if (!all.length) {
+        tbody.innerHTML = "<tr><td colspan='4'>Belum ada history transfer</td></tr>";
+        return;
+      }
+
+      // urutkan desc berdasarkan date (Timestamp)
+      all.sort((a, b) => (b.ts - a.ts));
+
+      tbody.innerHTML = "";
+      for (const row of all) {
+        const tr = document.createElement("tr");
+        const nominal = row.nominal || 0;
+        const dateStr = new Date(row.ts).toLocaleString("id-ID");
+        const kelas = row.keterangan === "Transfer" ? "status-transfer" : "status-terima";
+        tr.innerHTML = `
+          <td>${row.emailLawannya}</td>
+          <td>Rp ${nominal.toLocaleString("id-ID")}</td>
+          <td>${dateStr}</td>
+          <td class="${kelas}">${row.keterangan}</td>
+        `;
+        tbody.appendChild(tr);
+      }
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const historyTable = document.getElementById("historyTable");
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // ambil history dari koleksi global "transfers"
-        const q = query(
-          collection(db, "transfers"),
-          orderBy("date", "desc")
-        );
-
-        onSnapshot(q, (snap) => {
-          historyTable.innerHTML = "";
-          if (snap.empty) {
-            historyTable.innerHTML = "<tr><td colspan='4'>Belum ada history transfer</td></tr>";
-            return;
-          }
-
-          snap.forEach((doc) => {
-            const data = doc.data();
-            const ts = data.date?.seconds ? new Date(data.date.seconds * 1000) : new Date();
-            const date = ts.toLocaleString("id-ID");
-            const nominal = data.nominal || 0;
-
-            // cek apakah user pengirim atau penerima
-            let keterangan = "";
-            let emailTampil = "";
-
-            if (data.from === user.email) {
-              keterangan = "Transfer";
-              emailTampil = data.to;
-            } else if (data.to === user.email) {
-              keterangan = "Terima";
-              emailTampil = data.from;
-            } else {
-              return; // bukan history milik user
-            }
-
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${emailTampil}</td>
-              <td>Rp ${nominal.toLocaleString("id-ID")}</td>
-              <td>${date}</td>
-              <td class="status-${keterangan.toLowerCase()}">${keterangan}</td>
-            `;
-            historyTable.appendChild(tr);
-          });
-        });
-      } else {
-        window.location.href = "index.html";
-      }
+    onSnapshot(qFrom, (snap) => {
+      dataFrom = snap.docs.map(d => {
+        const x = d.data();
+        const ts = x.date?.seconds ? x.date.seconds*1000 : Date.now();
+        return {
+          nominal: x.nominal || 0,
+          ts,
+          emailLawannya: x.to,
+          keterangan: "Transfer"
+        };
+      });
+      render();
     });
-  </script>
+
+    onSnapshot(qTo, (snap) => {
+      dataTo = snap.docs.map(d => {
+        const x = d.data();
+        const ts = x.date?.seconds ? x.date.seconds*1000 : Date.now();
+        return {
+          nominal: x.nominal || 0,
+          ts,
+          emailLawannya: x.from,
+          keterangan: "Terima"
+        };
+      });
+      render();
+    });
+  });
+</script>
 </body>
 </html>
