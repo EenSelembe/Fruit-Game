@@ -6,121 +6,135 @@
   <title>Transfer Saldo</title>
   <style>
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      background: url("https://i.pinimg.com/736x/59/9d/5b/599d5b3fc69e2cb1d1c2184fa7b43cfe.jpg") no-repeat center center fixed;
-      background-size: cover;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      background: url("https://i.pinimg.com/736x/cc/8b/bb/cc8bbb9ea2ed093df405148ae0ec90c4.jpg") no-repeat center center fixed;
+      background-size: cover;
     }
-
     .transfer-box {
-      background: rgba(0, 0, 0, 0.85);
-      padding: 2rem;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 20px 25px;
       border-radius: 15px;
       width: 100%;
       max-width: 380px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
       color: #fff;
       text-align: center;
     }
-
-    .transfer-box h2 {
-      margin-bottom: 1.5rem;
+    h2 {
+      margin-bottom: 20px;
       color: #ffd700;
-      text-shadow: 0 0 8px #ff5722, 0 0 12px #ff9800;
+      text-shadow: 0 0 8px #ff5722, 0 0 14px #ff9800;
     }
-
     .input-group {
-      margin-bottom: 1.2rem;
+      margin-bottom: 15px;
       text-align: left;
     }
-
     .input-group label {
       display: block;
-      margin-bottom: 0.4rem;
+      margin-bottom: 5px;
       font-size: 0.9rem;
-      color: #ddd;
+      color: #fff;
     }
-
     .input-group input {
       width: 100%;
-      padding: 0.7rem;
+      padding: 10px;
+      border: none;
       border-radius: 8px;
-      border: 1px solid #ccc;
-      outline: none;
       font-size: 1rem;
-      background: #fff;
-      color: #000;
+      outline: none;
     }
-
-    .input-group input:focus {
-      border-color: #2575fc;
-      box-shadow: 0 0 6px rgba(37,117,252,0.6);
-    }
-
     .btn {
       width: 100%;
-      padding: 0.8rem;
+      padding: 12px;
       border: none;
       border-radius: 10px;
-      background: #2575fc;
+      background: linear-gradient(90deg, #ff9800, #f57c00);
       color: #fff;
+      font-size: 1rem;
       font-weight: bold;
       cursor: pointer;
-      transition: 0.3s;
+      transition: background 0.3s ease;
+      margin-top: 10px;
     }
-
     .btn:hover {
-      background: #1a5ad7;
+      background: linear-gradient(90deg, #ffa726, #fb8c00);
     }
-
-    .back-link {
-      margin-top: 1rem;
-      display: block;
-      font-size: 0.9rem;
+    .note {
+      margin-top: 12px;
+      font-size: 0.8rem;
       color: #ccc;
-      text-decoration: none;
     }
-
-    .back-link:hover {
-      text-decoration: underline;
-      color: #ffd700;
-    }
-
-    .info-box {
+    .link-btns {
       margin-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .link-btns a {
+      flex: 1;
       padding: 10px;
-      background: rgba(255, 255, 0, 0.1);
-      border: 1px solid #ffd700;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      color: #ffd700;
+      border-radius: 8px;
+      background: #2196f3;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      text-align: center;
+      transition: background 0.3s ease;
+    }
+    .link-btns a:hover {
+      background: #1976d2;
     }
   </style>
 </head>
 <body>
-
   <div class="transfer-box">
-    <h2>💸 Transfer Saldo</h2>
+    <h2>Transfer Saldo</h2>
     <form id="transferForm">
       <div class="input-group">
         <label for="emailTujuan">Email Tujuan</label>
         <input type="email" id="emailTujuan" placeholder="Masukkan email penerima" required>
       </div>
       <div class="input-group">
-        <label for="jumlah">Jumlah Transfer</label>
-        <input type="number" id="jumlah" placeholder="Minimal Rp. 10.000" min="10000" required>
+        <label for="nominal">Nominal Transfer</label>
+        <input type="number" id="nominal" placeholder="Masukkan jumlah saldo" min="1000" required>
       </div>
       <button type="submit" class="btn">Kirim</button>
     </form>
-    <a href="home.html" class="back-link">⬅️ Kembali</a>
-    <div class="info-box">
-      Minimal saldo tersisa Rp. 100.000 setelah transfer
+    <div class="note">⚠️ Minimal saldo tersisa Rp100.000 setelah transfer.</div>
+
+    <!-- Tombol navigasi -->
+    <div class="link-btns">
+      <a href="home.html">🏠 Home</a>
+      <a href="history.html">📜 History</a>
     </div>
   </div>
 
+  <script>
+    // Dummy simulasi transfer
+    document.getElementById("transferForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const email = document.getElementById("emailTujuan").value.trim();
+      const nominal = parseInt(document.getElementById("nominal").value);
+
+      if (!email || nominal <= 0) {
+        alert("❌ Data tidak valid!");
+        return;
+      }
+
+      // Simulasi sukses/gagal random
+      const sukses = Math.random() > 0.3; // 70% sukses
+      if (sukses) {
+        alert(`✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${email} berhasil!`);
+      } else {
+        alert(`❌ Transfer ke ${email} gagal. Coba lagi.`);
+      }
+    });
+  </script>
 </body>
 </html>
