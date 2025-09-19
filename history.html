@@ -3,90 +3,127 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>History Transfer</title>
+  <title>History Transfer - Fruit Game</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 20px;
-      background: url("https://i.ibb.co/jM3d6bY/fruit-wallpaper.jpg") no-repeat center center fixed;
+      font-family: Arial, sans-serif;
+      background: url("https://i.pinimg.com/736x/22/76/9a/22769a0cf12be68e2be2e862c9e46964.jpg") no-repeat center center fixed;
       background-size: cover;
-    }
-    h1 {
-      text-align: center;
       color: #fff;
-      margin-bottom: 20px;
-      text-shadow: 0 0 6px black, 0 0 12px orange;
+      text-align: center;
+    }
+    .container {
+      background: rgba(0,0,0,0.6);
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
     }
     table {
       width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
       border-collapse: collapse;
-      background: rgba(255,255,255,0.9);
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      margin-top: 15px;
     }
     th, td {
-      padding: 12px 15px;
-      border: 1px solid #ddd;
-      text-align: center;
+      padding: 10px;
+      border-bottom: 1px solid #555;
     }
     th {
-      background: linear-gradient(180deg, #ff9800, #f57c00);
-      color: white;
+      background: rgba(255,255,255,0.2);
     }
-    tr:nth-child(even) {
-      background: rgba(255, 249, 196, 0.9);
-    }
-    .status-sukses {
-      color: green;
+    .status-sukses { color: #4caf50; font-weight: bold; }
+    .status-gagal { color: #f44336; font-weight: bold; }
+    .status-proses { color: #ffc107; font-weight: bold; }
+    .btn {
+      display: inline-block;
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: gold;
+      color: #000;
       font-weight: bold;
-    }
-    .status-gagal {
-      color: red;
-      font-weight: bold;
-    }
-    .status-proses {
-      color: orange;
-      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
-  <h1>History Transfer Saldo</h1>
+  <h1>History Transfer</h1>
+  <div class="container">
+    <table>
+      <thead>
+        <tr>
+          <th>Email Tujuan</th>
+          <th>Nominal</th>
+          <th>Tanggal</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="historyTable">
+        <tr><td colspan="4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Email Tujuan</th>
-        <th>Nominal</th>
-        <th>Tanggal</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Contoh data dummy -->
-      <tr>
-        <td>user1@example.com</td>
-        <td>Rp 150.000</td>
-        <td>2025-09-19</td>
-        <td class="status-sukses">Sukses</td>
-      </tr>
-      <tr>
-        <td>user2@example.com</td>
-        <td>Rp 300.000</td>
-        <td>2025-09-18</td>
-        <td class="status-proses">Proses</td>
-      </tr>
-      <tr>
-        <td>user3@example.com</td>
-        <td>Rp 200.000</td>
-        <td>2025-09-17</td>
-        <td class="status-gagal">Gagal</td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- Tombol navigasi -->
+  <a href="home.html" class="btn">🏠 Home</a>
+  <a href="transfer.html" class="btn">⬅️ Kembali</a>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const historyTable = document.getElementById("historyTable");
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const q = query(
+          collection(db, "users", user.uid, "transfers"),
+          orderBy("date", "desc")
+        );
+
+        onSnapshot(q, (snap) => {
+          historyTable.innerHTML = "";
+          if (snap.empty) {
+            historyTable.innerHTML = "<tr><td colspan='4'>Belum ada history transfer</td></tr>";
+            return;
+          }
+          snap.forEach((doc) => {
+            const data = doc.data();
+            const tr = document.createElement("tr");
+            const date = new Date(data.date).toLocaleString("id-ID");
+
+            tr.innerHTML = `
+              <td>${data.to}</td>
+              <td>Rp ${data.amount.toLocaleString("id-ID")}</td>
+              <td>${date}</td>
+              <td class="status-${data.status}">${data.status}</td>
+            `;
+            historyTable.appendChild(tr);
+          });
+        });
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+  </script>
 </body>
 </html>
