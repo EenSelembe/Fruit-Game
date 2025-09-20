@@ -2,14 +2,14 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
