@@ -1,18 +1,17 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
+// pages/api/transfer.js
+import admin from "firebase-admin";
 
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-};
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    }),
+  });
+}
 
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = admin.firestore();
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -20,33 +19,34 @@ export default async function handler(req, res) {
   }
 
   const { fromUid, toUid, nominal } = req.body;
-
   if (!fromUid || !toUid || !nominal) {
     return res.status(400).json({ error: "Data tidak lengkap" });
   }
 
   try {
-    const fromRef = doc(db, "users", fromUid);
-    const toRef = doc(db, "users", toUid);
+    await db.runTransaction(async (t) => {
+      const fromRef = db.collection("users").doc(fromUid);
+      const toRef = db.collection("users").doc(toUid);
 
-    const fromSnap = await getDoc(fromRef);
-    const toSnap = await getDoc(toRef);
+      const fromSnap = await t.get(fromRef);
+      const toSnap = await t.get(toRef);
 
-    if (!fromSnap.exists() || !toSnap.exists()) {
-      return res.status(404).json({ error: "User tidak ditemukan" });
-    }
+      if (!fromSnap.exists || !toSnap.exists) {
+        throw new Error("User tidak ditemukan");
+      }
 
-    const fromSaldo = fromSnap.data().saldo || 0;
-    if (fromSaldo < nominal) {
-      return res.status(400).json({ error: "Saldo tidak cukup" });
-    }
+      const fromSaldo = fromSnap.data().saldo || 0;
+      if (fromSaldo < nominal) {
+        throw new Error("Saldo tidak cukup");
+      }
 
-    // update saldo
-    await updateDoc(fromRef, { saldo: fromSaldo - nominal });
-    await updateDoc(toRef, { saldo: (toSnap.data().saldo || 0) + nominal });
+      t.update(fromRef, { saldo: fromSaldo - nominal });
+      t.update(toRef, { saldo: (toSnap.data().saldo || 0) + nominal });
+    });
 
     return res.status(200).json({ success: true, message: "Transfer berhasil" });
   } catch (err) {
+    console.error("Transfer error:", err);
     return res.status(500).json({ error: err.message });
   }
 }
