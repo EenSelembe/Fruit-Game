@@ -278,12 +278,18 @@
 const buyPrice = document.getElementById("buyPrice");
     function updateBuyPrice() {
   const cost = bet * 100;
-  buyPrice.textContent = "Harga: Rp. " + formatRupiah(cost);
-      const popupPrice = document.getElementById("popupPrice");
+
+  if (buyPrice) {
+    buyPrice.textContent = "Harga: Rp. " + formatRupiah(cost);
+  }
+
+  // cek kalau popupPrice ada
+  const popupPrice = document.getElementById("popupPrice");
   if (popupPrice) {
     popupPrice.textContent = "Rp. " + formatRupiah(cost);
   }
 }
+
     function updateStats() {
   balEl.textContent = "Rp. " + formatRupiah(balance);
   winEl.textContent = "Rp. " + formatRupiah(win);
@@ -824,8 +830,11 @@ spinBtn.addEventListener("click", () => {
       else { turboBtn.textContent="TURBO: OFF"; turboBtn.classList.remove("active"); }
     });
 
-    updateStats(); updateAutoLabel();    
-  </script>
+window.addEventListener("DOMContentLoaded", () => {
+  updateStats();
+  updateAutoLabel();
+});
+</script>
 
 <!-- Popup Konfirmasi -->
 <div id="confirmPopup" class="popup">
