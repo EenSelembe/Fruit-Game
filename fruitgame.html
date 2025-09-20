@@ -81,7 +81,18 @@
       background: url("https://e0.pxfuel.com/wallpapers/597/442/desktop-wallpaper-gold-coins-gold-bullion.jpg") no-repeat center center fixed;
       background-size: cover;
     }
-    .hud{display:flex;align-items:center;justify-content:center;gap:16px;margin:10px auto;}
+    .hud {
+  position: fixed;
+  top: 10px;           /* tempel di atas layar */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 1000;       /* biar di atas board */
+}
+
     .pill{display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.7);border:1px solid #fff3;padding:6px 12px;border-radius:12px;min-width:100px;}
     .label{font-size:0.85rem;opacity:0.8;}
     #balance{font-size:1rem;font-weight:bold;color:#ffd700;}
