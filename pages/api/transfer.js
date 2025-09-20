@@ -1,4 +1,4 @@
-// pages/api/transfer.js
+// api/transfer.js
 import admin from "firebase-admin";
 
 if (!admin.apps.length) {
@@ -10,9 +10,9 @@ if (!admin.apps.length) {
         privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
       }),
     });
-    console.log("Firebase Admin initialized ✅");
+    console.log("✅ Firebase Admin initialized");
   } catch (err) {
-    console.error("Firebase Admin init error ❌:", err);
+    console.error("❌ Firebase Admin init error:", err);
   }
 }
 
@@ -20,8 +20,7 @@ const db = admin.firestore();
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).json({ error: "Only POST allowed" });
   }
 
   const { fromUid, toUid, nominal } = req.body;
@@ -47,11 +46,11 @@ export default async function handler(req, res) {
         throw new Error("Saldo tidak cukup");
       }
 
-      // update saldo
+      // Update saldo
       t.update(fromRef, { saldo: fromSaldo - nominal });
       t.update(toRef, { saldo: (toSnap.data().saldo || 0) + nominal });
 
-      // simpan ke history
+      // Simpan history
       const logRef = db.collection("transfers").doc();
       t.set(logRef, {
         from: fromSnap.data().email,
@@ -61,7 +60,7 @@ export default async function handler(req, res) {
       });
     });
 
-    return res.status(200).json({ success: true, message: "Transfer berhasil" });
+    return res.status(200).json({ success: true });
   } catch (err) {
     console.error("Transfer error ❌:", err);
     return res.status(500).json({ error: err.message });
