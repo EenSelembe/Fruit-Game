@@ -94,7 +94,7 @@
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
   import {
     getFirestore, collection, doc, getDocs, query, where,
-    updateDoc, getDoc, addDoc, serverTimestamp
+    runTransaction, addDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -114,7 +114,7 @@
   let currentUser = null;
   onAuthStateChanged(auth, (user) => {
     if (user) currentUser = user;
-    else window.location.href = "index.html";
+    else window.location.href = "index.html"; // redirect kalau belum login
   });
 
   const form = document.getElementById("transferForm");
@@ -143,46 +143,48 @@
 
       const targetDoc = snap.docs[0];
       const targetRef = doc(db, "users", targetDoc.id);
-
-      // saldo pengirim
       const pengirimRef = doc(db, "users", currentUser.uid);
-      const pengirimSnap = await getDoc(pengirimRef);
-      if (!pengirimSnap.exists()) { alert("❌ Data Anda tidak ditemukan!"); return; }
 
-      const saldoPengirim = pengirimSnap.data().saldo || 0;
-      if (saldoPengirim - nominal < 100000) {
-        alert("❌ Saldo tidak mencukupi (minimal tersisa Rp100.000)!"); return;
-      }
+      // pakai transaction untuk update saldo
+      await runTransaction(db, async (transaction) => {
+        const pengirimSnap = await transaction.get(pengirimRef);
+        const penerimaSnap = await transaction.get(targetRef);
 
-      // Update saldo (sederhana; untuk produksi sebaiknya pakai transaction)
-      await updateDoc(pengirimRef, { saldo: saldoPengirim - nominal });
-      const saldoPenerima = targetDoc.data().saldo || 0;
-      await updateDoc(targetRef, { saldo: saldoPenerima + nominal });
+        if (!pengirimSnap.exists()) throw "Data pengirim tidak ada!";
+        if (!penerimaSnap.exists()) throw "Data penerima tidak ada!";
 
-      // Simpan history (global 'transfers') — pakai serverTimestamp
-      try {
-        await addDoc(collection(db, "transfers"), {
-          from: currentUser.email,
-          to: emailTujuan,
-          nominal: nominal,
-          date: serverTimestamp(),
-          status: "sukses"
-        });
-      } catch (hErr) {
-        console.warn("History gagal disimpan:", hErr);
-        // jangan gagalkan transaksi; hanya info
-      }
+        const saldoPengirim = pengirimSnap.data().saldo || 0;
+        const saldoPenerima = penerimaSnap.data().saldo || 0;
+
+        if (saldoPengirim - nominal < 100000) {
+          throw "Saldo tidak mencukupi (minimal tersisa Rp100.000)!";
+        }
+
+        transaction.update(pengirimRef, { saldo: saldoPengirim - nominal });
+        transaction.update(targetRef, { saldo: saldoPenerima + nominal });
+      });
+
+      // Simpan history (di luar transaction)
+      await addDoc(collection(db, "transfers"), {
+        from: currentUser.email,
+        to: emailTujuan,
+        nominal: nominal,
+        date: serverTimestamp(),
+        status: "sukses"
+      });
 
       alert(`✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${emailTujuan} berhasil!`);
       msg.textContent = "Transfer berhasil.";
+      msg.className = "msg success";
       form.reset();
 
     } catch (err) {
       console.error(err);
-      alert("❌ Terjadi kesalahan saat transfer!");
-      msg.textContent = "Terjadi kesalahan saat transfer.";
+      alert("❌ " + err);
+      msg.textContent = "Transfer gagal: " + err;
+      msg.className = "msg error";
     }
   });
-</script>
+  </script>
 </body>
 </html>
