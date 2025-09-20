@@ -90,101 +90,82 @@
 
   <!-- Firebase SDK -->
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import {
-    getFirestore, collection, doc, getDocs, query, where,
-    runTransaction, addDoc, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  let currentUser = null;
-  onAuthStateChanged(auth, (user) => {
-    if (user) currentUser = user;
-    else window.location.href = "index.html"; // redirect kalau belum login
-  });
+    let currentUser = null;
+    onAuthStateChanged(auth, (user) => {
+      if (user) currentUser = user;
+      else window.location.href = "index.html";
+    });
 
-  const form = document.getElementById("transferForm");
-  const msg  = document.getElementById("msg");
+    const form = document.getElementById("transferForm");
+    const msg  = document.getElementById("msg");
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    msg.textContent = "";
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "";
+      msg.className = "msg";
 
-    const emailTujuan = document.getElementById("emailTujuan").value.trim().toLowerCase();
-    const nominal = parseInt(document.getElementById("nominal").value, 10);
+      const emailTujuan = document.getElementById("emailTujuan").value.trim().toLowerCase();
+      const nominal = parseInt(document.getElementById("nominal").value, 10);
 
-    if (!currentUser) { alert("Anda harus login!"); return; }
-    if (!emailTujuan || !Number.isInteger(nominal) || nominal <= 0) {
-      alert("Data tidak valid!"); return;
-    }
-    if (emailTujuan === currentUser.email?.toLowerCase()) {
-      alert("Tidak bisa transfer ke email sendiri."); return;
-    }
+      if (!currentUser) { alert("Anda harus login!"); return; }
+      if (!emailTujuan || !Number.isInteger(nominal) || nominal <= 0) {
+        alert("Data tidak valid!"); return;
+      }
+      if (emailTujuan === currentUser.email?.toLowerCase()) {
+        alert("Tidak bisa transfer ke email sendiri."); return;
+      }
 
-    try {
-      // cari penerima by email
-      const q = query(collection(db, "users"), where("email", "==", emailTujuan));
-      const snap = await getDocs(q);
-      if (snap.empty) { alert("❌ User tujuan tidak ditemukan!"); return; }
+      try {
+        // Cari UID penerima lewat email
+        const q = query(collection(db, "users"), where("email", "==", emailTujuan));
+        const snap = await getDocs(q);
+        if (snap.empty) { alert("❌ User tujuan tidak ditemukan!"); return; }
+        const targetDoc = snap.docs[0];
 
-      const targetDoc = snap.docs[0];
-      const targetRef = doc(db, "users", targetDoc.id);
-      const pengirimRef = doc(db, "users", currentUser.uid);
+        // Panggil API transfer
+        const res = await fetch("/api/transfer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fromUid: currentUser.uid,
+            toUid: targetDoc.id,
+            nominal
+          }),
+        });
 
-      // pakai transaction untuk update saldo
-      await runTransaction(db, async (transaction) => {
-        const pengirimSnap = await transaction.get(pengirimRef);
-        const penerimaSnap = await transaction.get(targetRef);
-
-        if (!pengirimSnap.exists()) throw "Data pengirim tidak ada!";
-        if (!penerimaSnap.exists()) throw "Data penerima tidak ada!";
-
-        const saldoPengirim = pengirimSnap.data().saldo || 0;
-        const saldoPenerima = penerimaSnap.data().saldo || 0;
-
-        if (saldoPengirim - nominal < 100000) {
-          throw "Saldo tidak mencukupi (minimal tersisa Rp100.000)!";
+        const data = await res.json();
+        if (data.success) {
+          msg.textContent = "✅ Transfer berhasil!";
+          msg.classList.add("success");
+          form.reset();
+        } else {
+          msg.textContent = "❌ Gagal: " + data.error;
+          msg.classList.add("error");
         }
-
-        transaction.update(pengirimRef, { saldo: saldoPengirim - nominal });
-        transaction.update(targetRef, { saldo: saldoPenerima + nominal });
-      });
-
-      // Simpan history (di luar transaction)
-      await addDoc(collection(db, "transfers"), {
-        from: currentUser.email,
-        to: emailTujuan,
-        nominal: nominal,
-        date: serverTimestamp(),
-        status: "sukses"
-      });
-
-      alert(`✅ Transfer Rp${nominal.toLocaleString("id-ID")} ke ${emailTujuan} berhasil!`);
-      msg.textContent = "Transfer berhasil.";
-      msg.className = "msg success";
-      form.reset();
-
-    } catch (err) {
-      console.error(err);
-      alert("❌ " + err);
-      msg.textContent = "Transfer gagal: " + err;
-      msg.className = "msg error";
-    }
-  });
+      } catch (err) {
+        console.error(err);
+        msg.textContent = "❌ Terjadi kesalahan jaringan!";
+        msg.classList.add("error");
+      }
+    });
   </script>
 </body>
 </html>
