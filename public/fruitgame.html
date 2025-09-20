@@ -415,12 +415,7 @@ sounds.backsound.volume = 0.5;
 sounds.backsoundScatter.loop = true;
 sounds.backsoundScatter.volume = 0.5;
 
-    window.addEventListener("load", () => {
-  sounds.backsound.play().catch(e => {
-    console.warn("Backsound harus di-trigger user dulu:", e);
-  });
-});
-    
+        
 function playSound(name) {
   if (sounds[name]) {
     sounds[name].currentTime = 0;
