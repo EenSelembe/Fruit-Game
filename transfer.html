@@ -151,13 +151,14 @@
           }),
         });
 
-        let data;
-        try {
-          data = await res.json();
-        } catch {
-          const text = await res.text();
-          throw new Error(text);
-        }
+        const raw = await res.text(); // baca sekali
+let data;
+try {
+  data = JSON.parse(raw); // coba parse JSON
+} catch {
+  data = { error: raw }; // kalau gagal, anggap plain text error
+}
+
 
         if (res.ok && data.success) {
           msg.textContent = "✅ Transfer berhasil!";
