@@ -23,8 +23,8 @@
       padding: 20px;
       border-radius: 10px;
       max-width: 700px;
-      max-height: 450px;        /* batas tinggi */
-      overflow-y: auto;         /* scroll otomatis */
+      max-height: 450px;
+      overflow-y: auto;
     }
     table {
       width: 100%;
@@ -65,10 +65,10 @@
     <table>
       <thead>
         <tr>
-          <th>Email</th>
+          <th>Email Lawan</th>
           <th>Nominal</th>
           <th>Tanggal</th>
-          <th>Keterangan</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody id="historyTable">
@@ -106,7 +106,10 @@
   const tbody = document.getElementById("historyTable");
 
   onAuthStateChanged(auth, (user) => {
-    if (!user) { window.location.href = "index.html"; return; }
+    if (!user) { 
+      window.location.href = "index.html"; 
+      return; 
+    }
 
     const email = user.email?.toLowerCase();
     const col = collection(db, "transfers");
@@ -128,20 +131,20 @@
       // urutkan desc berdasarkan timestamp
       all.sort((a, b) => b.ts - a.ts);
 
-      tbody.innerHTML = "";
-      for (const row of all) {
-        const tr = document.createElement("tr");
+      tbody.innerHTML = all.map(row => {
         const nominal = row.nominal || 0;
         const dateStr = new Date(row.ts).toLocaleString("id-ID");
         const kelas = row.keterangan === "Transfer" ? "status-transfer" : "status-terima";
-        tr.innerHTML = `
-          <td>${row.emailLawannya}</td>
-          <td>Rp ${nominal.toLocaleString("id-ID")}</td>
-          <td>${dateStr}</td>
-          <td class="${kelas}">${row.keterangan}</td>
+
+        return `
+          <tr>
+            <td>${row.emailLawannya}</td>
+            <td>Rp ${nominal.toLocaleString("id-ID")}</td>
+            <td>${dateStr}</td>
+            <td class="${kelas}">${row.keterangan}</td>
+          </tr>
         `;
-        tbody.appendChild(tr);
-      }
+      }).join("");
     };
 
     onSnapshot(qFrom, (snap) => {
