@@ -41,12 +41,8 @@
 
     
     .buy-container {
-  position: fixed;
-  bottom: 180px;   /* di atas tombol SPIN */
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 1000;
+  margin-top: 12px;       /* beri jarak dari bet/auto */
+  text-align: center;     /* tombol center */
 }
 
 .spin-container {
@@ -229,16 +225,15 @@
           </span>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Tombol BUY FS di bawah bet/auto -->
+   <!-- Tombol BUY FS di bawah bet/auto -->
 <div class="buy-container">
   <button id="buyBtn">
     BUY FREE SPIN
     <span id="buyPrice">Harga: Rp. 50.000</span>
   </button>
 </div>
+</div>
+  
 
 <!-- Tombol SPIN lebih bawah -->
 <div class="spin-container">
