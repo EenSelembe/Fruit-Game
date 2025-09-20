@@ -11,7 +11,7 @@
     
     .buy-container {
   position: fixed;
-  bottom: 50px;   /* di atas tombol SPIN */
+  bottom: 130px;   /* di atas tombol SPIN */
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -78,7 +78,7 @@
     }
    .hud {
   position: fixed;
-  top: 50px;
+  top: 40px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -96,7 +96,7 @@
     .turbo-btn.active{background:#00c851;box-shadow:0 3px 0 #007e33;}
     .multis {
   position: fixed;
-  top: 110px;       /* posisikan tepat di bawah HUD */
+  top: 95px;       /* posisikan tepat di bawah HUD */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -110,7 +110,7 @@
 }
     .multi{min-width:56px;text-align:center;font-weight:900;color:#ffd77a;background:linear-gradient(180deg,#7a4c26,#5b3317);padding:6px 10px;border-radius:10px}
     .multi.active{background:linear-gradient(180deg,#f7b733,#e09f1a);color:#fff}
-    .wrap{width:100%;max-width:860px;margin:130px auto 10px;padding:16px;box-sizing:border-box}
+    .wrap{width:100%;max-width:860px;margin:115px auto 10px;padding:16px;box-sizing:border-box}
     .board{border-radius:16px;padding:14px;background:linear-gradient(180deg,#111 0%, #000 50%, #111 100%);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap-size);width:100%;max-width:420px;aspect-ratio:5/4;box-sizing:border-box;overflow:hidden;border:3px solid var(--gold);box-shadow:0 0 12px #f7c33e80 inset,0 0 16px #f7c33e80;}
     .reel{display:flex;flex-direction:column;overflow:hidden;border-radius:10px;}
     .symbols{display:flex;flex-direction:column;gap:var(--gap-size)}
@@ -137,7 +137,7 @@
     @keyframes scrollLoop{0%{transform:translateY(-100%)}100%{transform:translateY(0)}}
     @keyframes shake{0%{transform:rotate(0);}25%{transform:rotate(15deg);}50%{transform:rotate(-15deg);}75%{transform:rotate(10deg);}100%{transform:rotate(0);}}
     .shake{animation:shake 0.5s infinite;}
-    .banner{text-align:center;font-weight:bold;margin:12px auto;width:100%;max-width:720px;background:linear-gradient(180deg,gold,#00ccff);padding:10px;border-radius:12px;color:#ffe7a1}
+    .banner{text-align:center;font-weight:bold;margin:5px auto 12px auto;width:100%;max-width:720px;background:linear-gradient(180deg,gold,#00ccff);padding:10px;border-radius:12px;color:#ffe7a1}
     .controls{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:12px;width:100%;max-width:860px}
     .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 40px;width:100%;max-width:860px;justify-content:center;}
     .stats-col{display:flex;flex-direction:column;gap:8px;}
