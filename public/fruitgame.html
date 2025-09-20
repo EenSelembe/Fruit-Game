@@ -785,6 +785,9 @@ if (inScatterMode) {
 
 
 spinBtn.addEventListener("click", () => {
+  if (sounds.backsound.paused && !inScatterMode) {
+  playBacksoundNormal();
+  }
   playSound("spin");
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(err => {
