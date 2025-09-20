@@ -1,6 +1,7 @@
-// pages/api/transfer.js
+// /api/transfer.js
 import admin from "firebase-admin";
 
+// Pastikan hanya sekali initialize
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -24,6 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Jalankan transaksi biar aman
     await db.runTransaction(async (t) => {
       const fromRef = db.collection("users").doc(fromUid);
       const toRef = db.collection("users").doc(toUid);
@@ -46,7 +48,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, message: "Transfer berhasil" });
   } catch (err) {
-    console.error("Transfer error:", err);
+    console.error("Transfer error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 }
