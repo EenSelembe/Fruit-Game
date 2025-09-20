@@ -13,12 +13,18 @@
       color: #fff;
       text-align: center;
     }
+    h1 {
+      margin: 20px 0;
+      text-shadow: 0 0 8px #000;
+    }
     .container {
       background: rgba(0,0,0,0.6);
       margin: 20px auto;
       padding: 20px;
       border-radius: 10px;
       max-width: 700px;
+      max-height: 450px;        /* batas tinggi */
+      overflow-y: auto;         /* scroll otomatis */
     }
     table {
       width: 100%;
@@ -31,6 +37,8 @@
     }
     th {
       background: rgba(255,255,255,0.2);
+      position: sticky;
+      top: 0;
     }
     .status-transfer { color: #f44336; font-weight: bold; } /* merah */
     .status-terima { color: #4caf50; font-weight: bold; }   /* hijau */
@@ -45,6 +53,9 @@
       font-weight: bold;
       cursor: pointer;
       text-decoration: none;
+    }
+    .btn:hover {
+      background: orange;
     }
   </style>
 </head>
@@ -100,9 +111,8 @@
     const email = user.email?.toLowerCase();
     const col = collection(db, "transfers");
 
-    // dua query: sebagai pengirim & penerima
     const qFrom = query(col, where("from", "==", email));
-    const qTo   = query(col, where("to",   "==", email));
+    const qTo   = query(col, where("to", "==", email));
 
     let dataFrom = [];
     let dataTo   = [];
@@ -115,8 +125,8 @@
         return;
       }
 
-      // urutkan desc berdasarkan date (Timestamp)
-      all.sort((a, b) => (b.ts - a.ts));
+      // urutkan desc berdasarkan timestamp
+      all.sort((a, b) => b.ts - a.ts);
 
       tbody.innerHTML = "";
       for (const row of all) {
@@ -137,7 +147,7 @@
     onSnapshot(qFrom, (snap) => {
       dataFrom = snap.docs.map(d => {
         const x = d.data();
-        const ts = x.date?.seconds ? x.date.seconds*1000 : Date.now();
+        const ts = x.date?.seconds ? x.date.seconds * 1000 : Date.now();
         return {
           nominal: x.nominal || 0,
           ts,
@@ -151,7 +161,7 @@
     onSnapshot(qTo, (snap) => {
       dataTo = snap.docs.map(d => {
         const x = d.data();
-        const ts = x.date?.seconds ? x.date.seconds*1000 : Date.now();
+        const ts = x.date?.seconds ? x.date.seconds * 1000 : Date.now();
         return {
           nominal: x.nominal || 0,
           ts,
@@ -162,6 +172,6 @@
       render();
     });
   });
-</script>
+  </script>
 </body>
 </html>
