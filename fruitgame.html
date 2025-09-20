@@ -22,9 +22,23 @@
 }
     
     .buy-container {
-  margin-top: -20px;
+  position: fixed;
+  bottom: 100px;   /* di atas tombol SPIN */
+  left: 50%;
+  transform: translateX(-50%);
   text-align: center;
+  z-index: 1000;
 }
+
+.spin-container {
+  position: fixed;
+  bottom: 20px;    /* jarak dari bawah layar */
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1000;
+}
+
 #buyBtn {
   background: blue;
   color: red;
