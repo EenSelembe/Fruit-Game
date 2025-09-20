@@ -81,16 +81,16 @@
       background: url("https://e0.pxfuel.com/wallpapers/597/442/desktop-wallpaper-gold-coins-gold-bullion.jpg") no-repeat center center fixed;
       background-size: cover;
     }
-    .hud {
+   .hud {
   position: fixed;
-  top: 10px;           /* tempel di atas layar */
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  z-index: 1000;       /* biar di atas board */
+  z-index: 1000;
 }
 
     .pill{display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.7);border:1px solid #fff3;padding:6px 12px;border-radius:12px;min-width:100px;}
@@ -99,7 +99,20 @@
     #win{font-size:1rem;font-weight:bold;color:#00ffcc;}
     .turbo-btn{background:#ff4444;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:bold;box-shadow:0 3px 0 #aa2222;transition:background 0.3s ease;}
     .turbo-btn.active{background:#00c851;box-shadow:0 3px 0 #007e33;}
-    .multis{display:flex;gap:14px;justify-content:center;padding:10px;width:100%;max-width:860px;background:linear-gradient(180deg,#9c6b3d 0%, #7a4c26 100%);}
+    .multis {
+  position: fixed;
+  top: 70px;       /* posisikan tepat di bawah HUD */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  padding: 10px;
+  width: auto;
+  background: linear-gradient(180deg,#9c6b3d 0%, #7a4c26 100%);
+  border-radius: 8px;
+  z-index: 999;
+}
     .multi{min-width:56px;text-align:center;font-weight:900;color:#ffd77a;background:linear-gradient(180deg,#7a4c26,#5b3317);padding:6px 10px;border-radius:10px}
     .multi.active{background:linear-gradient(180deg,#f7b733,#e09f1a);color:#fff}
     .wrap{width:100%;max-width:860px;margin:10px auto;padding:16px;box-sizing:border-box}
