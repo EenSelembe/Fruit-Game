@@ -1,3 +1,4 @@
+// pages/api/transfer.js
 import admin from "firebase-admin";
 
 if (!admin.apps.length) {
@@ -19,10 +20,12 @@ const db = admin.firestore();
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST allowed" });
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
   const { fromUid, toUid, nominal } = req.body;
+
   if (!fromUid || !toUid || !nominal) {
     return res.status(400).json({ error: "Data tidak lengkap" });
   }
@@ -44,11 +47,11 @@ export default async function handler(req, res) {
         throw new Error("Saldo tidak cukup");
       }
 
-      // Update saldo
+      // update saldo
       t.update(fromRef, { saldo: fromSaldo - nominal });
       t.update(toRef, { saldo: (toSnap.data().saldo || 0) + nominal });
 
-      // Simpan ke history
+      // simpan ke history
       const logRef = db.collection("transfers").doc();
       t.set(logRef, {
         from: fromSnap.data().email,
@@ -58,7 +61,7 @@ export default async function handler(req, res) {
       });
     });
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, message: "Transfer berhasil" });
   } catch (err) {
     console.error("Transfer error ❌:", err);
     return res.status(500).json({ error: err.message });
