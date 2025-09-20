@@ -254,6 +254,14 @@
   </div>
 
   <!-- BAGIAN JS -->
+  <!-- Popup Konfirmasi -->
+<div id="confirmPopup" class="popup">
+  <div class="popup-box">
+    <p>Anda akan membeli scatter seharga <span id="popupPrice">Rp. 0</span>. Lanjutkan?</p>
+    <button id="confirmYes">Ya</button>
+    <button id="confirmNo">Tidak</button>
+  </div>
+</div>
   <script>
     // atur persen peluang menang
     const COLS=5, ROWS=4;
@@ -836,14 +844,7 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-<!-- Popup Konfirmasi -->
-<div id="confirmPopup" class="popup">
-  <div class="popup-box">
-    <p>Anda akan membeli scatter seharga <span id="popupPrice">Rp. 0</span>. Lanjutkan?</p>
-    <button id="confirmYes">Ya</button>
-    <button id="confirmNo">Tidak</button>
-  </div>
-</div>
+
   
  <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
