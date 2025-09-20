@@ -3,96 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transfer Saldo</title>
+  <title>Transfer Saldo - Fruit Game</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: url("https://i.pinimg.com/736x/cc/8b/bb/cc8bbb9ea2ed093df405148ae0ec90c4.jpg") no-repeat center center fixed;
+      font-family: Arial, sans-serif;
+      background: url("https://i.pinimg.com/736x/0c/d8/71/0cd871eff6af661c5d878488ea245895.jpg") no-repeat center center fixed;
       background-size: cover;
-    }
-    .transfer-box {
-      background: rgba(0, 0, 0, 0.75);
-      padding: 20px 25px;
-      border-radius: 15px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
       color: #fff;
       text-align: center;
     }
-    h2 {
-      margin-bottom: 20px;
-      color: #ffd700;
-      text-shadow: 0 0 8px #ff5722, 0 0 14px #ff9800;
+    h1 {
+      margin: 20px 0;
+      text-shadow: 0 0 8px #000;
     }
-    .input-group { margin-bottom: 15px; text-align: left; }
-    .input-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
-    .input-group input {
-      width: 100%; padding: 10px; border: none; border-radius: 8px;
-      font-size: 1rem; outline: none;
+    .container {
+      background: rgba(0,0,0,0.6);
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
     }
-    .btn {
-      width: 100%; padding: 12px; border: none; border-radius: 10px;
-      background: linear-gradient(90deg, #ff9800, #f57c00);
-      color: #fff; font-size: 1rem; font-weight: bold;
-      cursor: pointer; transition: background 0.3s ease; margin-top: 10px;
-    }
-    .btn:hover { background: linear-gradient(90deg, #ffa726, #fb8c00); }
-    .note { margin-top: 12px; font-size: 0.8rem; color: #ccc; }
-    .link-btns {
-      margin-top: 15px; display: flex; justify-content: space-between; gap: 10px;
-    }
-    .link-btns a {
-      flex: 1; padding: 10px; border-radius: 8px; background: #2196f3;
-      color: white; text-decoration: none; font-weight: bold; text-align: center;
-      transition: background 0.3s ease;
-    }
-    .link-btns a:hover { background: #1976d2; }
-    .msg {
-      margin-top: 12px;
+    input {
+      width: 90%;
       padding: 10px;
-      border-radius: 8px;
-      font-weight: bold;
-      display: none;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
     }
-    .msg.success { background: rgba(0, 255, 0, 0.2); color: #00ff88; display: block; }
-    .msg.error { background: rgba(255, 0, 0, 0.2); color: #ff5555; display: block; }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: gold;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: orange; }
+    .msg { margin-top: 15px; font-weight: bold; }
+    .btn-nav {
+      display: inline-block;
+      margin: 10px;
+      padding: 10px 20px;
+      border-radius: 5px;
+      background: #2196f3;
+      color: #fff;
+      text-decoration: none;
+    }
+    .btn-nav:hover { background: #0b7dda; }
   </style>
 </head>
 <body>
-  <div class="transfer-box">
-    <h2>Transfer Saldo</h2>
-    <form id="transferForm">
-      <div class="input-group">
-        <label for="emailTujuan">Email Tujuan</label>
-        <input type="email" id="emailTujuan" placeholder="Masukkan email penerima" required>
-      </div>
-      <div class="input-group">
-        <label for="nominal">Nominal Transfer</label>
-        <input type="number" id="nominal" placeholder="Masukkan jumlah saldo" min="1000" required>
-      </div>
-      <button type="submit" class="btn">Kirim</button>
-    </form>
-    <div class="note">⚠️ Minimal saldo tersisa Rp100.000 setelah transfer.</div>
-    <div class="msg" id="msg"></div>
-
-    <div class="link-btns">
-      <a href="home.html">🏠 Home</a>
-      <a href="history.html">📜 History</a>
-    </div>
+  <h1>Transfer Saldo</h1>
+  <div class="container">
+    <input type="email" id="toEmail" placeholder="Email penerima" required />
+    <input type="number" id="nominal" placeholder="Nominal transfer" required />
+    <button id="btnTransfer">Kirim</button>
+    <div id="msg" class="msg"></div>
   </div>
 
-  <!-- Firebase SDK -->
+  <!-- Tombol navigasi -->
+  <a href="home.html" class="btn-nav">🏠 Home</a>
+  <a href="history.html" class="btn-nav">📜 History</a>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -106,72 +82,55 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+
+    const btn = document.getElementById("btnTransfer");
+    const msg = document.getElementById("msg");
 
     let currentUser = null;
+
     onAuthStateChanged(auth, (user) => {
-      if (user) currentUser = user;
-      else window.location.href = "index.html";
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        currentUser = user;
+      }
     });
 
-    const form = document.getElementById("transferForm");
-    const msg  = document.getElementById("msg");
+    btn.addEventListener("click", async () => {
+      const toEmail = document.getElementById("toEmail").value.trim().toLowerCase();
+      const nominal = parseInt(document.getElementById("nominal").value);
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      msg.textContent = "";
-      msg.className = "msg";
-
-      const emailTujuan = document.getElementById("emailTujuan").value.trim().toLowerCase();
-      const nominal = parseInt(document.getElementById("nominal").value, 10);
-
-      if (!currentUser) { alert("Anda harus login!"); return; }
-      if (!emailTujuan || !Number.isInteger(nominal) || nominal <= 0) {
-        alert("Data tidak valid!"); return;
+      if (!toEmail || !nominal || nominal <= 0) {
+        msg.textContent = "Isi data dengan benar!";
+        msg.style.color = "red";
+        return;
       }
-      if (emailTujuan === currentUser.email?.toLowerCase()) {
-        alert("Tidak bisa transfer ke email sendiri."); return;
-      }
+
+      msg.textContent = "Memproses...";
+      msg.style.color = "yellow";
 
       try {
-        // Cari UID penerima lewat email
-        const q = query(collection(db, "users"), where("email", "==", emailTujuan));
-        const snap = await getDocs(q);
-        if (snap.empty) { alert("❌ User tujuan tidak ditemukan!"); return; }
-        const targetDoc = snap.docs[0];
-
-        // Panggil API transfer
         const res = await fetch("/api/transfer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fromUid: currentUser.uid,
-            toUid: targetDoc.id,
+            fromEmail: currentUser.email,
+            toEmail,
             nominal
           }),
         });
 
-        const raw = await res.text(); // baca sekali
-let data;
-try {
-  data = JSON.parse(raw); // coba parse JSON
-} catch {
-  data = { error: raw }; // kalau gagal, anggap plain text error
-}
-
-
-        if (res.ok && data.success) {
+        const data = await res.json();
+        if (res.ok) {
           msg.textContent = "✅ Transfer berhasil!";
-          msg.classList.add("success");
-          form.reset();
+          msg.style.color = "lightgreen";
         } else {
-          msg.textContent = "❌ Gagal: " + (data.error || "Server error");
-          msg.classList.add("error");
+          msg.textContent = "❌ Gagal: " + data.error;
+          msg.style.color = "red";
         }
       } catch (err) {
-        console.error(err);
-        msg.textContent = "❌ " + err.message;
-        msg.classList.add("error");
+        msg.textContent = "❌ Error: " + err.message;
+        msg.style.color = "red";
       }
     });
   </script>
