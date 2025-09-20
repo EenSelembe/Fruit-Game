@@ -1,20 +1,7 @@
 {
   "name": "fruit-game",
   "version": "1.0.0",
-  "description": "Fruit Game with Firebase transfer saldo",
-  "main": "index.js",
-  "type": "module",
   "scripts": {
-    "dev": "vercel dev",
-    "start": "node api/transfer.js",
-    "build": "echo 'Nothing to build for static + serverless'"
-  },
-  "author": "Een Selembe",
-  "license": "MIT",
-  "dependencies": {
-    "firebase-admin": "^12.0.0"
-  },
-  "devDependencies": {
-    "vercel": "^33.0.0"
+    "build": "echo 'No build step required'"
   }
 }
