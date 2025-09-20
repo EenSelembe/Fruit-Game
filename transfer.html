@@ -151,18 +151,25 @@
           }),
         });
 
-        const data = await res.json();
-        if (data.success) {
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          const text = await res.text();
+          throw new Error(text);
+        }
+
+        if (res.ok && data.success) {
           msg.textContent = "✅ Transfer berhasil!";
           msg.classList.add("success");
           form.reset();
         } else {
-          msg.textContent = "❌ Gagal: " + data.error;
+          msg.textContent = "❌ Gagal: " + (data.error || "Server error");
           msg.classList.add("error");
         }
       } catch (err) {
         console.error(err);
-        msg.textContent = "❌ Terjadi kesalahan jaringan!";
+        msg.textContent = "❌ " + err.message;
         msg.classList.add("error");
       }
     });
