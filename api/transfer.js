@@ -1,15 +1,19 @@
-// /api/transfer.js
 import admin from "firebase-admin";
 
-// Pastikan hanya sekali initialize
+// Cek kalau app belum diinisialisasi
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+      }),
+    });
+    console.log("Firebase Admin initialized ✅");
+  } catch (err) {
+    console.error("Firebase Admin init error ❌:", err);
+  }
 }
 
 const db = admin.firestore();
@@ -25,7 +29,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Jalankan transaksi biar aman
     await db.runTransaction(async (t) => {
       const fromRef = db.collection("users").doc(fromUid);
       const toRef = db.collection("users").doc(toUid);
@@ -42,13 +45,15 @@ export default async function handler(req, res) {
         throw new Error("Saldo tidak cukup");
       }
 
+      // Update saldo
       t.update(fromRef, { saldo: fromSaldo - nominal });
       t.update(toRef, { saldo: (toSnap.data().saldo || 0) + nominal });
     });
 
     return res.status(200).json({ success: true, message: "Transfer berhasil" });
   } catch (err) {
-    console.error("Transfer error:", err.message);
-    return res.status(500).json({ error: err.message });
+    console.error("❌ Transfer API Error:", err);
+    // kalau JSON gagal, kirim text biar gak bikin error parsing di transfer.html
+    return res.status(500).send("A server error occurred: " + err.message);
   }
 }
