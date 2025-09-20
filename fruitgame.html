@@ -8,6 +8,37 @@
   
   <!-- BAGIAN CSS -->
   <style>
+
+  .popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: none; /* default tidak tampil */
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.popup-box {
+  background: #fff;
+  color: #000;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 300px;
+}
+
+.popup-box button {
+  margin: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+#confirmYes { background: green; color: #fff; }
+#confirmNo { background: red; color: #fff; }
+
     
     .buy-container {
   position: fixed;
@@ -138,7 +169,7 @@
     @keyframes shake{0%{transform:rotate(0);}25%{transform:rotate(15deg);}50%{transform:rotate(-15deg);}75%{transform:rotate(10deg);}100%{transform:rotate(0);}}
     .shake{animation:shake 0.5s infinite;}
     .banner{text-align:center;font-weight:bold;margin:5px auto 12px auto;width:100%;max-width:720px;background:linear-gradient(180deg,gold,#00ccff);padding:10px;border-radius:12px;color:#ffe7a1}
-    .controls{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:12px;width:100%;max-width:860px}
+    .controls{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:5px;width:100%;max-width:860px}
     .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 40px;width:100%;max-width:860px;justify-content:center;}
     .stats-col{display:flex;flex-direction:column;gap:8px;}
     .bet-control {display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 10px;min-width:80px;}
@@ -248,6 +279,7 @@ const buyPrice = document.getElementById("buyPrice");
     function updateBuyPrice() {
   const cost = bet * 100;
   buyPrice.textContent = "Harga: Rp. " + formatRupiah(cost);
+      document.getElementById("popupPrice").textContent = "Rp. " + formatRupiah(cost);
 }
     function updateStats() {
   balEl.textContent = "Rp. " + formatRupiah(balance);
@@ -258,7 +290,15 @@ const buyPrice = document.getElementById("buyPrice");
 
 
 buyBtn.addEventListener("click", () => {
+  updateBuyPrice();
+  document.getElementById("confirmPopup").style.display = "flex";
+});
+
+// tombol YA
+document.getElementById("confirmYes").addEventListener("click", () => {
+  document.getElementById("confirmPopup").style.display = "none";
   const cost = bet * 100;
+
   if (balance >= cost) {
     balance -= cost;
     updateStats();
@@ -278,7 +318,10 @@ buyBtn.addEventListener("click", () => {
     banner.textContent = "Saldo tidak cukup untuk Buy Free Spin!";
   }
 });
-
+// tombol TIDAK
+document.getElementById("confirmNo").addEventListener("click", () => {
+  document.getElementById("confirmPopup").style.display = "none";
+});
 
     function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(num); }
     
@@ -778,8 +821,18 @@ spinBtn.addEventListener("click", () => {
       else { turboBtn.textContent="TURBO: OFF"; turboBtn.classList.remove("active"); }
     });
 
-    updateStats(); updateAutoLabel();
+    updateStats(); updateAutoLabel();    
   </script>
+
+<!-- Popup Konfirmasi -->
+<div id="confirmPopup" class="popup">
+  <div class="popup-box">
+    <p>Anda akan membeli scatter seharga <span id="popupPrice">Rp. 0</span>. Lanjutkan?</p>
+    <button id="confirmYes">Ya</button>
+    <button id="confirmNo">Tidak</button>
+  </div>
+</div>
+  
  <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
