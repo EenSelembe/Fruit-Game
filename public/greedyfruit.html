@@ -128,16 +128,16 @@
   
 <body>
 
-  <audio id="backsound" loop>
-  <source src="sounds/backsound.mp3" type="audio/mpeg">
+  <audio id="backsound" loop autoplay>
+  <source src="sonds/greedyfruit.mp3" type="audio/mpeg">
 </audio>
 
 <audio id="rollSound">
-  <source src="sounds/roll.mp3" type="audio/mpeg">
+  <source src="sonds/rollscatter.mp3" type="audio/mpeg">
 </audio>
 
 <audio id="countdownSound">
-  <source src="sounds/countdown.mp3" type="audio/mpeg">
+  <source src="sonds/tik.mp3" type="audio/mpeg">
 </audio>
   
   <h1>GREEDY FRUIT</h1>
@@ -168,7 +168,7 @@
     <div class="bet-label">Bet</div>
     <div class="bet-control">
       <button class="bet-btn" id="minusBtn">-</button>
-      <div class="bet-display" id="betDisplay">Rp. 100</div>
+      <div class="bet-display" id="betDisplay">Rp. 500</div>
       <button class="bet-btn" id="plusBtn">+</button>
     </div>
   </div>
@@ -180,6 +180,7 @@
     </div>
   </div>
 
+  <script>
   // ===== AUDIO SYSTEM =====
 const backsound = document.getElementById("backsound");
 const rollSound = document.getElementById("rollSound");
@@ -187,8 +188,7 @@ const countdownSound = document.getElementById("countdownSound");
 
 function playBacksound() {
   backsound.volume = 0.5;
-  backsound.play().catch(e => console.warn("Backsound blocked:", e));
-}
+  backsound.play().catch(err => console.log("Autoplay dicegah browser:", err));}
 
 function stopBacksound() {
   backsound.pause();
@@ -213,7 +213,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (backsound.paused) playBacksound();
   }, { once:true });
 });
-
+</script>
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
@@ -318,6 +318,7 @@ window.addEventListener("DOMContentLoaded", () => {
     function rollSymbol(){
       if(spinning) return; 
       spinning=true;
+      playRoll();
 
       reel.innerHTML="";
       reel.style.transition="none";
@@ -347,6 +348,8 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
       reel.addEventListener('transitionend', async ()=>{
+        rollSound.pause();
+    rollSound.currentTime = 0;
         reel.style.transition="none";
         reel.style.transform=`translateY(${finalOffset}px)`;
 
@@ -372,10 +375,13 @@ window.addEventListener("DOMContentLoaded", () => {
       const interval=setInterval(()=>{
         count--;
         if(count>=0){
-          countdownEl.textContent=count;
+          countdownEl.textContent=count;playCountdown();
         }
         if(count<0){
           clearInterval(interval);
+          countdownSound.pause();
+      countdownSound.currentTime = 0;
+          
           countdownEl.style.visibility="hidden";
           canBet = false;
           gridOverlay.style.display = "block";
