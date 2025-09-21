@@ -13,6 +13,7 @@
       color: #fff;
       text-align: center;
     }
+
     .profile-box {
       background: rgba(0, 0, 0, 0.6);
       padding: 20px;
@@ -20,13 +21,48 @@
       border-radius: 10px;
       max-width: 400px;
     }
+
+    .games-container {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 10px 20px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none; /* sembunyikan scroll bar firefox */
+    }
+    .games-container::-webkit-scrollbar { display: none; } /* sembunyikan scroll bar chrome */
+
     .game-card {
+      flex: 0 0 auto;
       background: rgba(0, 0, 0, 0.6);
       padding: 20px;
-      margin: 20px auto;
       border-radius: 10px;
-      max-width: 200px;
+      width: 200px;
+      scroll-snap-align: center;
     }
+
+    .game-card img {
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    .dots {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0 20px;
+      gap: 6px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      background: #888;
+      border-radius: 50%;
+      transition: background 0.3s;
+    }
+    .dot.active {
+      background: gold;
+    }
+
     button {
       padding: 10px 20px;
       margin: 10px;
@@ -55,21 +91,33 @@
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
 
-  <div class="game-card">
-    <h2>Fruit Game</h2>
-    <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game" style="width:100%;border-radius:10px;">
-    <br>
-    <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>
+  <!-- Card Games -->
+  <div class="games-container" id="gamesContainer">
+    <div class="game-card">
+      <h2>Fruit Game</h2>
+      <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>
+    </div>
+
+    <div class="game-card">
+      <h2>Greedy Fruit</h2>
+      <img src="GreedyFruit-Wallpaper.png" alt="Greedy Fruit">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
+    </div>
+
+    <div class="game-card">
+      <h2>Coming Soon</h2>
+      <img src="https://via.placeholder.com/200x120/222/fff?text=Next+Game" alt="Next Game">
+      <br>
+      <button class="play-btn" disabled>Segera</button>
+    </div>
   </div>
 
-  <div class="game-card">
-    <h2>Greedy Fruit</h2>
-    <img src="https://i.ibb.co.com/zVkKRRyg/greedy-fruit.png.png" 
-      alt="Greedy Fruit" style="width:100%;border-radius:10px;">
-  <br>
-  <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
-</div>
-  
+  <!-- Dots Indicator -->
+  <div class="dots" id="dots"></div>
+
   <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
@@ -90,17 +138,14 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ganti isi saldo jadi span biar bisa update realtime
   document.querySelector(".profile-box").children[1].innerHTML =
     "Saldo: Rp <span id='saldo'>Loading...</span>";
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("username").textContent = user.displayName || "Anonim";
-
       const userRef = doc(db, "users", user.uid);
 
-      // 🔥 realtime listener saldo
       onSnapshot(userRef, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
@@ -116,11 +161,34 @@
     }
   });
 
-  // tombol logout
   document.getElementById("logoutBtn").addEventListener("click", () => {
     signOut(auth)
       .then(() => window.location.href = "index.html")
       .catch((error) => console.error(error));
+  });
+
+  // === Dots Indicator Logic ===
+  const gamesContainer = document.getElementById("gamesContainer");
+  const dotsContainer = document.getElementById("dots");
+  const cards = gamesContainer.querySelectorAll(".game-card");
+
+  // buat titik sesuai jumlah card
+  cards.forEach((_, idx) => {
+    const dot = document.createElement("div");
+    dot.className = "dot";
+    if (idx === 0) dot.classList.add("active");
+    dotsContainer.appendChild(dot);
+  });
+
+  const dots = dotsContainer.querySelectorAll(".dot");
+
+  gamesContainer.addEventListener("scroll", () => {
+    const cardWidth = cards[0].offsetWidth + 16; // width + gap
+    const index = Math.round(gamesContainer.scrollLeft / cardWidth);
+
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("active", i === index);
+    });
   });
 </script>
 </body>
