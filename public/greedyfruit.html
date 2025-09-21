@@ -214,7 +214,8 @@
     let betTextRefs = [];
     let globalBet = 500, saldo = 0, spinning = false;
     let canBet = true, userDocRef = null;
-
+    updateBetDisplay();
+    
     // === Firebase sync saldo ===
     onAuthStateChanged(auth, (user) => {
       if (user) {
