@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Slot Simbol Mobile</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100vw; height: 100vh;
+      background: #10131a; font-family: Arial, sans-serif; color: #fff;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: flex-start; overflow: hidden; padding-top: 10px;
+    }
+
+    /* TEKS NEON */
+    h1 {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #fff;
+      text-align: center;
+      text-transform: uppercase;
+      text-shadow: 
+        0 0 5px #ff0000,
+        0 0 10px #ff7300,
+        0 0 20px #fffb00,
+        0 0 30px #48ff00,
+        0 0 40px #00ffd5,
+        0 0 50px #002bff,
+        0 0 60px #7a00ff,
+        0 0 70px #ff00ab;
+      animation: glow 3s linear infinite;
+    }
+    @keyframes glow {
+      0%   { text-shadow: 0 0 5px #ff0000, 0 0 10px #ff7300, 0 0 20px #fffb00; color: #fffb00; }
+      25%  { text-shadow: 0 0 5px #48ff00, 0 0 10px #00ffd5, 0 0 20px #002bff; color: #48ff00; }
+      50%  { text-shadow: 0 0 5px #7a00ff, 0 0 10px #ff00ab, 0 0 20px #ff0000; color: #ff00ab; }
+      75%  { text-shadow: 0 0 5px #002bff, 0 0 10px #00ffd5, 0 0 20px #48ff00; color: #00ffd5; }
+      100% { text-shadow: 0 0 5px #ff0000, 0 0 10px #ff7300, 0 0 20px #fffb00; color: #fffb00; }
+    }
+
+    .saldo-section { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 15px; }
+    .saldo-label { font-size: 16px; font-weight: bold; }
+    .saldo-display {
+      min-width: 150px; height: 36px; background: #171c27;
+      border: 2px solid #2b3142; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold; color: #00ffea; text-shadow: 0 0 4px #000;
+    }
+
+    .big-box {
+      width: 40vw; height: 40vw; max-width: 200px; max-height: 200px;
+      background: #171c27; border: 3px solid #2b3142; border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.5);
+      margin-bottom: 12px; overflow: hidden; position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .reel { position: absolute; top: 0; left: 0; width: 100%; will-change: transform; }
+    .symbol {
+      width: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .countdown {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15vw; font-weight: bold; color: #ffd700;
+      background: rgba(0,0,0,0.7); border-radius: 16px;
+      visibility: hidden;
+    }
+
+    .total-bet-section { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 20px; }
+    .total-bet-label { font-size: 16px; font-weight: bold; }
+    .total-bet-display {
+      min-width: 150px; height: 36px; background: #171c27;
+      border: 2px solid #2b3142; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold; color: #ffd700; text-shadow: 0 0 4px #000;
+    }
+
+    .grid-container {
+      position: relative;
+      margin-bottom: 30px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 20vw);
+      gap: 8px;
+    }
+    .cell {
+      height: 20vw; background: #171c27; border: 2px solid #2b3142;
+      border-radius: 10px; position: relative; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      font-size: 8vw; cursor: pointer;
+    }
+    .multiplier { font-size: 3vw; color: #ffd700; font-weight: bold; margin-top: 2px; }
+    .bet-text {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 3vw; font-weight: bold; color: #00ffea;
+      text-shadow: 0 0 4px #000; white-space: nowrap;
+    }
+    .bet-top { top: -20px; }
+    .bet-bottom { bottom: -20px; }
+
+    .grid-overlay {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      border-radius: 10px;
+      display: none;
+      z-index: 5;
+    }
+
+    .history {
+      width: 406px; max-width: 90vw; height: 56px; background: #171c27;
+      border: 2px solid #2b3142; border-radius: 10px; padding: 6px;
+      overflow: hidden; display: flex; align-items: center; justify-content: flex-end;
+      margin-bottom: 16px;
+    }
+    .history-list { display: flex; flex-direction: row-reverse; gap: 6px; width: 100%; }
+    .history-item {
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; background: #222836; border-radius: 6px; flex-shrink: 0;
+    }
+
+    .bet-section { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bet-label { font-size: 16px; font-weight: bold; }
+    .bet-control { display: flex; align-items: center; gap: 8px; }
+    .bet-display {
+      width: 150px; height: 40px; background: #171c27; border: 2px solid #2b3142;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold; color: #00ffea; text-shadow: 0 0 4px #000;
+    }
+    .bet-btn { width: 40px; height: 40px; border: none; border-radius: 8px;
+      background: #2a6bf3; color: #fff; font-size: 20px; font-weight: bold; cursor: pointer; }
+
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: opacity 0.5s ease; z-index: 999;
+    }
+    .overlay.show { opacity: 1; visibility: visible; }
+    .win-box {
+      background: linear-gradient(145deg,#2a6bf3,#00ffea); padding: 20px 40px;
+      border-radius: 16px; text-align: center; color: #fff;
+      box-shadow: 0 0 30px rgba(0,255,234,0.6); animation: pop 0.5s ease;
+    }
+    .win-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 6px #000; }
+    .win-amount { font-size: 22px; font-weight: bold; color: #ffd700; text-shadow: 0 0 6px #000; }
+    @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  </style>
+</head>
+<body>
+  <h1>Slot Simbol</h1>
+
+  <div class="saldo-section">
+    <div class="saldo-label">Saldo</div>
+    <div class="saldo-display" id="saldoDisplay">Rp. 10.000</div>
+  </div>
+  
+  <div class="big-box" id="bigBox">
+    <div class="reel" id="reel"></div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+
+  <div class="total-bet-section">
+    <div class="total-bet-label">Total Taruhan</div>
+    <div class="total-bet-display" id="totalBetDisplay">Rp. 0</div>
+  </div>
+
+  <div class="grid-container">
+    <div class="grid" id="grid"></div>
+    <div class="grid-overlay" id="gridOverlay"></div>
+  </div>
+
+  <div class="history"><div class="history-list" id="historyList"></div></div>
+
+  <div class="bet-section">
+    <div class="bet-label">Bet</div>
+    <div class="bet-control">
+      <button class="bet-btn" id="minusBtn">-</button>
+      <div class="bet-display" id="betDisplay">Rp. 0</div>
+      <button class="bet-btn" id="plusBtn">+</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="winOverlay">
+    <div class="win-box">
+      <div class="win-title">MENANG!</div>
+      <div class="win-amount" id="winAmount">Rp. 0</div>
+    </div>
+  </div>
+
+  <script>
+    const SYMBOLS = [
+      { icon: "🍒", multi: 5, weight: 30 },
+      { icon: "🍋", multi: 5, weight: 20 },
+      { icon: "🍉", multi: 5, weight: 15 },
+      { icon: "⭐", multi: 5, weight: 10 },
+      { icon: "🔔", multi: 10, weight: 8 },
+      { icon: "🍇", multi: 15, weight: 7 },
+      { icon: "🍓", multi: 25, weight: 5 },
+      { icon: "💎", multi: 45, weight: 5 }
+    ];
+
+    const reel = document.getElementById("reel");
+    const countdownEl = document.getElementById("countdown");
+    const grid = document.getElementById("grid");
+    const gridOverlay = document.getElementById("gridOverlay");
+    const historyList = document.getElementById("historyList");
+    const betDisplay = document.getElementById("betDisplay");
+    const plusBtn = document.getElementById("plusBtn");
+    const minusBtn = document.getElementById("minusBtn");
+    const saldoDisplay = document.getElementById("saldoDisplay");
+    const totalBetDisplay = document.getElementById("totalBetDisplay");
+    const winOverlay = document.getElementById("winOverlay");
+    const winAmount = document.getElementById("winAmount");
+    const MAX_HISTORY = 10;
+
+    let bets = Array(SYMBOLS.length).fill(0);
+    let betTextRefs = [];
+    let globalBet = 100, saldo = 10000, spinning = false;
+    let canBet = true;
+
+    function getWeightedRandomSymbol() {
+      const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
+      let rand = Math.random() * totalWeight;
+      for (let i = 0; i < SYMBOLS.length; i++) {
+        if (rand < SYMBOLS[i].weight) return { index: i, symbol: SYMBOLS[i] };
+        rand -= SYMBOLS[i].weight;
+      }
+    }
+
+    SYMBOLS.forEach((obj, index)=>{
+      const div=document.createElement("div");
+      div.className="cell";
+      div.innerHTML = `<div>${obj.icon}</div><div class="multiplier">×${obj.multi}</div>`;
+      grid.appendChild(div);
+
+      const betText=document.createElement("div");
+      betText.className="bet-text";
+      if(index<4) betText.classList.add("bet-top"); else betText.classList.add("bet-bottom");
+      div.appendChild(betText); betTextRefs[index]=betText;
+
+      div.addEventListener("click", ()=>{
+        if(!canBet) return;
+        if(saldo>=globalBet){
+          saldo-=globalBet; bets[index]+=globalBet;
+          betText.textContent="Rp. "+bets[index];
+          updateSaldo(); updateTotalBet();
+        } else alert("Saldo tidak cukup!");
+      });
+    });
+
+    function rollSymbol(){
+      if(spinning) return; 
+      spinning=true;
+
+      reel.innerHTML="";
+      reel.style.transition="none";
+      reel.style.transform="translateY(0)";
+
+      const boxH = Math.round(document.getElementById("bigBox").getBoundingClientRect().height);
+      const loops = 20; 
+      let sequence=[];
+      for(let i=0;i<loops;i++){ SYMBOLS.forEach(s => sequence.push(s.icon)); }
+
+      const { index: resultIndex, symbol: result } = getWeightedRandomSymbol();
+      sequence.push(result.icon);
+
+      sequence.forEach(sym=>{
+        const div=document.createElement("div");
+        div.className="symbol";
+        div.style.height = boxH + 'px';
+        div.style.fontSize = Math.round(boxH*0.5) + 'px';
+        div.textContent=sym;
+        reel.appendChild(div);
+      });
+
+      const finalOffset=-(boxH*(sequence.length-1));
+
+      requestAnimationFrame(()=>{
+        reel.style.transition="transform 5000ms linear";
+        reel.style.transform=`translateY(${finalOffset}px)`;
+      });
+
+      reel.addEventListener('transitionend', ()=>{
+        reel.style.transition="none";
+        reel.style.transform=`translateY(${finalOffset}px)`;
+
+        addHistory(result.icon);
+
+        let totalWin=0;
+        bets.forEach((bet,idx)=>{ if(bet>0 && idx===resultIndex){ totalWin+=bet*SYMBOLS[idx].multi; } });
+        if(totalWin>0){ saldo+=totalWin; updateSaldo(); showWin(totalWin); }
+
+        setTimeout(clearBets,2000);
+        spinning=false;
+
+        canBet = true; 
+        gridOverlay.style.display = "none";
+        setTimeout(()=> startCountdown(), 3000);
+      }, { once:true });
+    }
+
+    function startCountdown(){
+      let count=5;
+      countdownEl.textContent=count;
+      countdownEl.style.visibility="visible";
+      const interval=setInterval(()=>{
+        count--;
+        if(count>=0){
+          countdownEl.textContent=count;
+        }
+        if(count<0){
+          clearInterval(interval);
+          countdownEl.style.visibility="hidden";
+          canBet = false;
+          gridOverlay.style.display = "block";
+          rollSymbol();
+        }
+      },1000);
+    }
+
+    function addHistory(icon){
+      const item=document.createElement("div"); item.className="history-item"; item.textContent=icon;
+      historyList.prepend(item);
+      if(historyList.children.length>MAX_HISTORY){ historyList.removeChild(historyList.lastChild); }
+    }
+    function clearBets(){ bets=Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>{el.textContent="";}); updateTotalBet(); }
+    function updateBetDisplay(){ betDisplay.textContent="Rp. "+globalBet; }
+    plusBtn.addEventListener("click", ()=>{ globalBet+=100; updateBetDisplay(); });
+    minusBtn.addEventListener("click", ()=>{ if(globalBet>=200){ globalBet-=100; updateBetDisplay(); }});
+    function updateSaldo(){ saldoDisplay.textContent="Rp. "+saldo.toLocaleString(); }
+    function updateTotalBet(){ totalBetDisplay.textContent="Rp. "+bets.reduce((a,b)=>a+b,0).toLocaleString(); }
+    function showWin(amount){ winAmount.textContent="Rp. "+amount.toLocaleString(); winOverlay.classList.add("show"); setTimeout(()=>{winOverlay.classList.remove("show");},2500); }
+
+    rollSymbol();
+  </script>
+</body>
+</html>
