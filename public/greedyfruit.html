@@ -125,7 +125,21 @@
     @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   </style>
 </head>
+  
 <body>
+
+  <audio id="backsound" loop>
+  <source src="sounds/backsound.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="rollSound">
+  <source src="sounds/roll.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="countdownSound">
+  <source src="sounds/countdown.mp3" type="audio/mpeg">
+</audio>
+  
   <h1>GREEDY FRUIT</h1>
 
   <div class="saldo-section">
@@ -166,6 +180,41 @@
     </div>
   </div>
 
+  // ===== AUDIO SYSTEM =====
+const backsound = document.getElementById("backsound");
+const rollSound = document.getElementById("rollSound");
+const countdownSound = document.getElementById("countdownSound");
+
+function playBacksound() {
+  backsound.volume = 0.5;
+  backsound.play().catch(e => console.warn("Backsound blocked:", e));
+}
+
+function stopBacksound() {
+  backsound.pause();
+  backsound.currentTime = 0;
+}
+
+function playRoll() {
+  rollSound.currentTime = 0;
+  rollSound.play().catch(e => console.warn("Roll sound blocked:", e));
+}
+
+function playCountdown() {
+  countdownSound.currentTime = 0;
+  countdownSound.play().catch(e => console.warn("Countdown sound blocked:", e));
+}
+
+// auto play backsound ketika masuk game
+window.addEventListener("DOMContentLoaded", () => {
+  playBacksound();
+  // kalau autoplay diblokir, aktifkan saat klik pertama user
+  document.body.addEventListener("click", () => {
+    if (backsound.paused) playBacksound();
+  }, { once:true });
+});
+
+  
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
