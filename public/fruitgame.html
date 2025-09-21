@@ -896,5 +896,69 @@ window.addEventListener("DOMContentLoaded", () => {
     saveBalance();
   }
 </script>
+    <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",
+    projectId: "fruit-game-5e4a8",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
+    messagingSenderId: "936228678997",
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+    measurementId: "G-EPTSQQPM4D"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+  let saldo = 0;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      const userRef = doc(db, "users", user.uid);
+
+      // realtime listener saldo
+      onSnapshot(userRef, (snap) => {
+        if (snap.exists()) {
+          saldo = snap.data().saldo || 0;
+          updateSaldoDisplay();
+        }
+      });
+    } else {
+      window.location.href = "index.html";
+    }
+  });
+
+  function updateSaldoDisplay() {
+    document.getElementById("saldoDisplay").textContent = "Rp. " + saldo.toLocaleString("id-ID");
+  }
+
+  // fungsi untuk mengurangi saldo saat pasang taruhan
+  async function kurangiSaldo(jumlah) {
+    if (!currentUser) return;
+    const userRef = doc(db, "users", currentUser.uid);
+    saldo -= jumlah;
+    if (saldo < 0) saldo = 0;
+    await updateDoc(userRef, { saldo });
+  }
+
+  // fungsi untuk menambah saldo saat menang
+  async function tambahSaldo(jumlah) {
+    if (!currentUser) return;
+    const userRef = doc(db, "users", currentUser.uid);
+    saldo += jumlah;
+    await updateDoc(userRef, { saldo });
+  }
+
+  // export biar bisa dipanggil di script game
+  window.kurangiSaldo = kurangiSaldo;
+  window.tambahSaldo = tambahSaldo;
+</script>
 </body>
 </html>
