@@ -316,7 +316,7 @@
     }
 
     function startCountdown(){
-      let count=5;
+      let count=15;
       countdownEl.textContent=count;
       countdownEl.style.visibility="visible";
       const interval=setInterval(()=>{
@@ -341,8 +341,8 @@
     }
     function clearBets(){ bets=Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>{el.textContent="";}); updateTotalBet(); }
     function updateBetDisplay(){ betDisplay.textContent="Rp. "+globalBet; }
-    plusBtn.addEventListener("click", ()=>{ globalBet+=100; updateBetDisplay(); });
-    minusBtn.addEventListener("click", ()=>{ if(globalBet>=200){ globalBet-=100; updateBetDisplay(); }});
+    plusBtn.addEventListener("click", ()=>{ globalBet+=500; updateBetDisplay(); });
+    minusBtn.addEventListener("click", ()=>{ if(globalBet>=1000){ globalBet-=500; updateBetDisplay(); }});
     function updateSaldo(){ saldoDisplay.textContent="Rp. "+saldo.toLocaleString("id-ID"); }
     function updateTotalBet(){ totalBetDisplay.textContent="Rp. "+bets.reduce((a,b)=>a+b,0).toLocaleString("id-ID"); }
     function showWin(amount){ winAmount.textContent="Rp. "+amount.toLocaleString("id-ID"); winOverlay.classList.add("show"); setTimeout(()=>{winOverlay.classList.remove("show");},2500); }
