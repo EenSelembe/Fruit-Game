@@ -9,104 +9,156 @@
     html, body {
       width: 100vw; height: 100vh;
       background: url("https://wallpapercave.com/wp/wp6557370.jpg") no-repeat center center fixed; 
-      background-size: cover;
       font-family: Arial, sans-serif; 
       color: #fff;
       display: flex; flex-direction: column; align-items: center;
       justify-content: flex-start; overflow: hidden; padding-top: 10px;
     }
+
+    /* TEKS NEON */
     h1 {
       font-size: 26px; font-weight: bold; margin-bottom: 15px;
-      text-transform: uppercase; animation: glow 3s linear infinite;
-      text-shadow: 0 0 10px red,0 0 20px yellow,0 0 40px cyan;
+      text-transform: uppercase;
+      animation: glow 3s linear infinite;
     }
     @keyframes glow {
-      0%{color:#ff0;}25%{color:#0f0;}50%{color:#0ff;}75%{color:#f0f;}100%{color:#ff0;}
+      0%   { color: #fffb00; text-shadow: 0 0 10px #ff7300, 0 0 20px #fffb00; }
+      25%  { color: #48ff00; text-shadow: 0 0 10px #00ffd5, 0 0 20px #002bff; }
+      50%  { color: #ff00ab; text-shadow: 0 0 10px #ff00ab, 0 0 20px #ff0000; }
+      75%  { color: #00ffd5; text-shadow: 0 0 10px #48ff00, 0 0 20px #002bff; }
+      100% { color: #fffb00; text-shadow: 0 0 10px #ff7300, 0 0 20px #fffb00; }
     }
-    .saldo-section { display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:15px; }
+
+    .saldo-section { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 15px; }
+    .saldo-label { font-size: 16px; font-weight: bold; }
     .saldo-display {
-      min-width:150px;height:36px;background:#171c27;
-      border:2px solid #2b3142;border-radius:8px;
-      display:flex;align-items:center;justify-content:center;
-      font-size:16px;font-weight:bold;color:#00ffea;text-shadow:0 0 4px #000;
+      min-width: 150px; height: 36px; background: #171c27;
+      border: 2px solid #2b3142; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold; color: #00ffea;
     }
+
     .big-box {
-      width:40vw;height:40vw;max-width:200px;max-height:200px;
-      background:#171c27;border:3px solid #2b3142;border-radius:16px;
-      box-shadow:0 6px 20px rgba(0,0,0,.5);
-      margin-bottom:12px;overflow:hidden;position:relative;
-      display:flex;align-items:center;justify-content:center;
+      width: 40vw; height: 40vw; max-width: 200px; max-height: 200px;
+      background: #171c27; border: 3px solid #2b3142; border-radius: 16px;
+      margin-bottom: 12px; overflow: hidden; position: relative;
+      display: flex; align-items: center; justify-content: center;
     }
-    .reel { position:absolute; top:0; left:0; width:100%; will-change:transform; }
-    .symbol { width:100%; display:flex; align-items:center; justify-content:center; }
+    .reel { position: absolute; top: 0; left: 0; width: 100%; will-change: transform; }
+    .symbol { width: 100%; display: flex; align-items: center; justify-content: center; }
     .countdown {
-      position:absolute;top:0;left:0;width:100%;height:100%;
-      display:flex;align-items:center;justify-content:center;
-      font-size:15vw;font-weight:bold;color:#ffd700;
-      background:rgba(0,0,0,0.7);border-radius:16px;visibility:hidden;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15vw; font-weight: bold; color: #ffd700;
+      background: rgba(0,0,0,0.7); border-radius: 16px;
+      visibility: hidden;
     }
-    .grid-container{position:relative;margin-bottom:30px;}
-    .grid{display:grid;grid-template-columns:repeat(4,20vw);gap:8px;}
+
+    .total-bet-section { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 20px; }
+    .total-bet-label { font-size: 16px; font-weight: bold; }
+    .total-bet-display {
+      min-width: 150px; height: 36px; background: #171c27;
+      border: 2px solid #2b3142; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold; color: #ffd700;
+    }
+
+    .grid-container { position: relative; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 20vw); gap: 8px; }
     .cell {
-      height:20vw;background:#171c27;border:2px solid #2b3142;
-      border-radius:10px;position:relative;display:flex;
-      flex-direction:column;align-items:center;justify-content:center;
-      font-size:8vw;cursor:pointer;
+      height: 20vw; background: #171c27; border: 2px solid #2b3142;
+      border-radius: 10px; position: relative; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      font-size: 8vw; cursor: pointer;
     }
-    .multiplier{font-size:3vw;color:#ffd700;font-weight:bold;}
-    .bet-text{position:absolute;left:50%;transform:translateX(-50%);
-      font-size:3vw;font-weight:bold;color:#00ffea;text-shadow:0 0 4px #000;}
-    .bet-top{top:-20px;} .bet-bottom{bottom:-20px;}
+    .multiplier { font-size: 3vw; color: #ffd700; font-weight: bold; margin-top: 2px; }
+    .bet-text {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 3vw; font-weight: bold; color: #00ffea;
+      text-shadow: 0 0 4px #000;
+      display: flex; align-items: center; gap: 2px; /* sejajarkan Rp & angka */
+    }
+    .bet-top { top: -20px; }
+    .bet-bottom { bottom: -20px; }
+
     .grid-overlay {
-      position:absolute;top:0;left:0;width:100%;height:100%;
-      background:rgba(0,0,0,0.5);border-radius:10px;display:none;z-index:5;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); border-radius: 10px; display: none;
     }
-    .history{width:406px;max-width:90vw;height:56px;background:#171c27;
-      border:2px solid #2b3142;border-radius:10px;padding:6px;overflow:hidden;
-      display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px;}
-    .history-list{display:flex;flex-direction:row-reverse;gap:6px;width:100%;}
-    .history-item{width:40px;height:40px;display:flex;align-items:center;justify-content:center;
-      font-size:24px;background:#222836;border-radius:6px;flex-shrink:0;}
-    .bet-section{display:flex;flex-direction:column;align-items:center;gap:6px;}
-    .bet-control{display:flex;align-items:center;gap:8px;}
-    .bet-display{
-      width:150px;height:40px;background:#171c27;border:2px solid #2b3142;
-      border-radius:8px;display:flex;align-items:center;justify-content:center;
-      font-size:16px;font-weight:bold;color:#00ffea;text-shadow:0 0 4px #000;
+
+    .history {
+      width: 406px; max-width: 90vw; height: 56px; background: #171c27;
+      border: 2px solid #2b3142; border-radius: 10px; padding: 6px;
+      display: flex; align-items: center; justify-content: flex-end;
+      margin-bottom: 16px; overflow: hidden;
     }
-    .bet-btn{width:40px;height:40px;border:none;border-radius:8px;
-      background:#2a6bf3;color:#fff;font-size:20px;font-weight:bold;cursor:pointer;}
-    .overlay{position:fixed;top:0;left:0;width:100%;height:100%;
-      background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;
-      opacity:0;visibility:hidden;transition:opacity 0.5s ease;z-index:999;}
-    .overlay.show{opacity:1;visibility:visible;}
-    .win-box{background:linear-gradient(145deg,#2a6bf3,#00ffea);padding:20px 40px;
-      border-radius:16px;text-align:center;color:#fff;box-shadow:0 0 30px rgba(0,255,234,0.6);}
-    .win-title{font-size:28px;font-weight:bold;margin-bottom:10px;}
-    .win-amount{font-size:22px;font-weight:bold;color:#ffd700;}
+    .history-list { display: flex; flex-direction: row-reverse; gap: 6px; width: 100%; }
+    .history-item {
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; background: #222836; border-radius: 6px; flex-shrink: 0;
+    }
+
+    .bet-section { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bet-label { font-size: 16px; font-weight: bold; }
+    .bet-control { display: flex; align-items: center; gap: 8px; }
+    .bet-display {
+      width: 150px; height: 40px; background: #171c27; border: 2px solid #2b3142;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold; color: #00ffea;
+    }
+    .bet-btn { width: 40px; height: 40px; border: none; border-radius: 8px;
+      background: #2a6bf3; color: #fff; font-size: 20px; font-weight: bold; cursor: pointer; }
+
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: opacity 0.5s ease; z-index: 999;
+    }
+    .overlay.show { opacity: 1; visibility: visible; }
+    .win-box {
+      background: linear-gradient(145deg,#2a6bf3,#00ffea); padding: 20px 40px;
+      border-radius: 16px; text-align: center; color: #fff;
+      box-shadow: 0 0 30px rgba(0,255,234,0.6); animation: pop 0.5s ease;
+    }
+    .win-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+    .win-amount { font-size: 22px; font-weight: bold; color: #ffd700; }
+    @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   </style>
 </head>
 <body>
-  <h1>Greedy Fruit</h1>
+  <h1>GREEDY FRUIT</h1>
+
   <div class="saldo-section">
+    <div class="saldo-label">Saldo</div>
     <div class="saldo-display" id="saldoDisplay">Rp. 0</div>
   </div>
+
   <div class="big-box" id="bigBox">
     <div class="reel" id="reel"></div>
     <div class="countdown" id="countdown"></div>
   </div>
+
+  <div class="total-bet-section">
+    <div class="total-bet-label">Total Taruhan</div>
+    <div class="total-bet-display" id="totalBetDisplay">Rp. 0</div>
+  </div>
+
   <div class="grid-container">
     <div class="grid" id="grid"></div>
     <div class="grid-overlay" id="gridOverlay"></div>
   </div>
+
   <div class="history"><div class="history-list" id="historyList"></div></div>
+
   <div class="bet-section">
+    <div class="bet-label">Bet</div>
     <div class="bet-control">
       <button class="bet-btn" id="minusBtn">-</button>
       <div class="bet-display" id="betDisplay">Rp. 100</div>
       <button class="bet-btn" id="plusBtn">+</button>
     </div>
   </div>
+
   <div class="overlay" id="winOverlay">
     <div class="win-box">
       <div class="win-title">MENANG!</div>
@@ -114,135 +166,188 @@
     </div>
   </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-  authDomain: "fruit-game-5e4a8.firebaseapp.com",
-  projectId: "fruit-game-5e4a8",
-  storageBucket: "fruit-game-5e4a8.appspot.com",
-  messagingSenderId: "936228678997",
-  appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-const SYMBOLS = [
-  { icon: "🍒", multi: 5, weight: 30 },
-  { icon: "🍇", multi: 5, weight: 20 },
-  { icon: "🍉", multi: 5, weight: 15 },
-  { icon: "🍋", multi: 5, weight: 10 },
-  { icon: "🌭", multi: 10, weight: 8 },
-  { icon: "🍔", multi: 15, weight: 7 },
-  { icon: "🍖", multi: 25, weight: 5 },
-  { icon: "🥩", multi: 45, weight: 5 }
-];
+    const SYMBOLS = [
+      { icon: "🍒", multi: 5, weight: 30 },
+      { icon: "🍋", multi: 5, weight: 20 },
+      { icon: "🍉", multi: 5, weight: 15 },
+      { icon: "⭐", multi: 5, weight: 10 },
+      { icon: "🔔", multi: 10, weight: 8 },
+      { icon: "🍇", multi: 15, weight: 7 },
+      { icon: "🍓", multi: 25, weight: 5 },
+      { icon: "💎", multi: 45, weight: 5 }
+    ];
 
-const reel=document.getElementById("reel");
-const countdownEl=document.getElementById("countdown");
-const grid=document.getElementById("grid");
-const gridOverlay=document.getElementById("gridOverlay");
-const historyList=document.getElementById("historyList");
-const betDisplay=document.getElementById("betDisplay");
-const plusBtn=document.getElementById("plusBtn");
-const minusBtn=document.getElementById("minusBtn");
-const saldoDisplay=document.getElementById("saldoDisplay");
-const winOverlay=document.getElementById("winOverlay");
-const winAmount=document.getElementById("winAmount");
+    const reel = document.getElementById("reel");
+    const countdownEl = document.getElementById("countdown");
+    const grid = document.getElementById("grid");
+    const gridOverlay = document.getElementById("gridOverlay");
+    const historyList = document.getElementById("historyList");
+    const betDisplay = document.getElementById("betDisplay");
+    const plusBtn = document.getElementById("plusBtn");
+    const minusBtn = document.getElementById("minusBtn");
+    const saldoDisplay = document.getElementById("saldoDisplay");
+    const totalBetDisplay = document.getElementById("totalBetDisplay");
+    const winOverlay = document.getElementById("winOverlay");
+    const winAmount = document.getElementById("winAmount");
+    const MAX_HISTORY = 10;
 
-let bets=Array(SYMBOLS.length).fill(0);
-let betTextRefs=[];
-let globalBet=100, saldo=0, spinning=false, canBet=true;
-let currentUser=null, userRef=null;
+    let bets = Array(SYMBOLS.length).fill(0);
+    let betTextRefs = [];
+    let globalBet = 100, saldo = 0, spinning = false;
+    let canBet = true, userDocRef = null;
 
-function getWeightedRandomSymbol(){
-  const totalWeight=SYMBOLS.reduce((s,v)=>s+v.weight,0);
-  let rand=Math.random()*totalWeight;
-  for(let i=0;i<SYMBOLS.length;i++){
-    if(rand<SYMBOLS[i].weight) return {index:i,symbol:SYMBOLS[i]};
-    rand-=SYMBOLS[i].weight;
-  }
-}
+    // === Firebase sync saldo ===
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        userDocRef = doc(db, "users", user.uid);
+        onSnapshot(userDocRef, (snap) => {
+          if (snap.exists()) {
+            saldo = snap.data().saldo || 0;
+            updateSaldo();
+          }
+        });
+      } else {
+        window.location.href = "index.html";
+      }
+    });
 
-SYMBOLS.forEach((obj,index)=>{
-  const div=document.createElement("div");
-  div.className="cell";
-  div.innerHTML=`<div>${obj.icon}</div><div class="multiplier">×${obj.multi}</div>`;
-  grid.appendChild(div);
+    async function saveBalance() {
+      if (userDocRef) await updateDoc(userDocRef, { saldo });
+    }
 
-  const betText=document.createElement("div");
-  betText.className="bet-text";
-  if(index<4) betText.classList.add("bet-top"); else betText.classList.add("bet-bottom");
-  div.appendChild(betText); betTextRefs[index]=betText;
+    function getWeightedRandomSymbol() {
+      const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
+      let rand = Math.random() * totalWeight;
+      for (let i = 0; i < SYMBOLS.length; i++) {
+        if (rand < SYMBOLS[i].weight) return { index: i, symbol: SYMBOLS[i] };
+        rand -= SYMBOLS[i].weight;
+      }
+    }
 
-  div.addEventListener("click", async ()=>{
-    if(!canBet) return;
-    if(saldo>=globalBet){
-      saldo-=globalBet; bets[index]+=globalBet;
-      await updateDoc(userRef,{saldo});
-      betText.textContent="Rp. "+bets[index];
-      updateSaldo();
-    } else alert("Saldo tidak cukup!");
-  });
-});
+    SYMBOLS.forEach((obj, index)=>{
+      const div=document.createElement("div");
+      div.className="cell";
+      div.innerHTML = `<div>${obj.icon}</div><div class="multiplier">×${obj.multi}</div>`;
+      grid.appendChild(div);
 
-function rollSymbol(){
-  if(spinning) return; spinning=true;
-  reel.innerHTML=""; reel.style.transition="none"; reel.style.transform="translateY(0)";
-  const boxH=Math.round(document.getElementById("bigBox").getBoundingClientRect().height);
-  let sequence=[];
-  for(let i=0;i<20;i++){ SYMBOLS.forEach(s=>sequence.push(s.icon)); }
-  const {index:resultIndex,symbol:result}=getWeightedRandomSymbol();
-  sequence.push(result.icon);
-  sequence.forEach(sym=>{
-    const div=document.createElement("div");
-    div.className="symbol"; div.style.height=boxH+"px"; div.style.fontSize=Math.round(boxH*0.5)+"px"; div.textContent=sym;
-    reel.appendChild(div);
-  });
-  const finalOffset=-(boxH*(sequence.length-1));
-  requestAnimationFrame(()=>{reel.style.transition="transform 5000ms linear";reel.style.transform=`translateY(${finalOffset}px)`;});
-  reel.addEventListener('transitionend', async ()=>{
-    reel.style.transition="none"; reel.style.transform=`translateY(${finalOffset}px)`;
-    addHistory(result.icon);
-    let totalWin=0;
-    bets.forEach((bet,idx)=>{ if(bet>0 && idx===resultIndex){ totalWin+=bet*SYMBOLS[idx].multi; }});
-    if(totalWin>0){ saldo+=totalWin; await updateDoc(userRef,{saldo}); showWin(totalWin); }
-    clearBets(); spinning=false; canBet=true; gridOverlay.style.display="none";
-    setTimeout(()=>startCountdown(),3000);
-  },{once:true});
-}
+      const betText=document.createElement("div");
+      betText.className="bet-text";
+      if(index<4) betText.classList.add("bet-top"); else betText.classList.add("bet-bottom");
+      div.appendChild(betText); betTextRefs[index]=betText;
 
-function startCountdown(){
-  let count=5;
-  countdownEl.textContent=count; countdownEl.style.visibility="visible";
-  const interval=setInterval(()=>{
-    count--; if(count>=0){countdownEl.textContent=count;}
-    if(count<0){clearInterval(interval); countdownEl.style.visibility="hidden"; canBet=false; gridOverlay.style.display="block"; rollSymbol();}
-  },1000);
-}
+      div.addEventListener("click", async ()=>{
+        if(!canBet) return;
+        if(saldo>=globalBet){
+          saldo-=globalBet; bets[index]+=globalBet;
+          betText.innerHTML=`<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
+          updateSaldo(); updateTotalBet();
+          await saveBalance();
+        } else alert("Saldo tidak cukup!");
+      });
+    });
 
-function addHistory(icon){
-  const item=document.createElement("div"); item.className="history-item"; item.textContent=icon;
-  historyList.prepend(item); if(historyList.children.length>10){historyList.removeChild(historyList.lastChild);}
-}
-function clearBets(){bets=Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>el.textContent="");}
-function updateSaldo(){saldoDisplay.textContent="Rp. "+saldo.toLocaleString("id-ID");}
-function showWin(amount){winAmount.textContent="Rp. "+amount.toLocaleString("id-ID"); winOverlay.classList.add("show"); setTimeout(()=>winOverlay.classList.remove("show"),2500);}
-plusBtn.addEventListener("click",()=>{globalBet+=100; betDisplay.textContent="Rp. "+globalBet;});
-minusBtn.addEventListener("click",()=>{if(globalBet>=200){globalBet-=100; betDisplay.textContent="Rp. "+globalBet;}});
+    function rollSymbol(){
+      if(spinning) return; 
+      spinning=true;
 
-onAuthStateChanged(auth,(user)=>{
-  if(user){currentUser=user; userRef=doc(db,"users",user.uid);
-    onSnapshot(userRef,(snap)=>{if(snap.exists()){saldo=snap.data().saldo||0; updateSaldo();}});
-  } else {window.location.href="index.html";}
-});
+      reel.innerHTML="";
+      reel.style.transition="none";
+      reel.style.transform="translateY(0)";
 
-rollSymbol();
-</script>
+      const boxH = Math.round(document.getElementById("bigBox").getBoundingClientRect().height);
+      let sequence=[];
+      for(let i=0;i<20;i++){ SYMBOLS.forEach(s => sequence.push(s.icon)); }
+
+      const { index: resultIndex, symbol: result } = getWeightedRandomSymbol();
+      sequence.push(result.icon);
+
+      sequence.forEach(sym=>{
+        const div=document.createElement("div");
+        div.className="symbol";
+        div.style.height = boxH + 'px';
+        div.style.fontSize = Math.round(boxH*0.5) + 'px';
+        div.textContent=sym;
+        reel.appendChild(div);
+      });
+
+      const finalOffset=-(boxH*(sequence.length-1));
+
+      requestAnimationFrame(()=>{
+        reel.style.transition="transform 5000ms linear";
+        reel.style.transform=`translateY(${finalOffset}px)`;
+      });
+
+      reel.addEventListener('transitionend', async ()=>{
+        reel.style.transition="none";
+        reel.style.transform=`translateY(${finalOffset}px)`;
+
+        addHistory(result.icon);
+
+        let totalWin=0;
+        bets.forEach((bet,idx)=>{ if(bet>0 && idx===resultIndex){ totalWin+=bet*SYMBOLS[idx].multi; } });
+        if(totalWin>0){ saldo+=totalWin; updateSaldo(); showWin(totalWin); await saveBalance(); }
+
+        setTimeout(clearBets,2000);
+        spinning=false;
+
+        canBet = true; 
+        gridOverlay.style.display = "none";
+        setTimeout(()=> startCountdown(), 3000);
+      }, { once:true });
+    }
+
+    function startCountdown(){
+      let count=5;
+      countdownEl.textContent=count;
+      countdownEl.style.visibility="visible";
+      const interval=setInterval(()=>{
+        count--;
+        if(count>=0){
+          countdownEl.textContent=count;
+        }
+        if(count<0){
+          clearInterval(interval);
+          countdownEl.style.visibility="hidden";
+          canBet = false;
+          gridOverlay.style.display = "block";
+          rollSymbol();
+        }
+      },1000);
+    }
+
+    function addHistory(icon){
+      const item=document.createElement("div"); item.className="history-item"; item.textContent=icon;
+      historyList.prepend(item);
+      if(historyList.children.length>MAX_HISTORY){ historyList.removeChild(historyList.lastChild); }
+    }
+    function clearBets(){ bets=Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>{el.textContent="";}); updateTotalBet(); }
+    function updateBetDisplay(){ betDisplay.textContent="Rp. "+globalBet; }
+    plusBtn.addEventListener("click", ()=>{ globalBet+=100; updateBetDisplay(); });
+    minusBtn.addEventListener("click", ()=>{ if(globalBet>=200){ globalBet-=100; updateBetDisplay(); }});
+    function updateSaldo(){ saldoDisplay.textContent="Rp. "+saldo.toLocaleString("id-ID"); }
+    function updateTotalBet(){ totalBetDisplay.textContent="Rp. "+bets.reduce((a,b)=>a+b,0).toLocaleString("id-ID"); }
+    function showWin(amount){ winAmount.textContent="Rp. "+amount.toLocaleString("id-ID"); winOverlay.classList.add("show"); setTimeout(()=>{winOverlay.classList.remove("show");},2500); }
+
+    rollSymbol();
+  </script>
 </body>
 </html>
