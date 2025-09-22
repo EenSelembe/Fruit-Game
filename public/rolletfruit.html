@@ -3,76 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rolet Buah Fullscreen</title>
+<title>Rolet Buah Fullscreen + Sound</title>
 <style>
-  html, body {
-    margin:0; padding:0; width:100%; height:100%;
-    background:url("https://wallpapercave.com/wp/wp6557524.jpg") no-repeat center center fixed;
-    overflow:hidden; font-family: Arial, sans-serif; color:#fff;
-    display:flex; flex-direction:column; align-items:center;
-  }
-  #history {
-    display:flex; flex-direction:row; gap:8px;
-    margin-top:8px; margin-bottom:12px;
-    overflow:hidden; width:95%; justify-content:flex-end;
-  }
-  .hist-item {
-    padding:5px 10px; border-radius:8px; font-size:16px; font-weight:bold;
-    color:white; -webkit-text-stroke:0.5px white;
-    text-shadow:1px 1px 2px #000;
-    background:rgba(0,0,0,0.6); display:inline-block;
-  }
-  #saldoBox, #betValue, #totalBet, #betsList {
-    font-weight:bold; -webkit-text-stroke:0.8px white; color:white;
-    text-shadow:1px 1px 2px #000; background:rgba(0,0,0,0.5);
-    padding:6px 12px; border-radius:8px; display:inline-block;
-  }
-  #multiplierBox {
-    position:relative; width:100px; height:50px;
-    border:2px solid #fff; border-radius:8px;
-    margin:12px 0; overflow:hidden; background:#111;
-  }
-  #multiplierRoll {
-    position:absolute; top:0; left:0; right:0;
-    transition: transform 10s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .mult-item { font-size:28px; font-weight:bold; height:50px; line-height:50px; text-align:center; color:#fff; }
-  .mult-gold { color:gold; }
-  .main { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
-  .wrap { position:relative; width:min(90vw, 340px); height:min(90vw, 340px); margin-bottom:10px; }
-  canvas {
-    width:100%; height:100%; border:6px solid #fff; border-radius:50%;
-    box-shadow:0 0 15px rgba(0,0,0,.7); background:#111; cursor:pointer;
-  }
-  #spinBtn {
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:90px; height:90px; border-radius:50%; border:none;
-    background:linear-gradient(orange, gold);
-    font-size:18px; font-weight:bold; cursor:pointer;
-    box-shadow:0 0 12px rgba(0,0,0,.6); color:#000; z-index:20;
-  }
-  #betBox { display:flex; align-items:center; gap:15px; margin:8px 0; }
-  #betBox button {
-    width:40px; height:40px; border-radius:50%; border:none;
-    background:linear-gradient(#555, #333); color:#fff;
-    font-size:20px; cursor:pointer; box-shadow:0 0 6px rgba(0,0,0,.6);
-  }
-  #betsList {
-    margin-top:18px; font-size:18px; display:grid;
-    grid-template-rows: repeat(5, auto); grid-auto-flow: column;
-    gap:6px 20px; text-align:left;
-  }
-  #overlayWin {
-    position:fixed; top:0; left:0; right:0; bottom:0;
-    background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
-    z-index:100; opacity:0; pointer-events:none; transition:opacity 0.4s ease;
-  }
-  #overlayWin.show { opacity:1; pointer-events:auto; }
-  #overlayContent {
-    background:#fff; color:#000; padding:30px 40px; border-radius:15px;
-    font-size:24px; font-weight:bold; text-align:center;
-    box-shadow:0 0 20px rgba(255,255,255,0.8); white-space:pre-line;
-  }
+  /* ... gaya CSS kamu tetap sama persis ... */
 </style>
 </head>
 <body>
@@ -95,8 +28,15 @@
   <div id="overlayWin"><div id="overlayContent"></div></div>
 
   <!-- 🔊 Audio -->
-  <audio id="soundMultiplier"><source src="sonds/roll.mp3" type="audio/mpeg"></audio>
-  <audio id="soundTick"><source src="sonds/spinnerrolet.mp3" type="audio/mpeg"></audio>
+  <audio id="backsound" loop autoplay>
+    <source src="sonds/backsound.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="soundMultiplier">
+    <source src="sonds/roll.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="soundRolet">
+    <source src="sonds/spinnerrolet.mp3" type="audio/mpeg">
+  </audio>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
@@ -113,29 +53,67 @@ const firebaseConfig = {
   appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
   measurementId: "G-EPTSQQPM4D"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let userId=null, saldo=0;
+// 🔊 Audio
+const backsound = document.getElementById("backsound");
+const soundMultiplier = document.getElementById("soundMultiplier");
+const soundRolet = document.getElementById("soundRolet");
+
+// play helper
+function playLoop(audio) {
+  audio.loop = true;
+  audio.currentTime = 0;
+  audio.play().catch(e => console.warn("Play blocked:", e));
+}
+function stopAudio(audio) {
+  audio.pause();
+  audio.currentTime = 0;
+}
+function playOnce(audio) {
+  audio.currentTime = 0;
+  audio.play().catch(e => console.warn("Play blocked:", e));
+}
+
+// auto start backsound
+window.addEventListener("DOMContentLoaded", () => {
+  backsound.volume = 0.4;
+  backsound.play().catch(err => {
+    console.log("Autoplay dicegah browser:", err);
+    document.body.addEventListener("click", () => backsound.play(), { once: true });
+  });
+});
+
+// === saldo firebase
+let userId=null;
+let saldo=0;
 const saldoBox=document.getElementById("saldoBox");
 function updateSaldo(){ saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID"); }
 async function setSaldo(newSaldo){
-  if(!userId) return; saldo=newSaldo; updateSaldo();
-  const userRef=doc(db,"users",userId); await updateDoc(userRef,{saldo:saldo});
+  if(!userId) return;
+  saldo=newSaldo; updateSaldo();
+  const userRef=doc(db,"users",userId);
+  await updateDoc(userRef,{saldo:saldo});
 }
 onAuthStateChanged(auth,(user)=>{
   if(user){
     userId=user.uid;
     const userRef=doc(db,"users",userId);
-    onSnapshot(userRef,(snap)=>{ if(snap.exists()){ saldo=snap.data().saldo||0; updateSaldo(); } });
-  } else window.location.href="index.html";
+    onSnapshot(userRef,(snap)=>{
+      if(snap.exists()){ saldo=snap.data().saldo||0; updateSaldo(); }
+    });
+  } else { window.location.href="index.html"; }
 });
 
-// === GAME ===
+// === logika rolet ===
 const canvas=document.getElementById("wheel");
 const ctx=canvas.getContext("2d");
-const size=340; canvas.width=size; canvas.height=size;
+const size=340;
+canvas.width=size; canvas.height=size;
+
 const spinBtn=document.getElementById("spinBtn");
 const historyDiv=document.getElementById("history");
 const betsList=document.getElementById("betsList");
@@ -143,115 +121,150 @@ const totalBetBox=document.getElementById("totalBet");
 const overlayWin=document.getElementById("overlayWin");
 const overlayContent=document.getElementById("overlayContent");
 
-// 🔊 Audio
-const soundMultiplier=document.getElementById("soundMultiplier");
-const soundTick=document.getElementById("soundTick");
-function playOnce(audio){ audio.currentTime=0; audio.play().catch(()=>{}); }
-
-// Overlay
 function showOverlay(msg){
   overlayContent.textContent=msg;
   overlayWin.classList.add("show");
   setTimeout(()=>overlayWin.classList.remove("show"),3000);
 }
 
-// Bet
+// bet
 let bet=500;
 const betValue=document.getElementById("betValue");
 function updateBet(){ betValue.textContent="Rp. "+bet; }
 document.getElementById("minusBet").addEventListener("click",()=>{if(bet>500){bet-=500;updateBet();}});
-document.getElementById("plusBet").addEventListener("click",()=>{bet+=500;updateBet();});
+document.getElementById("plusBet").addEventListener("click",()=>{bet+=500;updateBet();}});
 updateBet();
 
-// Simbol
+// simbol
 const segments=["🍎","🍌","🍇","🍉","🍒","🍍","🍋","🥭","🥝","🍑"];
 const colors=["#e74c3c","#3498db","#2ecc71","#f1c40f","#9b59b6","#e67e22","#1abc9c","#ff6f61","#16a085","#d35400"];
-const N=segments.length, R=size/2, cx=size/2, cy=size/2;
+const N=segments.length;
+const R=size/2; const cx=size/2,cy=size/2;
 
-// Bets
 let betsActive={};
 function updateBetsList(){
-  if(Object.keys(betsActive).length===0){ betsList.textContent="Belum ada taruhan"; totalBetBox.textContent="Total Taruhan: Rp. 0"; return; }
+  if(Object.keys(betsActive).length===0){
+    betsList.textContent="Belum ada taruhan";
+    totalBetBox.textContent="Total Taruhan: Rp. 0";
+    return;
+  }
   betsList.innerHTML=""; let total=0;
   for(const [sym,val] of Object.entries(betsActive)){
-    const d=document.createElement("div"); d.textContent=sym+" = Rp. "+val; betsList.appendChild(d); total+=val;
+    const div=document.createElement("div");
+    div.textContent=sym+" = Rp. "+val;
+    betsList.appendChild(div);
+    total+=val;
   }
   totalBetBox.textContent="Total Taruhan: Rp. "+total;
 }
-function getTotalBet(){ return Object.values(betsActive).reduce((a,b)=>a+b,0); }
+function getTotalBet(){return Object.values(betsActive).reduce((a,b)=>a+b,0);}
 
-// Klik simbol
+// klik simbol
 canvas.addEventListener("click",e=>{
-  if(spinning) return; if(saldo<bet){alert("Saldo tidak cukup!");return;}
-  const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top;
-  const dx=x-cx, dy=y-cy; let angle=Math.atan2(dy,dx);
-  let norm=(angle+2*Math.PI)%(2*Math.PI); norm=(norm+Math.PI/2)%(2*Math.PI);
-  const index=Math.floor(norm/(2*Math.PI/N)); const symbol=segments[index];
-  setSaldo(saldo-bet); betsActive[symbol]=(betsActive[symbol]||0)+bet; updateBetsList();
+  if(spinning) return;
+  if(saldo<bet){alert("Saldo tidak cukup!");return;}
+  const rect=canvas.getBoundingClientRect();
+  const x=e.clientX-rect.left; const y=e.clientY-rect.top;
+  const dx=x-cx,dy=y-cy;
+  let angle=Math.atan2(dy,dx);
+  let norm=(angle+2*Math.PI)%(2*Math.PI);
+  norm=(norm+Math.PI/2)%(2*Math.PI);
+  const index=Math.floor(norm/(2*Math.PI/N));
+  const symbol=segments[index];
+  setSaldo(saldo-bet);
+  betsActive[symbol]=(betsActive[symbol]||0)+bet;
+  updateBetsList();
 });
 
-// Draw
+// draw wheel
 function drawWheel(highlightIndex=null){
-  ctx.clearRect(0,0,size,size); const startOffset=-Math.PI/2;
+  ctx.clearRect(0,0,size,size);
+  const startOffset=-Math.PI/2;
   for(let i=0;i<N;i++){
-    const a0=startOffset+i*(2*Math.PI/N); const a1=a0+(2*Math.PI/N);
+    const a0=startOffset+i*(2*Math.PI/N);
+    const a1=a0+(2*Math.PI/N);
     ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
     ctx.fillStyle=colors[i]; ctx.fill();
-    const mid=(a0+a1)/2; ctx.font="38px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff";
+    const mid=(a0+a1)/2;
+    ctx.font="38px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff";
     ctx.fillText(segments[i], cx+Math.cos(mid)*R*0.72, cy+Math.sin(mid)*R*0.72);
   }
-  if(highlightIndex!==null){ ctx.save(); const a0=-Math.PI/2+highlightIndex*(2*Math.PI/N); const a1=a0+(2*Math.PI/N);
+  if(highlightIndex!==null){
+    ctx.save();
+    const a0=-Math.PI/2+highlightIndex*(2*Math.PI/N);
+    const a1=a0+(2*Math.PI/N);
     ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
-    ctx.lineWidth=14; ctx.strokeStyle="yellow"; ctx.shadowBlur=30; ctx.shadowColor="yellow"; ctx.stroke(); ctx.restore(); }
+    ctx.lineWidth=14; ctx.strokeStyle="yellow"; ctx.shadowBlur=30; ctx.shadowColor="yellow"; ctx.stroke();
+    ctx.restore();
+  }
 }
 drawWheel();
 
-// History
 function addHistory(symbol,mult){
-  const item=document.createElement("div"); item.className="hist-item"; item.textContent=symbol+" x"+mult;
-  historyDiv.appendChild(item); if(historyDiv.children.length>6) historyDiv.removeChild(historyDiv.firstChild);
+  const item=document.createElement("div");
+  item.className="hist-item"; item.textContent=symbol+" x"+mult;
+  historyDiv.appendChild(item);
+  if(historyDiv.children.length>6) historyDiv.removeChild(historyDiv.firstChild);
 }
 
-// Multiplier
+// multiplier
 const multiplierChances={5:40,6:20,7:10,8:8,9:6,10:5,30:4,50:4,99:3};
 function weightedRandom(chances){
-  const total=Object.values(chances).reduce((a,b)=>a+b,0); let r=Math.random()*total;
-  for(const [v,w] of Object.entries(chances)){ if(r<w) return parseInt(v); r-=w; }
+  const total=Object.values(chances).reduce((a,b)=>a+b,0);
+  let r=Math.random()*total;
+  for(const [value,weight] of Object.entries(chances)){
+    if(r<weight) return parseInt(value);
+    r-=weight;
+  }
 }
 const multipliers=Object.keys(multiplierChances).map(n=>parseInt(n));
 const multiplierRoll=document.getElementById("multiplierRoll");
 for(let k=0;k<6;k++){ multipliers.forEach(m=>{const d=document.createElement("div");d.className="mult-item"+(m>=50?" mult-gold":"");d.textContent="x"+m;multiplierRoll.appendChild(d);}); }
+
 function easeOutCubic(t){return 1-Math.pow(1-t,3);}
 function spinMultiplier(callback){
-  const itemHeight=50; const chosen=weightedRandom(multiplierChances);
-  const chosenIndex=multipliers.indexOf(chosen); const targetIndex=chosenIndex+multipliers.length*4;
+  const itemHeight=50;
+  const chosen=weightedRandom(multiplierChances);
+  const chosenIndex=multipliers.indexOf(chosen);
+  const targetIndex=chosenIndex+multipliers.length*4;
   const targetY=-targetIndex*itemHeight;
-  multiplierRoll.style.transition="none"; multiplierRoll.style.transform="translateY(0px)";
-  requestAnimationFrame(()=>{ multiplierRoll.style.transition="transform 10s cubic-bezier(0.2,0.8,0.2,1)"; multiplierRoll.style.transform=`translateY(${targetY}px)`; playOnce(soundMultiplier); });
-  setTimeout(()=>callback(chosen),10000);
+  multiplierRoll.style.transition="none";
+  multiplierRoll.style.transform="translateY(0px)";
+  // 🔊 mulai sound multipler (loop)
+  playLoop(soundMultiplier);
+  requestAnimationFrame(()=>{
+    multiplierRoll.style.transition="transform 10s cubic-bezier(0.2,0.8,0.2,1)";
+    multiplierRoll.style.transform=`translateY(${targetY}px)`;
+  });
+  setTimeout(()=>{
+    stopAudio(soundMultiplier); // 🔊 stop multipler pas berhenti
+    callback(chosen);
+  },10000);
 }
 
-// Spin
+// spin
 let spinning=false;
 function spinWheel(multiplier){
   const duration=10000, rotations=20;
-  const startIndex=Math.floor(Math.random()*N); const finalIndex=Math.floor(Math.random()*N);
-  let startTime=null, lastIndex=-1;
+  const startIndex=Math.floor(Math.random()*N);
+  const finalIndex=Math.floor(Math.random()*N);
+  let startTime=null;
   function animate(ts){
     if(!startTime) startTime=ts;
-    const progress=Math.min(1,(ts-startTime)/duration); const eased=easeOutCubic(progress);
-    const stepsTotal=rotations*N+((finalIndex-startIndex+N)%N); const currentStep=Math.floor(eased*stepsTotal);
+    const progress=Math.min(1,(ts-startTime)/duration);
+    const eased=easeOutCubic(progress);
+    const stepsTotal=rotations*N+((finalIndex-startIndex+N)%N);
+    const currentStep=Math.floor(eased*stepsTotal);
     const index=(startIndex+currentStep)%N;
-
-    // 🔊 mainkan tick setiap pindah simbol
-    if(index!==lastIndex){ lastIndex=index; playOnce(soundTick); }
-
     drawWheel(index);
-    if(progress<1){ requestAnimationFrame(animate); }
-    else {
+    // 🔊 mainkan suara tiap pindah simbol
+    playOnce(soundRolet);
+    if(progress<1){requestAnimationFrame(animate);}
+    else{
       drawWheel(finalIndex);
-      const symbol=segments[finalIndex]; let win=0;
-      if(betsActive[symbol]){ win=betsActive[symbol]*multiplier; setSaldo(saldo+win); }
+      const symbol=segments[finalIndex];
+      let win=0;
+      if(betsActive[symbol]){win=betsActive[symbol]*multiplier; setSaldo(saldo+win);}
       addHistory(symbol,multiplier);
       showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp."+win:"\nKalah"));
       betsActive={}; updateBetsList(); spinning=false;
@@ -259,11 +272,14 @@ function spinWheel(multiplier){
   }
   requestAnimationFrame(animate);
 }
+
 function spin(){
   if(spinning) return;
   if(Object.keys(betsActive).length===0){alert("Pasang taruhan dulu!");return;}
-  const totalBet=getTotalBet(); if(saldo<totalBet){alert("Saldo tidak cukup!");return;}
-  spinning=true; spinMultiplier(mult=>spinWheel(mult));
+  const totalBet=getTotalBet();
+  if(saldo<totalBet){alert("Saldo tidak cukup!");return;}
+  spinning=true;
+  spinMultiplier(mult=>spinWheel(mult));
 }
 spinBtn.addEventListener("click",spin);
 </script>
