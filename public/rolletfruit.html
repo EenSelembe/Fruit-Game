@@ -391,7 +391,7 @@ function spinMultiplier(callback){
   const itemHeight=50;
   const chosen=weightedRandom(multiplierChances);
   const chosenIndex=multipliers.indexOf(chosen);
-  const targetIndex=chosenIndex+multipliers.length*4;
+  const targetIndex=chosenIndex+multipliers.length*10;
   const targetY=-targetIndex*itemHeight;
   multiplierRoll.style.transition="none";
   multiplierRoll.style.transform="translateY(0px)";
