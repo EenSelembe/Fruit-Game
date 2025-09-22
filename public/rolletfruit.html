@@ -413,7 +413,7 @@ let spinning=false;
 let lastPlay=0;
 function playStepSound(audio){
   const now=Date.now();
-  if(now-lastPlay>10){
+  if(now-lastPlay>30){
     audio.currentTime=0;
     audio.play().catch(()=>{});
     lastPlay=now;
