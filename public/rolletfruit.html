@@ -233,7 +233,7 @@ onAuthStateChanged(auth, (user)=>{
 });
 
 // ========================================================
-// === LOGIKA GAME (disingkat, sama seperti sebelumnya) ===
+// === LOGIKA GAME (fix version) ===
 // ========================================================
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
@@ -258,7 +258,7 @@ let bet = 500;
 const betValue=document.getElementById("betValue");
 function updateBet(){ betValue.textContent="Rp. "+bet; }
 document.getElementById("minusBet").addEventListener("click",()=>{if(bet>500){bet-=500;updateBet();}});
-document.getElementById("plusBet").addEventListener("click",()=>{bet+=500;updateBet();}});
+document.getElementById("plusBet").addEventListener("click",()=>{ bet+=500; updateBet(); });
 updateBet();
 
 // Simbol & warna
@@ -284,6 +284,9 @@ function updateBetsList(){
     total+=val;
   }
   totalBetBox.textContent="Total Taruhan: Rp. "+total;
+}
+function getTotalBet(){
+  return Object.values(betsActive).reduce((a,b)=>a+b,0);
 }
 
 // Klik simbol
@@ -396,6 +399,9 @@ function spinWheel(multiplier){
 function spin(){
   if(spinning) return;
   if(Object.keys(betsActive).length===0){alert("Pasang taruhan dulu!");return;}
+  // ✅ Cek saldo cukup untuk total taruhan
+  const totalBet=getTotalBet();
+  if(saldo < totalBet){ alert("Saldo tidak cukup untuk total taruhan!"); return; }
   spinning=true;
   spinMultiplier(mult=>spinWheel(mult));
 }
