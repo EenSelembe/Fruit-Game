@@ -408,9 +408,7 @@ function spinMultiplier(callback){
   multiplierRoll.style.transition = `transform ${duration/1000}s linear`;
   multiplierRoll.style.transform = `translateY(${targetY}px)`;
 
-  setTimeout(() => {
-    stopAudio(soundMultiplier);
-    // langsung berhenti di posisi hasil, tanpa jeda/hilang
+  
     setTimeout(() => {
   stopAudio(soundMultiplier);
   const finalY = -chosenIndex * itemHeight;
