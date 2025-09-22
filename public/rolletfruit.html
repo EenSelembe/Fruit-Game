@@ -201,6 +201,18 @@
     <source src="sonds/spinnerrolet.mp3" type="audio/mpeg">
   </audio>
 
+  <script>
+    const backsound = document.getElementById("backsound");
+    backsound.volume = 0.5; // atur volume (0.0 = mute, 1.0 = full)
+
+    // kalau autoplay diblokir, aktifkan saat klik pertama
+    document.addEventListener("click", () => {
+      if (backsound.paused) {
+        backsound.play().catch(err => console.log("Autoplay dicegah:", err));
+      }
+    }, { once: true });
+  </script>
+  
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
@@ -239,14 +251,6 @@ function playOnce(audio) {
   audio.currentTime = 0;
   audio.play().catch(e => console.warn("Play blocked:", e));
 }
-
-// Backsound auto play
-window.addEventListener("DOMContentLoaded", () => {
-  backsound.volume = 0.4;
-  backsound.play().catch(err => {
-    document.body.addEventListener("click", () => backsound.play(), { once: true });
-  });
-});
 
 // === saldo firebase
 let userId=null;
@@ -420,12 +424,11 @@ function spinWheel(multiplier){
     const currentStep=Math.floor(eased*stepsTotal);
     const index=(startIndex+currentStep)%N;
     drawWheel(index);
-    soundRolet.pause();
-soundRolet.currentTime = 0;
-soundRolet.play().catch(e => console.warn("Play blocked:", e));
+    playStepSound(soundRolet);
     if(progress<1){requestAnimationFrame(animate);}
     else{
       drawWheel(finalIndex);
+      stopAudio(soundRolet);
       const symbol=segments[finalIndex];
       let win=0;
       if(betsActive[symbol]){win=betsActive[symbol]*multiplier; setSaldo(saldo+win);}
