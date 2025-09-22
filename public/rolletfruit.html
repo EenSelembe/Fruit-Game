@@ -406,10 +406,8 @@ function spinMultiplier(callback){
 
   setTimeout(() => {
     stopAudio(soundMultiplier);
-    // Fix posisi agar hasil tetap terlihat
     multiplierRoll.style.transition = "none";
     multiplierRoll.style.transform = `translateY(${-chosenIndex * itemHeight}px)`;
-
     callback(chosen);
   }, duration);
 }
