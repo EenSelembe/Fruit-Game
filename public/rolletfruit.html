@@ -384,7 +384,12 @@ function weightedRandom(chances){
 }
 const multipliers=Object.keys(multiplierChances).map(n=>parseInt(n));
 const multiplierRoll=document.getElementById("multiplierRoll");
-for(let k=0;k<6;k++){ multipliers.forEach(m=>{const d=document.createElement("div");d.className="mult-item"+(m>=50?" mult-gold":"");d.textContent="x"+m;multiplierRoll.appendChild(d);}); }
+{ multipliers.forEach(m => {
+  const d=document.createElement("div");
+  d.className="mult-item"+(m>=50?" mult-gold":"");
+  d.textContent="x"+m;
+  multiplierRoll.appendChild(d);
+}); }
 
 function easeOutCubic(t){return 1-Math.pow(1-t,3);}
 function spinMultiplier(callback){
@@ -406,10 +411,12 @@ function spinMultiplier(callback){
   setTimeout(() => {
     stopAudio(soundMultiplier);
     // langsung berhenti di posisi hasil, tanpa jeda/hilang
+    setTimeout(() => {
     const finalY = -chosenIndex * itemHeight;
     multiplierRoll.style.transition = "none";
     multiplierRoll.style.transform = `translateY(${finalY}px)`;
     callback(chosen);
+      }, 20);
   }, duration);
 }
 
