@@ -415,7 +415,9 @@ function spinWheel(multiplier){
     const currentStep=Math.floor(eased*stepsTotal);
     const index=(startIndex+currentStep)%N;
     drawWheel(index);
-    playStepSound(soundRolet);
+    soundRolet.pause();
+soundRolet.currentTime = 0;
+soundRolet.play().catch(e => console.warn("Play blocked:", e));
     if(progress<1){requestAnimationFrame(animate);}
     else{
       drawWheel(finalIndex);
