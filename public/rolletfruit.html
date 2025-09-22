@@ -132,7 +132,8 @@ let bet=500;
 const betValue=document.getElementById("betValue");
 function updateBet(){ betValue.textContent="Rp. "+bet; }
 document.getElementById("minusBet").addEventListener("click",()=>{if(bet>500){bet-=500;updateBet();}});
-document.getElementById("plusBet").addEventListener("click",()=>{bet+=500;updateBet();}});
+document.getElementById("plusBet").addEventListener("click",()=>{ bet+=500; updateBet(); });
+
 updateBet();
 
 // simbol
