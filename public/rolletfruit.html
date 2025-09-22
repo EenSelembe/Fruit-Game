@@ -185,6 +185,12 @@
   </div>
   <div id="overlayWin"><div id="overlayContent"></div></div>
 
+  <!-- 🔊 Tambahan Sound -->
+  <audio id="soundSpin" src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-wheel-1930.mp3"></audio>
+  <audio id="soundRolling" src="https://assets.mixkit.co/sfx/preview/mixkit-game-slot-machine-spin-1933.mp3" loop></audio>
+  <audio id="soundWin" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"></audio>
+  <audio id="soundLose" src="https://assets.mixkit.co/sfx/preview/mixkit-retro-arcade-game-over-470.mp3"></audio>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
@@ -233,7 +239,7 @@ onAuthStateChanged(auth, (user)=>{
 });
 
 // ========================================================
-// === LOGIKA GAME (fix version) ===
+// === LOGIKA GAME (fix version + SOUND) ===
 // ========================================================
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
@@ -247,6 +253,14 @@ const totalBetBox = document.getElementById("totalBet");
 const overlayWin = document.getElementById("overlayWin");
 const overlayContent = document.getElementById("overlayContent");
 
+// 🔊 Audio
+const soundSpin = document.getElementById("soundSpin");
+const soundRolling = document.getElementById("soundRolling");
+const soundWin = document.getElementById("soundWin");
+const soundLose = document.getElementById("soundLose");
+function playSound(s){ s.currentTime=0; s.play(); }
+
+// Overlay
 function showOverlay(msg){
   overlayContent.textContent = msg;
   overlayWin.classList.add("show");
@@ -385,9 +399,11 @@ function spinWheel(multiplier){
     if(progress<1){requestAnimationFrame(animate);}
     else{
       drawWheel(finalIndex);
+      soundRolling.pause(); // 🔇 stop roll
       const symbol=segments[finalIndex];
       let win=0;
       if(betsActive[symbol]){win=betsActive[symbol]*multiplier; setSaldo(saldo+win);}
+      if(win>0){ playSound(soundWin);} else { playSound(soundLose);}
       addHistory(symbol,multiplier);
       showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp."+win:"\nKalah"));
       betsActive={}; updateBetsList(); spinning=false;
@@ -399,10 +415,11 @@ function spinWheel(multiplier){
 function spin(){
   if(spinning) return;
   if(Object.keys(betsActive).length===0){alert("Pasang taruhan dulu!");return;}
-  // ✅ Cek saldo cukup untuk total taruhan
   const totalBet=getTotalBet();
   if(saldo < totalBet){ alert("Saldo tidak cukup untuk total taruhan!"); return; }
   spinning=true;
+  playSound(soundSpin);
+  playSound(soundRolling);
   spinMultiplier(mult=>spinWheel(mult));
 }
 spinBtn.addEventListener("click", spin);
