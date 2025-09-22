@@ -65,7 +65,6 @@
   #multiplierRoll {
     position:absolute;
     top:0; left:0; right:0;
-    transition: transform 10s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .mult-item {
     font-size:28px;
@@ -165,10 +164,10 @@
     white-space:pre-line;
   }
   canvas, button {
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
 </style>
 </head>
 <body>
@@ -203,12 +202,10 @@
 
   <script>
     const backsound = document.getElementById("backsound");
-    backsound.volume = 0.5; // atur volume (0.0 = mute, 1.0 = full)
-
-    // kalau autoplay diblokir, aktifkan saat klik pertama
+    backsound.volume = 0.5;
     document.addEventListener("click", () => {
       if (backsound.paused) {
-        backsound.play().catch(err => console.log("Autoplay dicegah:", err));
+        backsound.play().catch(()=>{});
       }
     }, { once: true });
   </script>
@@ -218,7 +215,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
   authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -233,7 +229,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🔊 Audio
 const backsound = document.getElementById("backsound");
 const soundMultiplier = document.getElementById("soundMultiplier");
 const soundRolet = document.getElementById("soundRolet");
@@ -241,18 +236,13 @@ const soundRolet = document.getElementById("soundRolet");
 function playLoop(audio) {
   audio.loop = true;
   audio.currentTime = 0;
-  audio.play().catch(e => console.warn("Play blocked:", e));
+  audio.play().catch(()=>{});
 }
 function stopAudio(audio) {
   audio.pause();
   audio.currentTime = 0;
 }
-function playOnce(audio) {
-  audio.currentTime = 0;
-  audio.play().catch(e => console.warn("Play blocked:", e));
-}
 
-// === saldo firebase
 let userId=null;
 let saldo=0;
 const saldoBox=document.getElementById("saldoBox");
@@ -324,7 +314,6 @@ function updateBetsList(){
 }
 function getTotalBet(){return Object.values(betsActive).reduce((a,b)=>a+b,0);}
 
-// klik simbol
 canvas.addEventListener("click",e=>{
   if(spinning) return;
   if(saldo<bet){alert("Saldo tidak cukup!");return;}
@@ -384,40 +373,40 @@ function weightedRandom(chances){
 }
 const multipliers=Object.keys(multiplierChances).map(n=>parseInt(n));
 const multiplierRoll=document.getElementById("multiplierRoll");
-{ multipliers.forEach(m => {
-  const d=document.createElement("div");
-  d.className="mult-item"+(m>=50?" mult-gold":"");
-  d.textContent="x"+m;
-  multiplierRoll.appendChild(d);
-}); }
+
+// isi multipler diulang banyak kali supaya tidak putus
+for(let k=0;k<30;k++){
+  multipliers.forEach(m=>{
+    const d=document.createElement("div");
+    d.className="mult-item"+(m>=50?" mult-gold":"");
+    d.textContent="x"+m;
+    multiplierRoll.appendChild(d);
+  });
+}
 
 function easeOutCubic(t){return 1-Math.pow(1-t,3);}
 function spinMultiplier(callback){
   const itemHeight = 50;
   const chosen = weightedRandom(multiplierChances);
   const chosenIndex = multipliers.indexOf(chosen);
-
-  const loops = 10; // banyak putaran sebelum berhenti
+  const loops = 20;
   const targetIndex = chosenIndex + multipliers.length * loops;
   const targetY = -targetIndex * itemHeight;
-  const duration = 5000; // 5 detik
+  const duration = 5000;
 
   playLoop(soundMultiplier);
 
-  // animasi jalan
   multiplierRoll.style.transition = `transform ${duration/1000}s linear`;
   multiplierRoll.style.transform = `translateY(${targetY}px)`;
 
-  
-    setTimeout(() => {
-  stopAudio(soundMultiplier);
-  const finalY = -chosenIndex * itemHeight;
-  multiplierRoll.style.transition = "none";
-  multiplierRoll.style.transform = `translateY(${finalY}px)`;
-  callback(chosen);
-}, duration);
+  setTimeout(() => {
+    stopAudio(soundMultiplier);
+    const finalY = -chosenIndex * itemHeight;
+    multiplierRoll.style.transition = "none";
+    multiplierRoll.style.transform = `translateY(${finalY}px)`;
+    callback(chosen);
+  }, duration);
 }
-
 
 // spin
 let spinning=false;
