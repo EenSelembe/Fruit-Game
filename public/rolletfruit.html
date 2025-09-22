@@ -388,17 +388,32 @@ for(let k=0;k<6;k++){ multipliers.forEach(m=>{const d=document.createElement("di
 
 function easeOutCubic(t){return 1-Math.pow(1-t,3);}
 function spinMultiplier(callback){
-  const itemHeight=50;
-  const chosen=weightedRandom(multiplierChances);
-  const chosenIndex=multipliers.indexOf(chosen);
-  const targetIndex=chosenIndex+multipliers.length*10;
-  const targetY=-targetIndex*itemHeight;
-  multiplierRoll.style.transition="none";
-  multiplierRoll.style.transform="translateY(0px)";
+  const itemHeight = 50;
+  const chosen = weightedRandom(multiplierChances);
+  const chosenIndex = multipliers.indexOf(chosen);
+  const targetIndex = chosenIndex + multipliers.length * 10;
+  const targetY = -targetIndex * itemHeight;
+  const duration = 5000; // 5 detik
+
+  multiplierRoll.style.transition = "none";
+  multiplierRoll.style.transform = "translateY(0px)";
   playLoop(soundMultiplier);
-  requestAnimationFrame(()=>{multiplierRoll.style.transition="transform 5s linear";multiplierRoll.style.transform=`translateY(${targetY}px)`;});
-  setTimeout(()=>{ stopAudio(soundMultiplier); callback(chosen); },5000);
+
+  requestAnimationFrame(() => {
+    multiplierRoll.style.transition = `transform ${duration/1000}s linear`;
+    multiplierRoll.style.transform = `translateY(${targetY}px)`;
+  });
+
+  setTimeout(() => {
+    stopAudio(soundMultiplier);
+    // Fix posisi agar hasil tetap terlihat
+    multiplierRoll.style.transition = "none";
+    multiplierRoll.style.transform = `translateY(${-chosenIndex * itemHeight}px)`;
+
+    callback(chosen);
+  }, duration);
 }
+
 
 // spin
 let spinning=false;
