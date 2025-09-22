@@ -396,7 +396,7 @@ function spinMultiplier(callback){
   multiplierRoll.style.transition="none";
   multiplierRoll.style.transform="translateY(0px)";
   playLoop(soundMultiplier);
-  requestAnimationFrame(()=>{multiplierRoll.style.transition="transform 10s cubic-bezier(0.2,0.8,0.2,1)";multiplierRoll.style.transform=`translateY(${targetY}px)`;});
+  requestAnimationFrame(()=>{multiplierRoll.style.transition="transform 10s linear";multiplierRoll.style.transform=`translateY(${targetY}px)`;});
   setTimeout(()=>{ stopAudio(soundMultiplier); callback(chosen); },10000);
 }
 
