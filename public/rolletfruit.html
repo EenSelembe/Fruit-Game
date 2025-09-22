@@ -391,24 +391,24 @@ function spinMultiplier(callback){
   const itemHeight = 50;
   const chosen = weightedRandom(multiplierChances);
   const chosenIndex = multipliers.indexOf(chosen);
-  const loops = 20;
-  const targetIndex = chosenIndex + multipliers.length * 10;
+
+  const loops = 10; // banyak putaran sebelum berhenti
+  const targetIndex = chosenIndex + multipliers.length * loops;
   const targetY = -targetIndex * itemHeight;
   const duration = 5000; // 5 detik
 
-  multiplierRoll.style.transition = "none";
-  multiplierRoll.style.transform = "translateY(0px)";
   playLoop(soundMultiplier);
 
-  requestAnimationFrame(() => {
-    multiplierRoll.style.transition = `transform ${duration/1000}s linear`;
-    multiplierRoll.style.transform = `translateY(${targetY}px)`;
-  });
+  // animasi jalan
+  multiplierRoll.style.transition = `transform ${duration/1000}s linear`;
+  multiplierRoll.style.transform = `translateY(${targetY}px)`;
 
   setTimeout(() => {
     stopAudio(soundMultiplier);
+    // langsung berhenti di posisi hasil, tanpa jeda/hilang
+    const finalY = -chosenIndex * itemHeight;
     multiplierRoll.style.transition = "none";
-    multiplierRoll.style.transform = `translateY(${-chosenIndex * itemHeight}px)`;
+    multiplierRoll.style.transform = `translateY(${finalY}px)`;
     callback(chosen);
   }, duration);
 }
