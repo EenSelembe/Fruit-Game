@@ -412,12 +412,12 @@ function spinMultiplier(callback){
     stopAudio(soundMultiplier);
     // langsung berhenti di posisi hasil, tanpa jeda/hilang
     setTimeout(() => {
-    const finalY = -chosenIndex * itemHeight;
-    multiplierRoll.style.transition = "none";
-    multiplierRoll.style.transform = `translateY(${finalY}px)`;
-    callback(chosen);
-      }, 20);
-  }, duration);
+  stopAudio(soundMultiplier);
+  const finalY = -chosenIndex * itemHeight;
+  multiplierRoll.style.transition = "none";
+  multiplierRoll.style.transform = `translateY(${finalY}px)`;
+  callback(chosen);
+}, duration);
 }
 
 
