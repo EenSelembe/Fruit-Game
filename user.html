@@ -22,6 +22,7 @@
         <th>Username</th>
         <th>Email</th>
         <th>Saldo</th>
+        <th>Warna</th>
         <th>Aksi</th>
       </tr>
     </thead>
@@ -30,7 +31,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } 
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } 
       from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, collection, getDocs, doc, updateDoc } 
       from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -50,56 +51,56 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Ganti dengan UID akun admin
+    // UID admin
     const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; 
 
-    // Ambil semua user
+    // Load user
     async function loadUsers() {
-      try {
-        const querySnapshot = await getDocs(collection(db, "users"));
-        const tableBody = document.querySelector("#usersTable tbody");
-        tableBody.innerHTML = "";
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const tableBody = document.querySelector("#usersTable tbody");
+      tableBody.innerHTML = "";
 
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const tr = document.createElement("tr");
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const tr = document.createElement("tr");
 
-          tr.innerHTML = `
-            <td>${docSnap.id}</td>
-            <td>${data.username}</td>
-            <td>${data.email}</td>
-            <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
-            <td><button class="btn btn-update" onclick="updateSaldo('${docSnap.id}')">Update</button></td>
-          `;
-          tableBody.appendChild(tr);
-        });
+        tr.innerHTML = `
+          <td>${docSnap.id}</td>
+          <td style="color:${data.color || '#fff'}">${data.username}</td>
+          <td>${data.email}</td>
+          <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
+          <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
+          <td><button class="btn btn-update" onclick="updateUser('${docSnap.id}')">Update</button></td>
+        `;
+        tableBody.appendChild(tr);
+      });
 
-        document.getElementById("status").textContent = "✅ Login admin berhasil";
-        document.getElementById("usersTable").style.display = "table";
-
-      } catch (err) {
-        console.error("Firestore error:", err);
-        alert("Gagal load users: " + err.message);
-      }
+      document.getElementById("status").textContent = "✅ Login admin berhasil";
+      document.getElementById("usersTable").style.display = "table";
     }
 
-    // Update saldo user
-    window.updateSaldo = async function(uid) {
-      const newSaldo = document.getElementById("saldo-" + uid).value;
+    // Update saldo + warna
+    window.updateUser = async function(uid) {
+      const newSaldo = Number(document.getElementById("saldo-" + uid).value);
+      const newColor = document.getElementById("color-" + uid).value;
       const userDocRef = doc(db, "users", uid);
-      await updateDoc(userDocRef, { saldo: Number(newSaldo) });
-      alert("Saldo user " + uid + " berhasil diupdate!");
+
+      await updateDoc(userDocRef, { 
+        saldo: newSaldo,
+        color: newColor
+      });
+
+      alert("User " + uid + " berhasil diupdate!");
       loadUsers();
     }
 
-    // Cek login status
+    // Cek login admin
     onAuthStateChanged(auth, (user) => {
       if (user && user.uid === ADMIN_UID) {
         loadUsers();
       } else if (user) {
         document.getElementById("status").textContent = "🚫 Kamu bukan admin!";
       } else {
-        // Kalau belum login → tampilkan prompt login cepat
         const email = prompt("Masukkan email admin:");
         const password = prompt("Masukkan password admin:");
         if (email && password) {
