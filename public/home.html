@@ -8,7 +8,7 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: url("https://i.pinimg.com/736x/22/76/9a/22769a0cf12be68e2be2e862c9e46964.jpg") no-repeat center center fixed;
+      background: url("https://i.pinimg.com/736x/22/76/9a/22769a0cf12be68e2e862c9e46964.jpg") no-repeat center center fixed;
       background-size: cover;
       color: #fff;
       text-align: center;
@@ -20,6 +20,22 @@
       margin: 20px auto;
       border-radius: 10px;
       max-width: 400px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .profile-photo {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #444;
+      object-fit: cover;
+    }
+
+    .profile-info {
+      text-align: left;
+      flex: 1;
     }
 
     .games-container {
@@ -28,9 +44,9 @@
       overflow-x: auto;
       padding: 10px 20px;
       scroll-snap-type: x mandatory;
-      scrollbar-width: none; /* sembunyikan scroll bar firefox */
+      scrollbar-width: none;
     }
-    .games-container::-webkit-scrollbar { display: none; } /* sembunyikan scroll bar chrome */
+    .games-container::-webkit-scrollbar { display: none; }
 
     .game-card {
       flex: 0 0 auto;
@@ -85,10 +101,16 @@
   <h1>FRUIT GAME</h1>
 
   <div class="profile-box">
-    <p>Username: <span id="username">Loading...</span></p>
-    <p>Saldo: Rp <span id="saldo">Loading...</span></p>
-    <button class="play-btn" onclick="window.location.href='transfer.html'"> Transfer Saldo </button>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
+    <!-- Foto Profil -->
+    <img src="https://via.placeholder.com/70x70.png?text=Foto" alt="Foto Profil" id="profilePhoto" class="profile-photo">
+
+    <!-- Info User -->
+    <div class="profile-info">
+      <p>Username: <span id="username">Loading...</span></p>
+      <p>Saldo: Rp <span id="saldo">Loading...</span></p>
+      <button class="play-btn" onclick="window.location.href='transfer.html'"> Transfer Saldo </button>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
   </div>
 
   <!-- Card Games -->
@@ -145,12 +167,10 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  document.querySelector(".profile-box").children[1].innerHTML =
-    "Saldo: Rp <span id='saldo'>Loading...</span>";
-
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("username").textContent = user.displayName || "Anonim";
+      document.getElementById("profilePhoto").src = user.photoURL || "https://via.placeholder.com/70x70.png?text=Foto";
       const userRef = doc(db, "users", user.uid);
 
       onSnapshot(userRef, (snap) => {
@@ -179,7 +199,6 @@
   const dotsContainer = document.getElementById("dots");
   const cards = gamesContainer.querySelectorAll(".game-card");
 
-  // buat titik sesuai jumlah card
   cards.forEach((_, idx) => {
     const dot = document.createElement("div");
     dot.className = "dot";
@@ -190,7 +209,7 @@
   const dots = dotsContainer.querySelectorAll(".dot");
 
   gamesContainer.addEventListener("scroll", () => {
-    const cardWidth = cards[0].offsetWidth + 16; // width + gap
+    const cardWidth = cards[0].offsetWidth + 16;
     const index = Math.round(gamesContainer.scrollLeft / cardWidth);
 
     dots.forEach((dot, i) => {
