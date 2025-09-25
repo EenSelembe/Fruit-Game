@@ -8,13 +8,13 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-  background-image: url("./image/backgrond-home.jpg"); /* simpan di folder project */
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-size: cover;
-  color: #fff;
-  text-align: center;
+      background-image: url("./image/backgrond-home.jpg"); /* simpan di folder project */
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: cover;
+      color: #fff;
+      text-align: center;
     }
 
     .profile-box {
@@ -26,6 +26,7 @@
       display: flex;
       align-items: center;
       gap: 15px;
+      flex-wrap: wrap;
     }
 
     .profile-photo {
@@ -114,6 +115,9 @@
       <button class="play-btn" onclick="window.location.href='transfer.html'"> Transfer Saldo </button>
       <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
+
+    <!-- Upload Foto -->
+    <input type="file" id="uploadPhoto" accept="image/*" style="margin-top:10px; color:#fff;">
   </div>
 
   <!-- Card Games -->
@@ -153,8 +157,9 @@
   <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -169,18 +174,18 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("username").textContent = user.displayName || "Anonim";
-      document.getElementById("profilePhoto").src = user.photoURL || "https://via.placeholder.com/70x70.png?text=Foto";
       const userRef = doc(db, "users", user.uid);
 
       onSnapshot(userRef, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          document.getElementById("saldo").textContent =
-            data.saldo?.toLocaleString("id-ID") || "0";
+          document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
+          document.getElementById("profilePhoto").src = data.photoURL || user.photoURL || "https://via.placeholder.com/70x70.png?text=Foto";
         } else {
           document.getElementById("saldo").textContent = "0";
         }
@@ -195,6 +200,36 @@
     signOut(auth)
       .then(() => window.location.href = "index.html")
       .catch((error) => console.error(error));
+  });
+
+  // === Upload Foto Profil ===
+  document.getElementById("uploadPhoto").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const user = auth.currentUser;
+    if (!user) return alert("Harus login dulu!");
+
+    const storageRef = ref(storage, `profilePhotos/${user.uid}.jpg`);
+
+    try {
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+
+      // Update foto di Auth
+      await updateProfile(user, { photoURL: url });
+
+      // Update di Firestore
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, { photoURL: url });
+
+      // Update tampilan
+      document.getElementById("profilePhoto").src = url;
+      alert("Foto profil berhasil diganti!");
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Gagal upload foto");
+    }
   });
 
   // === Dots Indicator Logic ===
