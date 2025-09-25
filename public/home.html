@@ -50,7 +50,7 @@
     #username {
       font-size: 20px;
       font-weight: bold;
-      color: gold;
+      color: gold; /* default warna */
     }
     .saldo-box {
       display: flex;
@@ -122,8 +122,8 @@
       color: #000;
     }
     .rank-btn {
-      background: dodgerblue;
-      color: #fff;
+      background: #ffd54f;
+      color: #111;
     }
   </style>
 </head>
@@ -137,9 +137,9 @@
       <span>Rp</span>
       <span id="saldo">0</span>
     </div>
-    <button class="play-btn" onclick="window.location.href='transfer.html'"> Transfer Saldo </button>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
+    <button class="play-btn" onclick="window.location.href='transfer.html'">Transfer Saldo</button>
     <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
 
   <!-- Card Games -->
@@ -195,14 +195,21 @@
   // === Auth State ===
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      document.getElementById("username").textContent = user.displayName || "Anonim";
       const userRef = doc(db, "users", user.uid);
 
       onSnapshot(userRef, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
+          // set nama + warna
+          const usernameEl = document.getElementById("username");
+          usernameEl.textContent = data.name || user.displayName || "Anonim";
+          usernameEl.style.color = data.color || "gold";
+
+          // saldo
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
         } else {
+          document.getElementById("username").textContent = user.displayName || "Anonim";
+          document.getElementById("username").style.color = "gold";
           document.getElementById("saldo").textContent = "0";
         }
       });
