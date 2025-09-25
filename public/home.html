@@ -160,8 +160,8 @@
         if (snap.exists()) {
           const data = snap.data();
           const usernameEl = document.getElementById("username");
-          // nama & warna ikut admin
-          usernameEl.textContent = data.name || "Anonim";
+          // nama & warna sesuai Firestore
+          usernameEl.textContent = data.name || data.username || "Anonim";
           usernameEl.style.color = data.color || "gold";
           // saldo realtime
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
