@@ -45,7 +45,7 @@
     #username {
       font-size: 20px;
       font-weight: bold;
-      color: gold;
+      color: gold; /* default */
     }
     .saldo-box {
       display: flex;
@@ -160,8 +160,10 @@
         if (snap.exists()) {
           const data = snap.data();
           const usernameEl = document.getElementById("username");
+          // nama & warna ikut admin
           usernameEl.textContent = data.name || "Anonim";
           usernameEl.style.color = data.color || "gold";
+          // saldo realtime
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
         } else {
           document.getElementById("username").textContent = "Anonim";
