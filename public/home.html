@@ -8,7 +8,7 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background-image: url("./image/backgrond-home.jpg"); /* simpan di folder project */
+      background-image: url("./image/backgrond-home.jpg");
       background-position: center;
       background-repeat: no-repeat;
       background-attachment: fixed;
@@ -35,6 +35,11 @@
       border-radius: 50%;
       background: #444;
       object-fit: cover;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .profile-photo:hover {
+      transform: scale(1.05);
     }
 
     .profile-info {
@@ -42,62 +47,57 @@
       flex: 1;
     }
 
-    .games-container {
-      display: flex;
-      gap: 16px;
-      overflow-x: auto;
-      padding: 10px 20px;
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none;
+    /* === Modal Foto === */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
     }
-    .games-container::-webkit-scrollbar { display: none; }
-
-    .game-card {
-      flex: 0 0 auto;
-      background: rgba(0, 0, 0, 0.6);
+    .modal-content {
+      background: #222;
       padding: 20px;
       border-radius: 10px;
-      width: 200px;
-      scroll-snap-align: center;
+      text-align: center;
+      max-width: 90%;
     }
-
-    .game-card img {
-      width: 100%;
+    .modal img {
+      max-width: 200px;
       border-radius: 10px;
+      margin-bottom: 15px;
     }
-
-    .dots {
-      display: flex;
-      justify-content: center;
-      margin: 10px 0 20px;
-      gap: 6px;
-    }
-    .dot {
-      width: 10px;
-      height: 10px;
-      background: #888;
-      border-radius: 50%;
-      transition: background 0.3s;
-    }
-    .dot.active {
-      background: gold;
-    }
-
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      border: none;
-      border-radius: 5px;
+    .close {
+      position: absolute;
+      top: 20px; right: 30px;
+      font-size: 28px;
       font-weight: bold;
-      cursor: pointer;
-    }
-    .logout-btn {
-      background: crimson;
       color: #fff;
+      cursor: pointer;
     }
     .play-btn {
       background: gold;
       color: #000;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .logout-btn {
+      background: crimson;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -115,44 +115,18 @@
       <button class="play-btn" onclick="window.location.href='transfer.html'"> Transfer Saldo </button>
       <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
-
-    <!-- Upload Foto -->
-    <input type="file" id="uploadPhoto" accept="image/*" style="margin-top:10px; color:#fff;">
   </div>
 
-  <!-- Card Games -->
-  <div class="games-container" id="gamesContainer">
-    <div class="game-card">
-      <h2>Fruit Game</h2>
-      <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game">
+  <!-- Modal Foto -->
+  <div id="photoModal" class="modal">
+    <span class="close" id="closeModal">&times;</span>
+    <div class="modal-content">
+      <img id="modalPhoto" src="" alt="Foto Profil Besar">
       <br>
-      <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>
-    </div>
-
-    <div class="game-card">
-      <h2>Greedy Fruit</h2>
-      <img src="https://api.imghippo.com/files/Ik3628oqo.png">
-      <br>
-      <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
-    </div>
-
-    <div class="game-card">
-      <h2>Rollet Fruit</h2>
-      <img src="https://api.imghippo.com/files/QA7164oVg.png">
-      <br>
-      <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>
-    </div>
-
-    <div class="game-card">
-      <h2>Coming Soon</h2>
-      <img src="./image/card-game-coming-soon.png" alt= "Coming Soon">
-      <br>
-      <button class="play-btn" disabled>Segera</button>
+      <button class="play-btn" id="changePhotoBtn">Ganti Foto</button>
+      <input type="file" id="uploadPhoto" accept="image/*" style="display:none;">
     </div>
   </div>
-
-  <!-- Dots Indicator -->
-  <div class="dots" id="dots"></div>
 
   <!-- Firebase SDK -->
 <script type="module">
@@ -176,6 +150,14 @@
   const db = getFirestore(app);
   const storage = getStorage(app);
 
+  const profilePhoto = document.getElementById("profilePhoto");
+  const modal = document.getElementById("photoModal");
+  const modalPhoto = document.getElementById("modalPhoto");
+  const closeModal = document.getElementById("closeModal");
+  const changePhotoBtn = document.getElementById("changePhotoBtn");
+  const uploadPhoto = document.getElementById("uploadPhoto");
+
+  // === Login State ===
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("username").textContent = user.displayName || "Anonim";
@@ -185,7 +167,8 @@
         if (snap.exists()) {
           const data = snap.data();
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
-          document.getElementById("profilePhoto").src = data.photoURL || user.photoURL || "https://via.placeholder.com/70x70.png?text=Foto";
+          profilePhoto.src = data.photoURL || user.photoURL || "https://via.placeholder.com/70x70.png?text=Foto";
+          modalPhoto.src = profilePhoto.src;
         } else {
           document.getElementById("saldo").textContent = "0";
         }
@@ -196,14 +179,26 @@
     }
   });
 
+  // === Logout ===
   document.getElementById("logoutBtn").addEventListener("click", () => {
-    signOut(auth)
-      .then(() => window.location.href = "index.html")
-      .catch((error) => console.error(error));
+    signOut(auth).then(() => window.location.href = "index.html");
   });
 
-  // === Upload Foto Profil ===
-  document.getElementById("uploadPhoto").addEventListener("change", async (e) => {
+  // === Modal Foto ===
+  profilePhoto.addEventListener("click", () => {
+    modal.style.display = "flex";
+    modalPhoto.src = profilePhoto.src;
+  });
+  closeModal.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
+
+  // === Ganti Foto ===
+  changePhotoBtn.addEventListener("click", () => {
+    uploadPhoto.click();
+  });
+
+  uploadPhoto.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -216,43 +211,21 @@
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
-      // Update foto di Auth
+      // Update Auth
       await updateProfile(user, { photoURL: url });
-
-      // Update di Firestore
+      // Update Firestore
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, { photoURL: url });
 
       // Update tampilan
-      document.getElementById("profilePhoto").src = url;
+      profilePhoto.src = url;
+      modalPhoto.src = url;
+
       alert("Foto profil berhasil diganti!");
     } catch (err) {
       console.error("Upload error:", err);
       alert("Gagal upload foto");
     }
-  });
-
-  // === Dots Indicator Logic ===
-  const gamesContainer = document.getElementById("gamesContainer");
-  const dotsContainer = document.getElementById("dots");
-  const cards = gamesContainer.querySelectorAll(".game-card");
-
-  cards.forEach((_, idx) => {
-    const dot = document.createElement("div");
-    dot.className = "dot";
-    if (idx === 0) dot.classList.add("active");
-    dotsContainer.appendChild(dot);
-  });
-
-  const dots = dotsContainer.querySelectorAll(".dot");
-
-  gamesContainer.addEventListener("scroll", () => {
-    const cardWidth = cards[0].offsetWidth + 16;
-    const index = Math.round(gamesContainer.scrollLeft / cardWidth);
-
-    dots.forEach((dot, i) => {
-      dot.classList.toggle("active", i === index);
-    });
   });
 </script>
 </body>
