@@ -162,7 +162,10 @@ tr.top3 td { background: rgba(205,127,50,.08); }
         if (isMe) tr.classList.add('meRow');
         tr.innerHTML = `
           <td class="rank">${rank}</td>
-          <td class="name">${u.name || u.username || '—'} ${isMe ? '<span class="meTag">Saya</span>' : ''}</td>
+          <td class="name" style="color:${u.color || '#fff'}">
+            ${u.name || u.username || '—'}
+            ${isMe ? '<span class="meTag">Saya</span>' : ''}
+          </td>
           <td class="saldoCell"><span class="rp">Rp</span>${fmtRp(u.saldo)}</td>
         `;
         rowsEl.appendChild(tr);
