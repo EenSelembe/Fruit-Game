@@ -66,7 +66,11 @@
 
         tr.innerHTML = `
           <td>${docSnap.id}</td>
-          <td style="color:${data.color || '#fff'}">${data.username}</td>
+          <td>
+            <input type="text" id="username-${docSnap.id}" 
+                   value="${data.username || ''}" 
+                   style="width:120px; color:${data.color || '#fff'}; background:#222; border:1px solid #444; padding:3px;">
+          </td>
           <td>${data.email}</td>
           <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
           <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
@@ -79,15 +83,17 @@
       document.getElementById("usersTable").style.display = "table";
     }
 
-    // Update saldo + warna
+    // Update saldo + warna + username
     window.updateUser = async function(uid) {
       const newSaldo = Number(document.getElementById("saldo-" + uid).value);
       const newColor = document.getElementById("color-" + uid).value;
+      const newUsername = document.getElementById("username-" + uid).value;
       const userDocRef = doc(db, "users", uid);
 
       await updateDoc(userDocRef, { 
         saldo: newSaldo,
-        color: newColor
+        color: newColor,
+        username: newUsername
       });
 
       alert("User " + uid + " berhasil diupdate!");
