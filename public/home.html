@@ -17,13 +17,35 @@
       text-align: center;
     }
 
+    /* Judul Fruit Game */
+    h1 {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 20px 0;
+      background: linear-gradient(90deg, gold, orange, red);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 
+                   0 0 20px rgba(255, 140, 0, 0.6);
+      animation: glow 2s infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px gold, 0 0 20px orange; }
+      to   { text-shadow: 0 0 20px gold, 0 0 40px red; }
+    }
+
     .profile-box {
       background: rgba(0, 0, 0, 0.6);
       padding: 20px;
       margin: 20px auto;
       border-radius: 10px;
       max-width: 400px;
-      text-align: left;
+      text-align: center;
+      font-size: 18px;
+    }
+    .profile-box span {
+      display: block;
+      margin: 5px 0;
     }
 
     .games-container {
@@ -87,10 +109,10 @@
 <body>
   <h1>FRUIT GAME</h1>
 
-  <!-- Profile Box tanpa foto -->
+  <!-- Profile Box tanpa label -->
   <div class="profile-box">
-    <p>Username: <span id="username">Loading...</span></p>
-    <p>Saldo: Rp <span id="saldo">Loading...</span></p>
+    <span id="username">Loading...</span>
+    <span>Rp <span id="saldo">Loading...</span></span>
     <button class="play-btn" onclick="window.location.href='transfer.html'"> Transfer Saldo </button>
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
@@ -189,4 +211,4 @@
   });
 </script>
 </body>
-</html>
+  </html>
