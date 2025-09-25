@@ -17,7 +17,6 @@
       text-align: center;
     }
 
-    /* Judul Fruit Game */
     h1 {
       font-size: 48px;
       font-weight: bold;
@@ -43,14 +42,10 @@
       text-align: center;
       font-size: 18px;
     }
-    .profile-box span {
-      display: block;
-      margin: 5px 0;
-    }
     #username {
       font-size: 20px;
       font-weight: bold;
-      color: gold; /* default warna */
+      color: gold;
     }
     .saldo-box {
       display: flex;
@@ -61,9 +56,7 @@
       color: #00ffcc;
       margin-top: 5px;
     }
-    .saldo-box span {
-      margin: 0 3px;
-    }
+    .saldo-box span { margin: 0 3px; }
 
     .games-container {
       display: flex;
@@ -74,7 +67,6 @@
       scrollbar-width: none;
     }
     .games-container::-webkit-scrollbar { display: none; }
-
     .game-card {
       flex: 0 0 auto;
       background: rgba(0, 0, 0, 0.6);
@@ -83,54 +75,25 @@
       width: 200px;
       scroll-snap-align: center;
     }
-    .game-card img {
-      width: 100%;
-      border-radius: 10px;
-    }
+    .game-card img { width: 100%; border-radius: 10px; }
 
-    .dots {
-      display: flex;
-      justify-content: center;
-      margin: 10px 0 20px;
-      gap: 6px;
-    }
-    .dot {
-      width: 10px;
-      height: 10px;
-      background: #888;
-      border-radius: 50%;
-      transition: background 0.3s;
-    }
-    .dot.active {
-      background: gold;
-    }
+    .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
+    .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }
+    .dot.active { background: gold; }
 
     button {
-      padding: 10px 20px;
-      margin: 10px;
-      border: none;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
+      padding: 10px 20px; margin: 10px;
+      border: none; border-radius: 5px;
+      font-weight: bold; cursor: pointer;
     }
-    .logout-btn {
-      background: crimson;
-      color: #fff;
-    }
-    .play-btn {
-      background: gold;
-      color: #000;
-    }
-    .rank-btn {
-      background: #ffd54f;
-      color: #111;
-    }
+    .logout-btn { background: crimson; color: #fff; }
+    .play-btn { background: gold; color: #000; }
+    .rank-btn { background: #ffd54f; color: #111; }
   </style>
 </head>
 <body>
   <h1>FRUIT GAME</h1>
 
-  <!-- Profile Box -->
   <div class="profile-box">
     <span id="username">Loading...</span>
     <div class="saldo-box">
@@ -142,7 +105,6 @@
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
 
-  <!-- Card Games -->
   <div class="games-container" id="gamesContainer">
     <div class="game-card">
       <h2>Fruit Game</h2>
@@ -170,7 +132,6 @@
     </div>
   </div>
 
-  <!-- Dots -->
   <div class="dots" id="dots"></div>
 
 <script type="module">
@@ -192,23 +153,18 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // === Auth State ===
   onAuthStateChanged(auth, (user) => {
     if (user) {
       const userRef = doc(db, "users", user.uid);
-
       onSnapshot(userRef, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          // set nama + warna
           const usernameEl = document.getElementById("username");
-          usernameEl.textContent = data.name || user.displayName || "Anonim";
+          usernameEl.textContent = data.name || "Anonim";
           usernameEl.style.color = data.color || "gold";
-
-          // saldo
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
         } else {
-          document.getElementById("username").textContent = user.displayName || "Anonim";
+          document.getElementById("username").textContent = "Anonim";
           document.getElementById("username").style.color = "gold";
           document.getElementById("saldo").textContent = "0";
         }
@@ -218,12 +174,10 @@
     }
   });
 
-  // === Logout ===
   document.getElementById("logoutBtn").addEventListener("click", () => {
     signOut(auth).then(() => window.location.href = "index.html");
   });
 
-  // === Dots Indicator ===
   const gamesContainer = document.getElementById("gamesContainer");
   const dotsContainer = document.getElementById("dots");
   const cards = gamesContainer.querySelectorAll(".game-card");
