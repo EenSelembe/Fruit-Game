@@ -1,0 +1,201 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🏆 Peringkat Saldo</title>
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --card: rgba(255, 255, 255, 0.06);
+      --card2: rgba(255, 255, 255, 0.08);
+      --text: #e6e6e6;
+      --muted: #a7b0be;
+      --accent: #ffd54f;
+      --good: #66ffa6;
+      --danger: #ff6b6b;
+      --shadow: 0 8px 16px rgba(0,0,0,.35);
+    }* { box-sizing: border-box; margin:0; padding:0; }
+body {
+  background: #0c0f14;
+  font-family: system-ui, Arial, sans-serif;
+  color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px;
+}
+
+.wrap {
+  width: 100%; max-width: 480px;
+  background: var(--card);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  flex-shrink: 0;
+}
+.title { display: flex; align-items: center; gap: 8px; }
+.title h1 { font-size: 16px; margin: 0; }
+.badge { font-size: 11px; color: #111; background: var(--accent); padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+
+.btn {
+  border: none; background: var(--card2); color: var(--text);
+  padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 12px;
+}
+
+.me {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 10px; padding: 10px; border-radius: 10px;
+  background: rgba(255,255,255,.05);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { text-align: left; padding: 8px; color: var(--muted); font-size: 11px; position: sticky; top: 0; background: #0c0f14; }
+tbody td { padding: 8px; border-top: 1px solid rgba(255,255,255,.05); }
+
+.rank { width: 36px; text-align: center; font-weight: 700; font-size: 12px; }
+.name { font-weight: 600; }
+.name .meTag { margin-left: 4px; font-size: 10px; background: var(--good); color: #111; padding: 1px 5px; border-radius: 999px; }
+.saldoCell { text-align: right; font-weight: 700; white-space: nowrap; }
+.rp { opacity: .8; margin-right: 3px; font-size: 11px; }
+
+tr.meRow { background: rgba(102, 255, 166, .08); }
+tr.top1 td { background: rgba(255,213,79,.08); }
+tr.top2 td { background: rgba(196,196,196,.08); }
+tr.top3 td { background: rgba(205,127,50,.08); }
+
+.foot { padding: 8px; font-size: 10px; color: var(--muted); text-align: center; flex-shrink: 0; }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <div class="title">
+        <div>🏆</div>
+        <h1>Peringkat Saldo</h1>
+        <span class="badge" id="totalUsers">…</span>
+      </div>
+      <div>
+        <button class="btn" onclick="history.back()">⟵</button>
+        <button class="btn" id="refreshBtn">⟳</button>
+      </div>
+    </header><section class="me">
+  <div>
+    <div id="myRank">—</div>
+    <div id="myName">—</div>
+  </div>
+  <div>
+    <span class="rp">Rp</span><span id="mySaldo">0</span>
+  </div>
+</section>
+
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th class="rank">#</th>
+        <th>Nama</th>
+        <th style="text-align:right">Saldo</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<div class="foot" id="updatedAt">—</div>
+
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const fmtRp = (n) => Number(n || 0).toLocaleString('id-ID');
+    const rowsEl = document.getElementById('rows');
+    const myRankEl = document.getElementById('myRank');
+    const myNameEl = document.getElementById('myName');
+    const mySaldoEl = document.getElementById('mySaldo');
+    const totalUsersEl = document.getElementById('totalUsers');
+    const updatedAtEl = document.getElementById('updatedAt');
+
+    const setUpdated = () => { updatedAtEl.textContent = 'Diperbarui: ' + new Date().toLocaleString('id-ID'); }
+
+    const usersRef = collection(db, 'users');
+    const qTop = query(usersRef, orderBy('saldo', 'desc'));
+
+    onSnapshot(qTop, (snap) => {
+      rowsEl.innerHTML = '';
+      let rank = 0;
+      snap.forEach((docu) => {
+        rank++;
+        const u = docu.data();
+        const tr = document.createElement('tr');
+        tr.className = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+        const isMe = auth.currentUser && docu.id === auth.currentUser.uid;
+        if (isMe) tr.classList.add('meRow');
+        tr.innerHTML = `
+          <td class="rank">${rank}</td>
+          <td class="name">${u.name || u.username || '—'} ${isMe ? '<span class="meTag">Saya</span>' : ''}</td>
+          <td class="saldoCell"><span class="rp">Rp</span>${fmtRp(u.saldo)}</td>
+        `;
+        rowsEl.appendChild(tr);
+      });
+      setUpdated();
+      totalUsers();
+    });
+
+    async function totalUsers(){
+      try { const res = await getCountFromServer(usersRef); totalUsersEl.textContent = res.data().count + ' user'; }
+      catch(e){ totalUsersEl.textContent = '—'; }
+    }
+
+    async function loadMe(user){
+      if(!user){ myRankEl.textContent = 'Login'; myNameEl.textContent = '—'; mySaldoEl.textContent = '0'; return; }
+      const meRef = doc(db, 'users', user.uid);
+      const meSnap = await getDoc(meRef);
+      if (!meSnap.exists()) return;
+      const me = meSnap.data();
+      myNameEl.textContent = me.name || me.username || '(Tanpa Nama)';
+      mySaldoEl.textContent = fmtRp(me.saldo || 0);
+      const qAbove = query(usersRef, where('saldo', '>', me.saldo || 0));
+      const above = await getCountFromServer(qAbove);
+      myRankEl.textContent = '#' + ((above.data().count || 0) + 1);
+    }
+
+    onAuthStateChanged(auth, (user)=>{
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        loadMe(user);
+      }
+    });
+    document.getElementById('refreshBtn').addEventListener('click', ()=>{ loadMe(auth.currentUser); setUpdated(); });
+  </script></body>
+</html>
