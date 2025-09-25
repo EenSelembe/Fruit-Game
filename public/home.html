@@ -224,7 +224,7 @@
   const changePhotoBtn = document.getElementById("changePhotoBtn");
   const uploadPhoto = document.getElementById("uploadPhoto");
 
-  // Auth
+  // === Auth State ===
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("username").textContent = user.displayName || "Anonim";
@@ -234,8 +234,11 @@
         if (snap.exists()) {
           const data = snap.data();
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
-          profilePhoto.src = data.photoURL || user.photoURL || "https://via.placeholder.com/70x70.png?text=Foto";
-          modalPhoto.src = profilePhoto.src;
+          const url = data.photoURL || user.photoURL || "https://via.placeholder.com/70x70.png?text=Foto";
+          profilePhoto.src = url;
+          modalPhoto.src = url;
+        } else {
+          document.getElementById("saldo").textContent = "0";
         }
       });
     } else {
@@ -243,18 +246,19 @@
     }
   });
 
+  // === Logout ===
   document.getElementById("logoutBtn").addEventListener("click", () => {
     signOut(auth).then(() => window.location.href = "index.html");
   });
 
-  // Modal Foto
+  // === Modal Foto ===
   profilePhoto.addEventListener("click", () => {
     modal.style.display = "flex";
     modalPhoto.src = profilePhoto.src;
   });
   closeModal.addEventListener("click", () => modal.style.display = "none");
 
-  // Ganti Foto
+  // === Upload Foto ===
   changePhotoBtn.addEventListener("click", () => uploadPhoto.click());
   uploadPhoto.addEventListener("change", async (e) => {
     const file = e.target.files[0];
@@ -267,11 +271,16 @@
     try {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
+
+      // Update ke Auth & Firestore
       await updateProfile(user, { photoURL: url });
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, { photoURL: url });
+
+      // Update tampilan langsung
       profilePhoto.src = url;
       modalPhoto.src = url;
+
       alert("Foto profil berhasil diganti!");
     } catch (err) {
       console.error("Upload error:", err);
@@ -279,7 +288,7 @@
     }
   });
 
-  // Dots indicator
+  // === Dots Indicator ===
   const gamesContainer = document.getElementById("gamesContainer");
   const dotsContainer = document.getElementById("dots");
   const cards = gamesContainer.querySelectorAll(".game-card");
@@ -299,4 +308,4 @@
   });
 </script>
 </body>
-</html>
+  </html>
