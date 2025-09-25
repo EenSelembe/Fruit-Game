@@ -47,6 +47,23 @@
       display: block;
       margin: 5px 0;
     }
+    #username {
+      font-size: 20px;
+      font-weight: bold;
+      color: gold;
+    }
+    .saldo-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #00ffcc;
+      margin-top: 5px;
+    }
+    .saldo-box span {
+      margin: 0 3px;
+    }
 
     .games-container {
       display: flex;
@@ -109,10 +126,13 @@
 <body>
   <h1>FRUIT GAME</h1>
 
-  <!-- Profile Box tanpa label -->
+  <!-- Profile Box -->
   <div class="profile-box">
     <span id="username">Loading...</span>
-    <span>Rp <span id="saldo">Loading...</span></span>
+    <div class="saldo-box">
+      <span>Rp</span>
+      <span id="saldo">0</span>
+    </div>
     <button class="play-btn" onclick="window.location.href='transfer.html'"> Transfer Saldo </button>
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
@@ -211,4 +231,4 @@
   });
 </script>
 </body>
-  </html>
+</html>
