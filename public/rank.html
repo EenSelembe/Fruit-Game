@@ -78,7 +78,7 @@
     .online { background: #00ff00; }  /* hijau */
     .offline { background: #ff0000; } /* merah */
 
-    /* animasi neon background */
+    /* animasi neon background (opsional untuk nickname) */
     @keyframes neonAnim {
       0%   { background-position: 0% 50%; }
       50%  { background-position: 100% 50%; }
@@ -153,7 +153,9 @@
     const totalUsersEl = document.getElementById('totalUsers');
     const updatedAtEl = document.getElementById('updatedAt');
 
-    const setUpdated = () => { updatedAtEl.textContent = 'Diperbarui: ' + new Date().toLocaleString('id-ID'); }
+    const setUpdated = () => { 
+      updatedAtEl.textContent = 'Diperbarui: ' + new Date().toLocaleString('id-ID'); 
+    }
 
     const usersRef = collection(db, 'users');
     const qTop = query(usersRef, orderBy('saldo', 'desc'));
@@ -168,12 +170,13 @@
         const isMe = auth.currentUser && docu.id === auth.currentUser.uid;
         if (isMe) tr.classList.add('meRow');
 
+        // emblem otomatis
         let emblem = '';
         if (rank === 1) emblem = '🥇 ';
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
-        // online/offline dot
+        // status online/offline
         const statusClass = u.isOnline ? 'online' : 'offline';
         const statusDot = `<span class="status-dot ${statusClass}"></span>`;
 
@@ -201,7 +204,12 @@
     }
 
     async function loadMe(user){
-      if(!user){ myRankEl.textContent = 'Login'; myNameEl.textContent = '—'; mySaldoEl.textContent = '0'; return; }
+      if(!user){ 
+        myRankEl.textContent = 'Login'; 
+        myNameEl.textContent = '—'; 
+        mySaldoEl.textContent = '0'; 
+        return; 
+      }
       const meRef = doc(db, 'users', user.uid);
       const meSnap = await getDoc(meRef);
       if (!meSnap.exists()) return;
@@ -214,8 +222,11 @@
     }
 
     onAuthStateChanged(auth, (user)=>{
-      if (!user) window.location.href = "index.html";
-      else loadMe(user);
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        loadMe(user);
+      }
     });
 
     document.getElementById('refreshBtn').addEventListener('click', ()=>{
