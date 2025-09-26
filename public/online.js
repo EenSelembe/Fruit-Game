@@ -1,7 +1,16 @@
 // online.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  signOut 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { 
+  getFirestore, 
+  doc, 
+  updateDoc, 
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -17,26 +26,34 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-export function initOnlineStatus() {
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      try {
-        const meRef = doc(db, "users", user.uid);
-        await updateDoc(meRef, { isOnline: true });
-      } catch (e) {
-        console.error("Gagal update status online:", e);
-      }
-    } else {
-      window.location.href = "index.html";
-    }
-  });
+let heartbeatInterval = null;
 
-  // Saat tab ditutup → offline
-  window.addEventListener("beforeunload", () => {
-    const user = auth.currentUser;
+export function initOnlineStatus() {
+  onAuthStateChanged(auth, (user) => {
     if (user) {
-      const meRef = doc(db, "users", user.uid);
-      updateDoc(meRef, { isOnline: false });
+      const userRef = doc(db, "users", user.uid);
+
+      // update pertama kali
+      updateDoc(userRef, {
+        lastSeen: serverTimestamp()
+      }).catch(console.error);
+
+      // update setiap 20 detik
+      heartbeatInterval = setInterval(() => {
+        updateDoc(userRef, {
+          lastSeen: serverTimestamp()
+        }).catch(console.error);
+      }, 20000);
+
+      // saat logout / tutup tab
+      window.addEventListener("beforeunload", () => {
+        clearInterval(heartbeatInterval);
+        updateDoc(userRef, {
+          lastSeen: serverTimestamp()
+        }).catch(console.error);
+      });
+    } else {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
   });
 }
