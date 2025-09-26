@@ -76,7 +76,6 @@
       position: absolute; left: 50%; transform: translateX(-50%);
       font-size: 3vw; font-weight: bold; color: #00ffea;
       text-shadow: 0 0 4px #000;
-      display: flex; align-items: center; gap: 2px;
     }
     .bet-top { top: -20px; }
     .bet-bottom { bottom: -20px; }
@@ -172,24 +171,20 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const firebaseConfig = { /* config mu */ };
-
+    const firebaseConfig = { /* isi config Firebase kamu */ };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // === SYMBOLS dengan jackpot (tidak tampil di grid)
     const SYMBOLS = [
       { icon: "🍒", multi: 5, weight: 171, type: "fruit" },
       { icon: "🍊", multi: 5, weight: 171, type: "fruit" },
       { icon: "🍇", multi: 5, weight: 171, type: "fruit" },
       { icon: "🍏", multi: 5, weight: 172, type: "fruit" },
-
       { icon: "🌭", multi: 10, weight: 118, type: "food" },
-      { icon: "🍔", multi: 15, weight: 88,  type: "food" },
-      { icon: "🍖", multi: 25, weight: 60,  type: "food" },
-      { icon: "🥩", multi: 45, weight: 35,  type: "food" },
-
+      { icon: "🍔", multi: 15, weight: 88, type: "food" },
+      { icon: "🍖", multi: 25, weight: 60, type: "food" },
+      { icon: "🥩", multi: 45, weight: 35, type: "food" },
       { icon: "🥗", multi: 0, weight: 10, type: "jackpot-fruit" },
       { icon: "🍲", multi: 0, weight: 5,  type: "jackpot-food" }
     ];
@@ -233,14 +228,14 @@
     function updateBetDisplay(){ betDisplay.textContent = "Rp. " + globalBet.toLocaleString("id-ID"); }
     function updateTotalBet(){ totalBetDisplay.textContent = "Rp. " + bets.reduce((a,b)=>a+b,0).toLocaleString("id-ID"); }
     function clearBets(){ bets = Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>{ if(el) el.textContent="";}); updateTotalBet(); }
+    updateBetDisplay();
 
     plusBtn.addEventListener("click", ()=>{ globalBet+=500; updateBetDisplay(); });
     minusBtn.addEventListener("click", ()=>{ if(globalBet>=1000){ globalBet-=500; updateBetDisplay(); }});
-    updateBetDisplay();
 
-    // === Bangun grid tanpa jackpot
+    // Build grid tanpa jackpot
     SYMBOLS.forEach((obj, index)=>{
-      if(obj.type.includes("jackpot")) return; // skip jackpot
+      if(obj.type.includes("jackpot")) return;
       const div = document.createElement("div");
       div.className="cell";
       div.innerHTML = `<div>${obj.icon}</div><div class="multiplier">×${obj.multi}</div>`;
@@ -291,7 +286,8 @@
         if(result.type==="jackpot-fruit"){
           bets.forEach((bet,idx)=>{ if(bet>0 && SYMBOLS[idx].type==="fruit") totalWin+=bet*SYMBOLS[idx].multi; });
           showWin(totalWin,"FRUIT JACKPOT 🥗");
-        } else if(result.type==="jackpot-food"){
+        }
+        else if(result.type==="jackpot-food"){
           bets.forEach((bet,idx)=>{ if(bet>0 && SYMBOLS[idx].type==="food") totalWin+=bet*SYMBOLS[idx].multi; });
           showWin(totalWin,"FOOD JACKPOT 🍲");
         } else {
@@ -299,11 +295,13 @@
           if(totalWin>0) showWin(totalWin);
         }
 
-        if(totalWin>0){ saldo+=totalWin; updateSaldo(); await saveBalance(); }
+        if(totalWin>0){
+          saldo+=totalWin; updateSaldo(); await saveBalance();
+        }
 
         setTimeout(clearBets,2000);
         spinning=false;
-        canBet=true; 
+        canBet=true;
         gridOverlay.style.display="none";
         setTimeout(()=> startCountdown(),3000);
       },{once:true});
