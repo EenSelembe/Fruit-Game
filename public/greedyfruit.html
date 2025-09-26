@@ -15,6 +15,7 @@
       justify-content: flex-start; overflow: hidden; padding-top: 10px;
     }
 
+    /* TEKS NEON */
     h1 {
       font-size: 26px; font-weight: bold; margin-bottom: 15px;
       text-transform: uppercase;
@@ -76,6 +77,7 @@
       position: absolute; left: 50%; transform: translateX(-50%);
       font-size: 3vw; font-weight: bold; color: #00ffea;
       text-shadow: 0 0 4px #000;
+      display: flex; align-items: center; gap: 2px;
     }
     .bet-top { top: -20px; }
     .bet-bottom { bottom: -20px; }
@@ -145,7 +147,11 @@
 
   <div class="grid-container">
     <div class="grid" id="grid"></div>
-    <div class="grid-overlay" id="gridOverlay"></div>
+    <div class="grid-overlay" id="gridOverlay">
+      <span style="color:#fff;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+        Tunggu Spin...
+      </span>
+    </div>
   </div>
 
   <div class="history"><div class="history-list" id="historyList"></div></div>
@@ -171,37 +177,45 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const firebaseConfig = { /* isi config Firebase kamu */ };
+    const firebaseConfig = {
+      apiKey: "XXX",
+      authDomain: "XXX",
+      projectId: "XXX",
+      storageBucket: "XXX",
+      messagingSenderId: "XXX",
+      appId: "XXX"
+    };
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
     const SYMBOLS = [
-      { icon: "🍒", multi: 5, weight: 171, type: "fruit" },
-      { icon: "🍊", multi: 5, weight: 171, type: "fruit" },
-      { icon: "🍇", multi: 5, weight: 171, type: "fruit" },
-      { icon: "🍏", multi: 5, weight: 172, type: "fruit" },
+      { icon: "🍒", multi: 5,  weight: 171, type: "fruit" },
+      { icon: "🍊", multi: 5,  weight: 171, type: "fruit" },
+      { icon: "🍇", multi: 5,  weight: 171, type: "fruit" },
+      { icon: "🍏", multi: 5,  weight: 172, type: "fruit" },
       { icon: "🌭", multi: 10, weight: 118, type: "food" },
-      { icon: "🍔", multi: 15, weight: 88, type: "food" },
-      { icon: "🍖", multi: 25, weight: 60, type: "food" },
-      { icon: "🥩", multi: 45, weight: 35, type: "food" },
-      { icon: "🥗", multi: 0, weight: 10, type: "jackpot-fruit" },
-      { icon: "🍲", multi: 0, weight: 5,  type: "jackpot-food" }
+      { icon: "🍔", multi: 15, weight: 88,  type: "food" },
+      { icon: "🍖", multi: 25, weight: 60,  type: "food" },
+      { icon: "🥩", multi: 45, weight: 35,  type: "food" },
+      { icon: "🥗", multi: 0,  weight: 10,  type: "jackpot-fruit" },
+      { icon: "🍲", multi: 0,  weight: 5,   type: "jackpot-food" }
     ];
 
-    const grid = document.getElementById("grid");
     const reel = document.getElementById("reel");
-    const saldoDisplay = document.getElementById("saldoDisplay");
-    const totalBetDisplay = document.getElementById("totalBetDisplay");
+    const countdownEl = document.getElementById("countdown");
+    const grid = document.getElementById("grid");
+    const gridOverlay = document.getElementById("gridOverlay");
+    const historyList = document.getElementById("historyList");
     const betDisplay = document.getElementById("betDisplay");
     const plusBtn = document.getElementById("plusBtn");
     const minusBtn = document.getElementById("minusBtn");
+    const saldoDisplay = document.getElementById("saldoDisplay");
+    const totalBetDisplay = document.getElementById("totalBetDisplay");
     const winOverlay = document.getElementById("winOverlay");
     const winAmount = document.getElementById("winAmount");
     const winTitle = document.getElementById("winTitle");
-    const countdownEl = document.getElementById("countdown");
-    const gridOverlay = document.getElementById("gridOverlay");
-    const historyList = document.getElementById("historyList");
 
     let saldo = 0, globalBet = 500;
     let bets = Array(SYMBOLS.length).fill(0);
@@ -233,7 +247,7 @@
     plusBtn.addEventListener("click", ()=>{ globalBet+=500; updateBetDisplay(); });
     minusBtn.addEventListener("click", ()=>{ if(globalBet>=1000){ globalBet-=500; updateBetDisplay(); }});
 
-    // Build grid tanpa jackpot
+    // Build grid hanya untuk buah & makanan (skip jackpot)
     SYMBOLS.forEach((obj, index)=>{
       if(obj.type.includes("jackpot")) return;
       const div = document.createElement("div");
@@ -284,19 +298,33 @@
         addHistory(result.icon);
         let totalWin=0;
         if(result.type==="jackpot-fruit"){
-          bets.forEach((bet,idx)=>{ if(bet>0 && SYMBOLS[idx].type==="fruit") totalWin+=bet*SYMBOLS[idx].multi; });
+          bets.forEach((bet,idx)=>{
+            if(bet>0 && SYMBOLS[idx].type==="fruit"){
+              totalWin += bet * SYMBOLS[idx].multi;
+            }
+          });
           showWin(totalWin,"FRUIT JACKPOT 🥗");
         }
         else if(result.type==="jackpot-food"){
-          bets.forEach((bet,idx)=>{ if(bet>0 && SYMBOLS[idx].type==="food") totalWin+=bet*SYMBOLS[idx].multi; });
+          bets.forEach((bet,idx)=>{
+            if(bet>0 && SYMBOLS[idx].type==="food"){
+              totalWin += bet * SYMBOLS[idx].multi;
+            }
+          });
           showWin(totalWin,"FOOD JACKPOT 🍲");
         } else {
-          bets.forEach((bet,idx)=>{ if(bet>0 && idx===resultIndex) totalWin+=bet*SYMBOLS[idx].multi; });
+          bets.forEach((bet,idx)=>{
+            if(bet>0 && idx===resultIndex){
+              totalWin += bet * SYMBOLS[idx].multi;
+            }
+          });
           if(totalWin>0) showWin(totalWin);
         }
 
         if(totalWin>0){
-          saldo+=totalWin; updateSaldo(); await saveBalance();
+          saldo += totalWin;
+          updateSaldo();
+          await saveBalance();
         }
 
         setTimeout(clearBets,2000);
