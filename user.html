@@ -25,6 +25,7 @@
         <th>Warna Teks</th>
         <th>Warna Border</th>
         <th>Warna BG</th>
+        <th>Border Gradient</th>
         <th>Aksi</th>
       </tr>
     </thead>
@@ -65,16 +66,13 @@
 
         tr.innerHTML = `
           <td>${docSnap.id}</td>
-          <td>
-            <input type="text" id="username-${docSnap.id}" 
-                   value="${data.username || ''}" 
-                   style="width:120px; color:${data.color || '#fff'}; background:#222; border:1px solid #444; padding:3px;">
-          </td>
+          <td><input type="text" id="username-${docSnap.id}" value="${data.username || ''}" style="width:120px;"></td>
           <td>${data.email}</td>
           <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
           <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
           <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
           <td><input type="color" id="bg-${docSnap.id}" value="${data.bgColor || '#000000'}"></td>
+          <td><input type="text" id="gradient-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="CSS gradient"></td>
           <td><button class="btn btn-update" onclick="updateUser('${docSnap.id}')">Update</button></td>
         `;
         tableBody.appendChild(tr);
@@ -89,6 +87,7 @@
       const newColor = document.getElementById("color-" + uid).value;
       const newBorder = document.getElementById("border-" + uid).value;
       const newBg = document.getElementById("bg-" + uid).value;
+      const newGradient = document.getElementById("gradient-" + uid).value;
       const newUsername = document.getElementById("username-" + uid).value;
       const userDocRef = doc(db, "users", uid);
 
@@ -97,6 +96,7 @@
         color: newColor,
         borderColor: newBorder,
         bgColor: newBg,
+        borderGradient: newGradient,
         username: newUsername
       });
 
