@@ -43,7 +43,12 @@
     #username {
       font-size: 20px;
       font-weight: bold;
-      color: gold;
+      display: block;
+    }
+    .nickname {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 2px 6px;
     }
     .saldo-box {
       display: flex;
@@ -84,6 +89,13 @@
     .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
     .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }
     .dot.active { background: gold; }
+
+    /* animasi neon */
+    @keyframes neonAnim {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
   </style>
 </head>
 <body>
@@ -149,7 +161,7 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // fungsi update status online
+  // update status online/offline
   async function setOnlineStatus(user, status) {
     if (!user) return;
     const userRef = doc(db, "users", user.uid);
@@ -179,8 +191,40 @@
           else if (myRank === 2) emblem = "🥈 ";
           else if (myRank === 3) emblem = "🥉 ";
 
-          usernameEl.textContent = emblem + (data.name || data.username || "Anonim");
-          usernameEl.style.color = data.color || "gold";
+          // background nickname
+          let bg = data.bgColor || 'transparent';
+          let extraAnim = '';
+          if (data.bgGradient) {
+            bg = data.bgGradient;
+            extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
+          }
+
+          // border nickname
+          let border = `1px solid ${data.borderColor || '#000'}`;
+          let extraBorder = '';
+          if (data.borderGradient) {
+            const baseBg = data.bgColor || 'transparent';
+            border = '3px solid transparent';
+            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient};
+                           background-origin: border-box;
+                           background-clip: padding-box, border-box;`;
+          }
+
+          const style = `
+            color:${data.color || '#fff'};
+            background:${bg};
+            ${extraAnim}
+            border:${border};
+            ${extraBorder}
+          `;
+
+          // tampilkan nickname dengan border
+          usernameEl.innerHTML = `
+            <span class="nickname" style="${style}">
+              ${emblem}${data.name || data.username || "Anonim"}
+            </span>
+          `;
+
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
         }
       });
