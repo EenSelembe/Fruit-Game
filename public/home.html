@@ -100,6 +100,7 @@
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
 
+  <!-- Card Games -->
   <div class="games-container" id="gamesContainer">
     <div class="game-card">
       <h2>Fruit Game</h2>
@@ -148,7 +149,7 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // update status online/offline
+  // fungsi update status online
   async function setOnlineStatus(user, status) {
     if (!user) return;
     const userRef = doc(db, "users", user.uid);
@@ -194,6 +195,7 @@
     }
   });
 
+  // logout
   document.getElementById("logoutBtn").addEventListener("click", () => {
     const user = auth.currentUser;
     if (user) setOnlineStatus(user, false);
