@@ -63,6 +63,28 @@
     .logout-btn { background: crimson; color: #fff; }
     .play-btn { background: gold; color: #000; }
     .rank-btn { background: #ffd54f; color: #111; }
+    /* Card games */
+    .games-container {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 10px 20px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    .games-container::-webkit-scrollbar { display: none; }
+    .game-card {
+      flex: 0 0 auto;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      border-radius: 10px;
+      width: 200px;
+      scroll-snap-align: center;
+    }
+    .game-card img { width: 100%; border-radius: 10px; }
+    .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
+    .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }
+    .dot.active { background: gold; }
   </style>
 </head>
 <body>
@@ -78,6 +100,36 @@
     <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
+
+  <!-- Card Games -->
+  <div class="games-container" id="gamesContainer">
+    <div class="game-card">
+      <h2>Fruit Game</h2>
+      <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>
+    </div>
+    <div class="game-card">
+      <h2>Greedy Fruit</h2>
+      <img src="https://api.imghippo.com/files/Ik3628oqo.png">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
+    </div>
+    <div class="game-card">
+      <h2>Rollet Fruit</h2>
+      <img src="https://api.imghippo.com/files/QA7164oVg.png">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>
+    </div>
+    <div class="game-card">
+      <h2>Coming Soon</h2>
+      <img src="./image/card-game-coming-soon.png" alt="Coming Soon">
+      <br>
+      <button class="play-btn" disabled>Segera</button>
+    </div>
+  </div>
+
+  <div class="dots" id="dots"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
@@ -112,17 +164,17 @@
           const above = await getCountFromServer(qAbove);
           const myRank = (above.data().count || 0) + 1;
 
-          // tentukan emblem
+          // emblem rank
           let emblem = "";
           if (myRank === 1) emblem = "🥇 ";
           else if (myRank === 2) emblem = "🥈 ";
           else if (myRank === 3) emblem = "🥉 ";
 
-          // pasang nama + emblem + warna
+          // nama + warna + emblem
           usernameEl.textContent = emblem + (data.name || data.username || "Anonim");
           usernameEl.style.color = data.color || "gold";
 
-          // saldo realtime
+          // saldo
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
         } else {
           document.getElementById("username").textContent = "Anonim";
@@ -138,6 +190,25 @@
   document.getElementById("logoutBtn").addEventListener("click", () => {
     signOut(auth).then(() => window.location.href = "index.html");
   });
+
+  // dots indicator
+  const gamesContainer = document.getElementById("gamesContainer");
+  const dotsContainer = document.getElementById("dots");
+  const cards = gamesContainer.querySelectorAll(".game-card");
+
+  cards.forEach((_, idx) => {
+    const dot = document.createElement("div");
+    dot.className = "dot";
+    if (idx === 0) dot.classList.add("active");
+    dotsContainer.appendChild(dot);
+  });
+  const dots = dotsContainer.querySelectorAll(".dot");
+
+  gamesContainer.addEventListener("scroll", () => {
+    const cardWidth = cards[0].offsetWidth + 16;
+    const index = Math.round(gamesContainer.scrollLeft / cardWidth);
+    dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
+  });
 </script>
 </body>
-</html>
+        </html>
