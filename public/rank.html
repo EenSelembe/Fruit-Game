@@ -58,7 +58,7 @@
     thead th { text-align: left; padding: 8px; color: var(--muted); font-size: 11px; position: sticky; top: 0; background: #0c0f14; }
     tbody td { padding: 8px; border-top: 1px solid rgba(255,255,255,.05); }
     .rank { width: 36px; text-align: center; font-weight: 700; font-size: 12px; }
-    .name { font-weight: 600; display: inline-block; }
+    .name { font-weight: 600; display: flex; align-items: center; }
     .name .meTag { margin-left: 4px; font-size: 10px; background: var(--good); color: #111; padding: 1px 5px; border-radius: 999px; }
     .saldoCell { text-align: right; font-weight: 700; white-space: nowrap; }
     .rp { opacity: .8; margin-right: 3px; font-size: 11px; }
@@ -74,6 +74,17 @@
       50%  { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
+
+    /* bulatan status online/offline */
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .online { background: #00ff00; }   /* hijau */
+    .offline { background: #ff3333; }  /* merah */
   </style>
 </head>
 <body>
@@ -175,7 +186,7 @@
         let border = `1px solid ${u.borderColor || '#000'}`;
         let extraBorder = '';
         if (u.borderGradient) {
-          const baseBg = u.bgColor || 'transparent'; // jangan pakai gradient untuk isi
+          const baseBg = u.bgColor || 'transparent';
           border = '3px solid transparent';
           extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
                          background-origin: border-box;
@@ -192,9 +203,12 @@
           ${extraBorder}
         `;
 
+        const statusClass = u.isOnline ? 'online' : 'offline';
+
         tr.innerHTML = `
           <td class="rank">${rank}</td>
           <td class="name" style="${style}">
+            <span class="status-dot ${statusClass}"></span>
             ${emblem}${u.name || u.username || '—'}
             ${isMe ? '<span class="meTag">Saya</span>' : ''}
           </td>
