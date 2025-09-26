@@ -58,16 +58,7 @@
     thead th { text-align: left; padding: 8px; color: var(--muted); font-size: 11px; position: sticky; top: 0; background: #0c0f14; }
     tbody td { padding: 8px; border-top: 1px solid rgba(255,255,255,.05); }
     .rank { width: 36px; text-align: center; font-weight: 700; font-size: 12px; }
-
-    /* Default style nickname */
-    .name {
-      font-weight: 600;
-      border: 1px solid #000;
-      padding: 2px 6px;
-      border-radius: 6px;
-      display: inline-block;
-    }
-
+    .name { font-weight: 600; display: inline-block; }
     .name .meTag { margin-left: 4px; font-size: 10px; background: var(--good); color: #111; padding: 1px 5px; border-radius: 999px; }
     .saldoCell { text-align: right; font-weight: 700; white-space: nowrap; }
     .rp { opacity: .8; margin-right: 3px; font-size: 11px; }
@@ -161,19 +152,35 @@
         const isMe = auth.currentUser && docu.id === auth.currentUser.uid;
         if (isMe) tr.classList.add('meRow');
 
-        // emblem otomatis untuk rank 1–3
         let emblem = '';
         if (rank === 1) emblem = '🥇 ';
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
+        // Style nickname: cek gradient dulu
+        let style = `
+          color:${u.color || '#fff'};
+          background:${u.bgColor || 'transparent'};
+          border:1px solid ${u.borderColor || '#000'};
+          padding:2px 6px;
+          border-radius:6px;
+        `;
+
+        if (u.borderGradient) {
+          style = `
+            color:${u.color || '#fff'};
+            border:3px solid transparent;
+            border-radius:6px;
+            background-image: linear-gradient(${u.bgColor || 'transparent'}, ${u.bgColor || 'transparent'}), ${u.borderGradient};
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            padding:2px 6px;
+          `;
+        }
+
         tr.innerHTML = `
           <td class="rank">${rank}</td>
-          <td class="name" style="
-            color:${u.color || '#fff'};
-            border:1px solid ${u.borderColor || '#000'};
-            background:${u.bgColor || 'transparent'};
-          ">
+          <td class="name" style="${style}">
             ${emblem}${u.name || u.username || '—'}
             ${isMe ? '<span class="meTag">Saya</span>' : ''}
           </td>
