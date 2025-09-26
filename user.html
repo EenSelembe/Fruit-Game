@@ -22,7 +22,8 @@
         <th>Username</th>
         <th>Email</th>
         <th>Saldo</th>
-        <th>Warna</th>
+        <th>Warna Teks</th>
+        <th>Warna Border</th>
         <th>Aksi</th>
       </tr>
     </thead>
@@ -74,6 +75,7 @@
           <td>${data.email}</td>
           <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
           <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
+          <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
           <td><button class="btn btn-update" onclick="updateUser('${docSnap.id}')">Update</button></td>
         `;
         tableBody.appendChild(tr);
@@ -83,16 +85,18 @@
       document.getElementById("usersTable").style.display = "table";
     }
 
-    // Update saldo + warna + username
+    // Update saldo + warna teks + warna border + username
     window.updateUser = async function(uid) {
       const newSaldo = Number(document.getElementById("saldo-" + uid).value);
       const newColor = document.getElementById("color-" + uid).value;
+      const newBorder = document.getElementById("border-" + uid).value;
       const newUsername = document.getElementById("username-" + uid).value;
       const userDocRef = doc(db, "users", uid);
 
       await updateDoc(userDocRef, { 
         saldo: newSaldo,
         color: newColor,
+        borderColor: newBorder,
         username: newUsername
       });
 
