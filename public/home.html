@@ -1,257 +1,277 @@
-<!DOCTYPE html>  <html lang="id">  
-<head>  
-  <meta charset="UTF-8">  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-  <title>Home - Fruit Game</title>  
-  <style>  
-    body {  
-      margin: 0;  
-      font-family: Arial, sans-serif;  
-      background-image: url("./image/backgrond-home.jpg");  
-      background-position: center;  
-      background-repeat: no-repeat;  
-      background-attachment: fixed;  
-      background-size: cover;  
-      color: #fff;  
-      text-align: center;  
-    }  
-    h1 {  
-      font-size: 48px;  
-      font-weight: bold;  
-      margin: 20px 0;  
-      background: linear-gradient(90deg, gold, orange, red);  
-      -webkit-background-clip: text;  
-      -webkit-text-fill-color: transparent;  
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8),   
-                   0 0 20px rgba(255, 140, 0, 0.6);  
-      animation: glow 2s infinite alternate;  
-    }  
-    @keyframes glow {  
-      from { text-shadow: 0 0 10px gold, 0 0 20px orange; }  
-      to   { text-shadow: 0 0 20px gold, 0 0 40px red; }  
-    }  
-    .profile-box {  
-      background: rgba(0, 0, 0, 0.6);  
-      padding: 20px;  
-      margin: 20px auto;  
-      border-radius: 10px;  
-      max-width: 400px;  
-      text-align: center;  
-      font-size: 18px;  
-    }  
-    #username {  
-      font-size: 20px;  
-      font-weight: bold;  
-      display: block;  
-    }  
-    .nickname {  
-      display: inline-block;  
-      border-radius: 6px;  
-      padding: 2px 6px;  
-    }  
-    .saldo-box {  
-      display: flex;  
-      justify-content: center;  
-      align-items: center;  
-      font-size: 22px;  
-      font-weight: bold;  
-      color: #00ffcc;  
-      margin-top: 5px;  
-    }  
-    .saldo-box span { margin: 0 3px; }  
-    button {  
-      padding: 10px 20px; margin: 10px;  
-      border: none; border-radius: 5px;  
-      font-weight: bold; cursor: pointer;  
-    }  
-    .logout-btn { background: crimson; color: #fff; }  
-    .play-btn { background: gold; color: #000; }  
-    .rank-btn { background: #ffd54f; color: #111; }  
-    .games-container {  
-      display: flex;  
-      gap: 16px;  
-      overflow-x: auto;  
-      padding: 10px 20px;  
-      scroll-snap-type: x mandatory;  
-      scrollbar-width: none;  
-    }  
-    .games-container::-webkit-scrollbar { display: none; }  
-    .game-card {  
-      flex: 0 0 auto;  
-      background: rgba(0, 0, 0, 0.6);  
-      padding: 20px;  
-      border-radius: 10px;  
-      width: 200px;  
-      scroll-snap-align: center;  
-    }  
-    .game-card img { width: 100%; border-radius: 10px; }  
-    .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }  
-    .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }  
-    .dot.active { background: gold; }  /* animasi neon */  
-@keyframes neonAnim {  
-  0%   { background-position: 0% 50%; }  
-  50%  { background-position: 100% 50%; }  
-  100% { background-position: 0% 50%; }  
-}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home - Fruit Game</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-image: url("./image/backgrond-home.jpg");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: cover;
+      color: #fff;
+      text-align: center;
+    }
+    h1 {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 20px 0;
+      background: linear-gradient(90deg, gold, orange, red);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 
+                   0 0 20px rgba(255, 140, 0, 0.6);
+      animation: glow 2s infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px gold, 0 0 20px orange; }
+      to   { text-shadow: 0 0 20px gold, 0 0 40px red; }
+    }
+    .profile-box {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 10px;
+      max-width: 400px;
+      text-align: center;
+      font-size: 18px;
+    }
+    #username {
+      font-size: 20px;
+      font-weight: bold;
+      display: block;
+    }
+    .nickname {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+    .saldo-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #00ffcc;
+      margin-top: 5px;
+    }
+    .saldo-box span { margin: 0 3px; }
+    button {
+      padding: 10px 20px; margin: 10px;
+      border: none; border-radius: 5px;
+      font-weight: bold; cursor: pointer;
+    }
+    .logout-btn { background: crimson; color: #fff; }
+    .play-btn { background: gold; color: #000; }
+    .rank-btn { background: #ffd54f; color: #111; }
+    .games-container {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 10px 20px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    .games-container::-webkit-scrollbar { display: none; }
+    .game-card {
+      flex: 0 0 auto;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      border-radius: 10px;
+      width: 200px;
+      scroll-snap-align: center;
+    }
+    .game-card img { width: 100%; border-radius: 10px; }
+    .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
+    .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }
+    .dot.active { background: gold; }
 
-  </style>  
-</head>  
-<body>  
-  <h1>FRUIT GAME</h1>    <div class="profile-box">  
-    <span id="username">Loading...</span>  
-    <div class="saldo-box">  
-      <span>Rp</span>  
-      <span id="saldo">0</span>  
-    </div>  
-    <button class="play-btn" onclick="window.location.href='transfer.html'">Transfer Saldo</button>  
-    <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>  
-    <button class="logout-btn" id="logoutBtn">Logout</button>  
-  </div>    <!-- Card Games -->    <div class="games-container" id="gamesContainer">  
-    <div class="game-card">  
-      <h2>Fruit Game</h2>  
-      <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game">  
-      <br>  
-      <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>  
-    </div>  
-    <div class="game-card">  
-      <h2>Greedy Fruit</h2>  
-      <img src="https://api.imghippo.com/files/Ik3628oqo.png">  
-      <br>  
-      <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>  
-    </div>  
-    <div class="game-card">  
-      <h2>Rollet Fruit</h2>  
-      <img src="https://api.imghippo.com/files/QA7164oVg.png">  
-      <br>  
-      <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>  
-    </div>  
-    <div class="game-card">  
-      <h2>Coming Soon</h2>  
-      <img src="./image/card-game-coming-soon.png" alt="Coming Soon">  
-      <br>  
-      <button class="play-btn" disabled>Segera</button>  
-    </div>  
-  </div>    <div class="dots" id="dots"></div>  <script type="module">  
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";  
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";  
-  import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";  
-  
-  const firebaseConfig = {  
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",  
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",  
-    projectId: "fruit-game-5e4a8",  
-    storageBucket: "fruit-game-5e4a8.appspot.com",  
-    messagingSenderId: "936228678997",  
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",  
-    measurementId: "G-EPTSQQPM4D"  
-  };  
-  
-  const app = initializeApp(firebaseConfig);  
-  const auth = getAuth(app);  
-  const db = getFirestore(app);  
-  
-  // update status online/offline  
-  async function setOnlineStatus(user, status) {  
-    if (!user) return;  
-    const userRef = doc(db, "users", user.uid);  
-    try {  
-      await updateDoc(userRef, { isOnline: status });  
-    } catch (e) {  
-      console.error("Gagal update status online:", e);  
-    }  
-  }  
-  
-  onAuthStateChanged(auth, (user) => {  
-    if (user) {  
-      const userRef = doc(db, "users", user.uid);  
-      onSnapshot(userRef, async (snap) => {  
-        if (snap.exists()) {  
-          const data = snap.data();  
-          const usernameEl = document.getElementById("username");  
-  
-          // hitung rank user  
-          const usersRef = collection(db, "users");  
-          const qAbove = query(usersRef, where("saldo", ">", data.saldo || 0));  
-          const above = await getCountFromServer(qAbove);  
-          const myRank = (above.data().count || 0) + 1;  
-  
-          let emblem = "";  
-          if (myRank === 1) emblem = "🥇 ";  
-          else if (myRank === 2) emblem = "🥈 ";  
-          else if (myRank === 3) emblem = "🥉 ";  
-  
-          // background nickname  
-          let bg = data.bgColor || 'transparent';  
-          let extraAnim = '';  
-          if (data.bgGradient) {  
-            bg = data.bgGradient;  
-            extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';  
-          }  
-  
-          // border nickname  
-          let border = `1px solid ${data.borderColor || '#000'}`;  
-          let extraBorder = '';  
-          if (data.borderGradient) {  
-            const baseBg = data.bgColor || 'transparent';  
-            border = '3px solid transparent';  
-            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient};  
-                           background-origin: border-box;  
-                           background-clip: padding-box, border-box;`;  
-          }  
-  
-          const style = `  
-            color:${data.color || '#fff'};  
-            background:${bg};  
-            ${extraAnim}  
-            border:${border};  
-            ${extraBorder}  
-          `;  
-  
-          // tampilkan nickname dengan border  
-          usernameEl.innerHTML = `  
-            <span class="nickname" style="${style}">  
-              ${emblem}${data.name || data.username || "Anonim"}  
-            </span>  
-          `;  
-  
-          document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";  
-        }  
-      });  
-  
-      // set online saat login  
-      setOnlineStatus(user, true);  
-  
-      // set offline saat tab ditutup  
-      window.addEventListener("beforeunload", () => setOnlineStatus(user, false));  
-    } else {  
-      window.location.href = "index.html";  
-    }  
-  });  
-  
-  // logout  
-  document.getElementById("logoutBtn").addEventListener("click", () => {  
-    const user = auth.currentUser;  
-    if (user) setOnlineStatus(user, false);  
-    signOut(auth).then(() => window.location.href = "index.html");  
-  });  
-  
-  // dots indicator  
-  const gamesContainer = document.getElementById("gamesContainer");  
-  const dotsContainer = document.getElementById("dots");  
-  const cards = gamesContainer.querySelectorAll(".game-card");  
-  
-  cards.forEach((_, idx) => {  
-    const dot = document.createElement("div");  
-    dot.className = "dot";  
-    if (idx === 0) dot.classList.add("active");  
-    dotsContainer.appendChild(dot);  
-  });  
-  const dots = dotsContainer.querySelectorAll(".dot");  
-  
-  gamesContainer.addEventListener("scroll", () => {  
-    const cardWidth = cards[0].offsetWidth + 16;  
-    const index = Math.round(gamesContainer.scrollLeft / cardWidth);  
-    dots.forEach((dot, i) => dot.classList.toggle("active", i === index));  
-  });  
-</script>  </body>  
+    /* animasi neon */
+    @keyframes neonAnim {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  </style>
+</head>
+<body>
+  <h1>FRUIT GAME</h1>
+
+  <div class="profile-box">
+    <span id="username">Loading...</span>
+    <div class="saldo-box">
+      <span>Rp</span>
+      <span id="saldo">0</span>
+    </div>
+    <button class="play-btn" onclick="window.location.href='transfer.html'">Transfer Saldo</button>
+    <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- Card Games -->
+  <div class="games-container" id="gamesContainer">
+    <div class="game-card">
+      <h2>Fruit Game</h2>
+      <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>
+    </div>
+    <div class="game-card">
+      <h2>Greedy Fruit</h2>
+      <img src="https://api.imghippo.com/files/Ik3628oqo.png">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
+    </div>
+    <div class="game-card">
+      <h2>Rollet Fruit</h2>
+      <img src="https://api.imghippo.com/files/QA7164oVg.png">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>
+    </div>
+    <div class="game-card">
+      <h2>Coming Soon</h2>
+      <img src="./image/card-game-coming-soon.png" alt="Coming Soon">
+      <br>
+      <button class="play-btn" disabled>Segera</button>
+    </div>
+  </div>
+
+  <div class="dots" id="dots"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",
+    projectId: "fruit-game-5e4a8",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
+    messagingSenderId: "936228678997",
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+    measurementId: "G-EPTSQQPM4D"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // update status online/offline
+  async function setOnlineStatus(user, status) {
+    if (!user) return;
+    const userRef = doc(db, "users", user.uid);
+    try {
+      await updateDoc(userRef, { isOnline: status });
+    } catch (e) {
+      console.error("Gagal update status online:", e);
+    }
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // ✅ selalu set online saat login
+      setOnlineStatus(user, true);
+
+      const userRef = doc(db, "users", user.uid);
+      onSnapshot(userRef, async (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          const usernameEl = document.getElementById("username");
+
+          // hitung rank user
+          const usersRef = collection(db, "users");
+          const qAbove = query(usersRef, where("saldo", ">", data.saldo || 0));
+          const above = await getCountFromServer(qAbove);
+          const myRank = (above.data().count || 0) + 1;
+
+          let emblem = "";
+          if (myRank === 1) emblem = "🥇 ";
+          else if (myRank === 2) emblem = "🥈 ";
+          else if (myRank === 3) emblem = "🥉 ";
+
+          // background nickname
+          let bg = data.bgColor || 'transparent';
+          let extraAnim = '';
+          if (data.bgGradient) {
+            bg = data.bgGradient;
+            extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
+          }
+
+          // border nickname
+          let border = `1px solid ${data.borderColor || '#000'}`;
+          let extraBorder = '';
+          if (data.borderGradient) {
+            const baseBg = data.bgColor || 'transparent';
+            border = '3px solid transparent';
+            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient};
+                           background-origin: border-box;
+                           background-clip: padding-box, border-box;`;
+          }
+
+          const style = `
+            color:${data.color || '#fff'};
+            background:${bg};
+            ${extraAnim}
+            border:${border};
+            ${extraBorder}
+          `;
+
+          // tampilkan nickname dengan border
+          usernameEl.innerHTML = `
+            <span class="nickname" style="${style}">
+              ${emblem}${data.name || data.username || "Anonim"}
+            </span>
+          `;
+
+          document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
+        }
+      });
+
+      // set offline saat tab ditutup
+      window.addEventListener("beforeunload", () => setOnlineStatus(user, false));
+
+      // ✅ fallback: set online lagi kalau tab difokuskan
+      window.addEventListener("focus", () => {
+        if (auth.currentUser) {
+          setOnlineStatus(auth.currentUser, true);
+        }
+      });
+
+    } else {
+      window.location.href = "index.html";
+    }
+  });
+
+  // logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    const user = auth.currentUser;
+    if (user) setOnlineStatus(user, false);
+    signOut(auth).then(() => window.location.href = "index.html");
+  });
+
+  // dots indicator
+  const gamesContainer = document.getElementById("gamesContainer");
+  const dotsContainer = document.getElementById("dots");
+  const cards = gamesContainer.querySelectorAll(".game-card");
+
+  cards.forEach((_, idx) => {
+    const dot = document.createElement("div");
+    dot.className = "dot";
+    if (idx === 0) dot.classList.add("active");
+    dotsContainer.appendChild(dot);
+  });
+  const dots = dotsContainer.querySelectorAll(".dot");
+
+  gamesContainer.addEventListener("scroll", () => {
+    const cardWidth = cards[0].offsetWidth + 16;
+    const index = Math.round(gamesContainer.scrollLeft / cardWidth);
+    dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
+  });
+</script>
+</body>
 </html>
