@@ -43,7 +43,10 @@
     #username {
       font-size: 20px;
       font-weight: bold;
-      color: gold;
+      padding: 4px 8px;
+      border: 1px solid #000;   /* default border */
+      border-radius: 6px;
+      display: inline-block;
     }
     .saldo-box {
       display: flex;
@@ -170,15 +173,17 @@
           else if (myRank === 2) emblem = "🥈 ";
           else if (myRank === 3) emblem = "🥉 ";
 
-          // nama + warna + emblem
+          // tampilkan nickname dengan style sesuai admin
           usernameEl.textContent = emblem + (data.name || data.username || "Anonim");
           usernameEl.style.color = data.color || "gold";
-
-          // saldo
-          document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
+          usernameEl.style.border = "1px solid " + (data.borderColor || "#000");
+          usernameEl.style.background = data.bgColor || "transparent";
         } else {
-          document.getElementById("username").textContent = "Anonim";
-          document.getElementById("username").style.color = "gold";
+          const usernameEl = document.getElementById("username");
+          usernameEl.textContent = "Anonim";
+          usernameEl.style.color = "gold";
+          usernameEl.style.border = "1px solid #000";
+          usernameEl.style.background = "transparent";
           document.getElementById("saldo").textContent = "0";
         }
       });
@@ -211,4 +216,4 @@
   });
 </script>
 </body>
-        </html>
+</html>
