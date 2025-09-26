@@ -44,7 +44,7 @@
       font-size: 20px;
       font-weight: bold;
       padding: 4px 8px;
-      border: 1px solid #000;   /* default border */
+      border: 1px solid #000;   /* default */
       border-radius: 6px;
       display: inline-block;
     }
@@ -66,6 +66,7 @@
     .logout-btn { background: crimson; color: #fff; }
     .play-btn { background: gold; color: #000; }
     .rank-btn { background: #ffd54f; color: #111; }
+
     /* Card games */
     .games-container {
       display: flex;
@@ -83,6 +84,7 @@
       border-radius: 10px;
       width: 200px;
       scroll-snap-align: center;
+      text-align: center;
     }
     .game-card img { width: 100%; border-radius: 10px; }
     .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
@@ -93,6 +95,7 @@
 <body>
   <h1>FRUIT GAME</h1>
 
+  <!-- Profil User -->
   <div class="profile-box">
     <span id="username">Loading...</span>
     <div class="saldo-box">
@@ -114,13 +117,13 @@
     </div>
     <div class="game-card">
       <h2>Greedy Fruit</h2>
-      <img src="https://api.imghippo.com/files/Ik3628oqo.png">
+      <img src="https://api.imghippo.com/files/Ik3628oqo.png" alt="Greedy Fruit">
       <br>
       <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
     </div>
     <div class="game-card">
       <h2>Rollet Fruit</h2>
-      <img src="https://api.imghippo.com/files/QA7164oVg.png">
+      <img src="https://api.imghippo.com/files/QA7164oVg.png" alt="Rollet Fruit">
       <br>
       <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>
     </div>
@@ -161,23 +164,37 @@
           const data = snap.data();
           const usernameEl = document.getElementById("username");
 
-          // hitung rank user
+          // hitung rank
           const usersRef = collection(db, "users");
           const qAbove = query(usersRef, where("saldo", ">", data.saldo || 0));
           const above = await getCountFromServer(qAbove);
           const myRank = (above.data().count || 0) + 1;
 
-          // emblem rank
           let emblem = "";
           if (myRank === 1) emblem = "🥇 ";
           else if (myRank === 2) emblem = "🥈 ";
           else if (myRank === 3) emblem = "🥉 ";
 
-          // tampilkan nickname dengan style sesuai admin
           usernameEl.textContent = emblem + (data.name || data.username || "Anonim");
-          usernameEl.style.color = data.color || "gold";
-          usernameEl.style.border = "1px solid " + (data.borderColor || "#000");
-          usernameEl.style.background = data.bgColor || "transparent";
+
+          // cek gradient dulu
+          if (data.borderGradient) {
+            usernameEl.style.color = data.color || "gold";
+            usernameEl.style.border = "3px solid transparent";
+            usernameEl.style.borderRadius = "6px";
+            usernameEl.style.backgroundImage = `linear-gradient(${data.bgColor || 'transparent'}, ${data.bgColor || 'transparent'}), ${data.borderGradient}`;
+            usernameEl.style.backgroundOrigin = "border-box";
+            usernameEl.style.backgroundClip = "padding-box, border-box";
+            usernameEl.style.padding = "4px 8px";
+          } else {
+            usernameEl.style.color = data.color || "gold";
+            usernameEl.style.border = "1px solid " + (data.borderColor || "#000");
+            usernameEl.style.background = data.bgColor || "transparent";
+            usernameEl.style.borderRadius = "6px";
+            usernameEl.style.padding = "4px 8px";
+          }
+
+          document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
         } else {
           const usernameEl = document.getElementById("username");
           usernameEl.textContent = "Anonim";
@@ -216,4 +233,4 @@
   });
 </script>
 </body>
-</html>
+    </html>
