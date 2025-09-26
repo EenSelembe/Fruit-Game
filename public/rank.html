@@ -68,7 +68,7 @@
     tr.top3 td { background: rgba(205,127,50,.08); }
     .foot { padding: 8px; font-size: 10px; color: var(--muted); text-align: center; flex-shrink: 0; }
 
-    /* animasi neon background */
+    /* animasi neon */
     @keyframes neonAnim {
       0%   { background-position: 0% 50%; }
       50%  { background-position: 100% 50%; }
@@ -121,7 +121,15 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const firebaseConfig = { /* config sama seperti sebelumnya */ };
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -155,7 +163,7 @@
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
-        // pilih background
+        // background (solid / gradient)
         let bg = u.bgColor || 'transparent';
         let extraAnim = '';
         if (u.bgGradient) {
@@ -163,12 +171,13 @@
           extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
         }
 
-        // pilih border
+        // border (solid / gradient)
         let border = `1px solid ${u.borderColor || '#000'}`;
         let extraBorder = '';
         if (u.borderGradient) {
+          const baseBg = u.bgColor || 'transparent'; // jangan pakai gradient untuk isi
           border = '3px solid transparent';
-          extraBorder = `background-image: linear-gradient(${bg}, ${bg}), ${u.borderGradient};
+          extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
                          background-origin: border-box;
                          background-clip: padding-box, border-box;`;
         }
