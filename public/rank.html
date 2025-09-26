@@ -58,7 +58,16 @@
     thead th { text-align: left; padding: 8px; color: var(--muted); font-size: 11px; position: sticky; top: 0; background: #0c0f14; }
     tbody td { padding: 8px; border-top: 1px solid rgba(255,255,255,.05); }
     .rank { width: 36px; text-align: center; font-weight: 700; font-size: 12px; }
-    .name { font-weight: 600; }
+
+    /* Border hitam untuk semua nickname */
+    .name {
+      font-weight: 600;
+      border: 1px solid #000;
+      padding: 2px 6px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
     .name .meTag { margin-left: 4px; font-size: 10px; background: var(--good); color: #111; padding: 1px 5px; border-radius: 999px; }
     .saldoCell { text-align: right; font-weight: 700; white-space: nowrap; }
     .rp { opacity: .8; margin-right: 3px; font-size: 11px; }
