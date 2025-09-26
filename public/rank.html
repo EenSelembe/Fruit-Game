@@ -131,7 +131,6 @@
   </div>
 
   <script type="module">
-    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -152,6 +151,8 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
+    
     const fmtRp = (n) => Number(n || 0).toLocaleString('id-ID');
     const rowsEl = document.getElementById('rows');
     const myRankEl = document.getElementById('myRank');
