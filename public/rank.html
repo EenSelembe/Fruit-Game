@@ -67,6 +67,13 @@
     tr.top2 td { background: rgba(196,196,196,.08); }
     tr.top3 td { background: rgba(205,127,50,.08); }
     .foot { padding: 8px; font-size: 10px; color: var(--muted); text-align: center; flex-shrink: 0; }
+
+    /* animasi neon background */
+    @keyframes neonAnim {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
   </style>
 </head>
 <body>
@@ -114,15 +121,7 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
-    };
+    const firebaseConfig = { /* config sama seperti sebelumnya */ };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -148,7 +147,6 @@
         rank++;
         const u = docu.data();
         const tr = document.createElement('tr');
-        tr.className = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
         const isMe = auth.currentUser && docu.id === auth.currentUser.uid;
         if (isMe) tr.classList.add('meRow');
 
@@ -157,26 +155,33 @@
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
-        // Style nickname: cek gradient dulu
-        let style = `
-          color:${u.color || '#fff'};
-          background:${u.bgColor || 'transparent'};
-          border:1px solid ${u.borderColor || '#000'};
-          padding:2px 6px;
-          border-radius:6px;
-        `;
-
-        if (u.borderGradient) {
-          style = `
-            color:${u.color || '#fff'};
-            border:3px solid transparent;
-            border-radius:6px;
-            background-image: linear-gradient(${u.bgColor || 'transparent'}, ${u.bgColor || 'transparent'}), ${u.borderGradient};
-            background-origin: border-box;
-            background-clip: padding-box, border-box;
-            padding:2px 6px;
-          `;
+        // pilih background
+        let bg = u.bgColor || 'transparent';
+        let extraAnim = '';
+        if (u.bgGradient) {
+          bg = u.bgGradient;
+          extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
         }
+
+        // pilih border
+        let border = `1px solid ${u.borderColor || '#000'}`;
+        let extraBorder = '';
+        if (u.borderGradient) {
+          border = '3px solid transparent';
+          extraBorder = `background-image: linear-gradient(${bg}, ${bg}), ${u.borderGradient};
+                         background-origin: border-box;
+                         background-clip: padding-box, border-box;`;
+        }
+
+        const style = `
+          color:${u.color || '#fff'};
+          background:${bg};
+          ${extraAnim}
+          border:${border};
+          border-radius:6px;
+          padding:2px 6px;
+          ${extraBorder}
+        `;
 
         tr.innerHTML = `
           <td class="rank">${rank}</td>
@@ -215,11 +220,8 @@
     }
 
     onAuthStateChanged(auth, (user)=>{
-      if (!user) {
-        window.location.href = "index.html";
-      } else {
-        loadMe(user);
-      }
+      if (!user) window.location.href = "index.html";
+      else loadMe(user);
     });
 
     document.getElementById('refreshBtn').addEventListener('click', ()=>{
