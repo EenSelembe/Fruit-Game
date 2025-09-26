@@ -10,9 +10,7 @@
     th { background: #333; }
     .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 5px; }
     .btn-update { background: #4caf50; color: white; }
-    input[type="text"], input[type="number"], input[type="color"] {
-      background:#222; border:1px solid #444; color:#fff; padding:3px;
-    }
+    input, select { background:#222; border:1px solid #444; color:#fff; padding:3px; }
   </style>
 </head>
 <body>
@@ -43,7 +41,6 @@
     import { getFirestore, collection, getDocs, doc, updateDoc } 
       from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
       authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -58,10 +55,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // UID admin
     const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; 
 
-    // Load user
+    // Preset gradient list
+    const presets = {
+      "": "",
+      "🌈 Rainbow": "linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet)",
+      "💜 Pink-Purple": "linear-gradient(270deg, #ff00ff, #8000ff, #ff00ff)",
+      "💙 Cyan-Blue": "linear-gradient(270deg, #00ffff, #0066ff, #00ffff)",
+      "🔥 Gold-Red": "linear-gradient(270deg, gold, orange, red, gold)",
+      "🌌 Galaxy": "linear-gradient(270deg, #00f, #8000ff, #ff00ff, #00f)",
+      "💚 Green Neon": "linear-gradient(270deg, #00ff00, #00cc66, #00ff00)"
+    };
+
     async function loadUsers() {
       const querySnapshot = await getDocs(collection(db, "users"));
       const tableBody = document.querySelector("#usersTable tbody");
@@ -71,20 +77,25 @@
         const data = docSnap.data();
         const tr = document.createElement("tr");
 
+        // Dropdown options
+        let options = "";
+        for (const [label, value] of Object.entries(presets)) {
+          const selected = data.bgGradient === value ? "selected" : "";
+          options += `<option value="${value}" ${selected}>${label}</option>`;
+        }
+
         tr.innerHTML = `
           <td>${docSnap.id}</td>
-          <td>
-            <input type="text" id="username-${docSnap.id}" 
-                   value="${data.username || ''}" 
-                   style="width:120px; color:${data.color || '#fff'};">
-          </td>
+          <td><input type="text" id="username-${docSnap.id}" value="${data.username || ''}" style="width:120px; color:${data.color || '#fff'};"></td>
           <td>${data.email || ''}</td>
           <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo || 0}" style="width:80px;"></td>
           <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
           <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
           <td><input type="color" id="bg-${docSnap.id}" value="${data.bgColor || '#000000'}"></td>
           <td><input type="text" id="bordergrad-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="linear-gradient(...)"></td>
-          <td><input type="text" id="bggrad-${docSnap.id}" value="${data.bgGradient || ''}" placeholder="linear-gradient(...)"></td>
+          <td>
+            <select id="bggrad-${docSnap.id}" style="width:160px;">${options}</select>
+          </td>
           <td><button class="btn btn-update" onclick="updateUser('${docSnap.id}')">Update</button></td>
         `;
         tableBody.appendChild(tr);
@@ -94,7 +105,6 @@
       document.getElementById("usersTable").style.display = "table";
     }
 
-    // Update user
     window.updateUser = async function(uid) {
       const newSaldo = Number(document.getElementById("saldo-" + uid).value);
       const newColor = document.getElementById("color-" + uid).value;
@@ -120,7 +130,6 @@
       loadUsers();
     }
 
-    // Cek login admin
     onAuthStateChanged(auth, (user) => {
       if (user && user.uid === ADMIN_UID) {
         loadUsers();
