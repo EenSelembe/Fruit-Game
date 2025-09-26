@@ -150,8 +150,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-
-    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
     
     const fmtRp = (n) => Number(n || 0).toLocaleString('id-ID');
     const rowsEl = document.getElementById('rows');
@@ -272,6 +270,7 @@
       loadMe(auth.currentUser); 
       setUpdated(); 
     });
+    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
   </script>
 </body>
 </html>
