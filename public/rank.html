@@ -58,12 +58,7 @@
     thead th { text-align: left; padding: 8px; color: var(--muted); font-size: 11px; position: sticky; top: 0; background: #0c0f14; }
     tbody td { padding: 8px; border-top: 1px solid rgba(255,255,255,.05); }
     .rank { width: 36px; text-align: center; font-weight: 700; font-size: 12px; }
-    .name { font-weight: 600; display: flex; align-items: center; }
-    .nickname {
-      display: inline-block;
-      border-radius: 6px;
-      padding: 2px 6px;
-    }
+    .name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .name .meTag { margin-left: 4px; font-size: 10px; background: var(--good); color: #111; padding: 1px 5px; border-radius: 999px; }
     .saldoCell { text-align: right; font-weight: 700; white-space: nowrap; }
     .rp { opacity: .8; margin-right: 3px; font-size: 11px; }
@@ -73,23 +68,22 @@
     tr.top3 td { background: rgba(205,127,50,.08); }
     .foot { padding: 8px; font-size: 10px; color: var(--muted); text-align: center; flex-shrink: 0; }
 
-    /* animasi neon */
+    /* indikator online/offline */
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .online { background: #00ff00; }  /* hijau */
+    .offline { background: #ff0000; } /* merah */
+
+    /* animasi neon background */
     @keyframes neonAnim {
       0%   { background-position: 0% 50%; }
       50%  { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-
-    /* bulatan status online/offline */
-    .status-dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 6px;
-    }
-    .online { background: #00ff00; }   /* hijau */
-    .offline { background: #ff3333; }  /* merah */
   </style>
 </head>
 <body>
@@ -179,43 +173,15 @@
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
-        // background (solid / gradient)
-        let bg = u.bgColor || 'transparent';
-        let extraAnim = '';
-        if (u.bgGradient) {
-          bg = u.bgGradient;
-          extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
-        }
-
-        // border (solid / gradient)
-        let border = `1px solid ${u.borderColor || '#000'}`;
-        let extraBorder = '';
-        if (u.borderGradient) {
-          const baseBg = u.bgColor || 'transparent';
-          border = '3px solid transparent';
-          extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
-                         background-origin: border-box;
-                         background-clip: padding-box, border-box;`;
-        }
-
-        const style = `
-          color:${u.color || '#fff'};
-          background:${bg};
-          ${extraAnim}
-          border:${border};
-          ${extraBorder}
-        `;
-
+        // online/offline dot
         const statusClass = u.isOnline ? 'online' : 'offline';
+        const statusDot = `<span class="status-dot ${statusClass}"></span>`;
 
         tr.innerHTML = `
           <td class="rank">${rank}</td>
-          <td class="name">
-            <span class="status-dot ${statusClass}"></span>
-            <span class="nickname" style="${style}">
-              ${emblem}${u.name || u.username || '—'}
-              ${isMe ? '<span class="meTag">Saya</span>' : ''}
-            </span>
+          <td class="name" style="color:${u.color || '#fff'}">
+            ${statusDot} ${emblem}${u.name || u.username || '—'}
+            ${isMe ? '<span class="meTag">Saya</span>' : ''}
           </td>
           <td class="saldoCell"><span class="rp">Rp</span>${fmtRp(u.saldo)}</td>
         `;
