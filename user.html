@@ -10,6 +10,9 @@
     th { background: #333; }
     .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 5px; }
     .btn-update { background: #4caf50; color: white; }
+    input[type="text"], input[type="number"], input[type="color"] {
+      background:#222; border:1px solid #444; color:#fff; padding:3px;
+    }
   </style>
 </head>
 <body>
@@ -24,8 +27,9 @@
         <th>Saldo</th>
         <th>Warna Teks</th>
         <th>Warna Border</th>
-        <th>Warna BG</th>
+        <th>BG Color</th>
         <th>Border Gradient</th>
+        <th>BG Gradient</th>
         <th>Aksi</th>
       </tr>
     </thead>
@@ -39,6 +43,7 @@
     import { getFirestore, collection, getDocs, doc, updateDoc } 
       from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+    // Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
       authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -53,8 +58,10 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // UID admin
     const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; 
 
+    // Load user
     async function loadUsers() {
       const querySnapshot = await getDocs(collection(db, "users"));
       const tableBody = document.querySelector("#usersTable tbody");
@@ -66,13 +73,18 @@
 
         tr.innerHTML = `
           <td>${docSnap.id}</td>
-          <td><input type="text" id="username-${docSnap.id}" value="${data.username || ''}" style="width:120px;"></td>
-          <td>${data.email}</td>
-          <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo}" style="width:80px;"></td>
+          <td>
+            <input type="text" id="username-${docSnap.id}" 
+                   value="${data.username || ''}" 
+                   style="width:120px; color:${data.color || '#fff'};">
+          </td>
+          <td>${data.email || ''}</td>
+          <td><input type="number" id="saldo-${docSnap.id}" value="${data.saldo || 0}" style="width:80px;"></td>
           <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
           <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
           <td><input type="color" id="bg-${docSnap.id}" value="${data.bgColor || '#000000'}"></td>
-          <td><input type="text" id="gradient-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="CSS gradient"></td>
+          <td><input type="text" id="bordergrad-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="linear-gradient(...)"></td>
+          <td><input type="text" id="bggrad-${docSnap.id}" value="${data.bgGradient || ''}" placeholder="linear-gradient(...)"></td>
           <td><button class="btn btn-update" onclick="updateUser('${docSnap.id}')">Update</button></td>
         `;
         tableBody.appendChild(tr);
@@ -82,13 +94,16 @@
       document.getElementById("usersTable").style.display = "table";
     }
 
+    // Update user
     window.updateUser = async function(uid) {
       const newSaldo = Number(document.getElementById("saldo-" + uid).value);
       const newColor = document.getElementById("color-" + uid).value;
       const newBorder = document.getElementById("border-" + uid).value;
       const newBg = document.getElementById("bg-" + uid).value;
-      const newGradient = document.getElementById("gradient-" + uid).value;
+      const newBorderGrad = document.getElementById("bordergrad-" + uid).value;
+      const newBgGrad = document.getElementById("bggrad-" + uid).value;
       const newUsername = document.getElementById("username-" + uid).value;
+
       const userDocRef = doc(db, "users", uid);
 
       await updateDoc(userDocRef, { 
@@ -96,7 +111,8 @@
         color: newColor,
         borderColor: newBorder,
         bgColor: newBg,
-        borderGradient: newGradient,
+        borderGradient: newBorderGrad,
+        bgGradient: newBgGrad,
         username: newUsername
       });
 
@@ -104,6 +120,7 @@
       loadUsers();
     }
 
+    // Cek login admin
     onAuthStateChanged(auth, (user) => {
       if (user && user.uid === ADMIN_UID) {
         loadUsers();
