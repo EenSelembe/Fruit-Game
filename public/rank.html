@@ -59,7 +59,7 @@
     tbody td { padding: 8px; border-top: 1px solid rgba(255,255,255,.05); }
     .rank { width: 36px; text-align: center; font-weight: 700; font-size: 12px; }
 
-    /* Default border kalau user belum punya borderColor */
+    /* Default style nickname */
     .name {
       font-weight: 600;
       border: 1px solid #000;
@@ -172,6 +172,7 @@
           <td class="name" style="
             color:${u.color || '#fff'};
             border:1px solid ${u.borderColor || '#000'};
+            background:${u.bgColor || 'transparent'};
           ">
             ${emblem}${u.name || u.username || '—'}
             ${isMe ? '<span class="meTag">Saya</span>' : ''}
