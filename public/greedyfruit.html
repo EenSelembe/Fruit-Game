@@ -15,7 +15,6 @@
       justify-content: flex-start; overflow: hidden; padding-top: 10px;
     }
 
-    /* TEKS NEON */
     h1 {
       font-size: 26px; font-weight: bold; margin-bottom: 15px;
       text-transform: uppercase;
@@ -128,18 +127,6 @@
 </head>
   
 <body>
-
-  <!-- AUDIO -->
-  <audio id="backsound" loop autoplay>
-    <source src="sonds/greedyfruit.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="rollSound">
-    <source src="sonds/rollscatter.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="countdownSound">
-    <source src="sonds/tik.mp3" type="audio/mpeg">
-  </audio>
-  
   <h1>GREEDY FRUIT</h1>
 
   <div class="saldo-section">
@@ -159,11 +146,7 @@
 
   <div class="grid-container">
     <div class="grid" id="grid"></div>
-    <div class="grid-overlay" id="gridOverlay">
-      <span style="color:#fff;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
-        Tunggu Spin...
-      </span>
-    </div>
+    <div class="grid-overlay" id="gridOverlay"></div>
   </div>
 
   <div class="history"><div class="history-list" id="historyList"></div></div>
@@ -184,88 +167,53 @@
     </div>
   </div>
 
-  <script>
-  // ===== AUDIO SYSTEM =====
-  const backsound = document.getElementById("backsound");
-  const rollSound = document.getElementById("rollSound");
-  const countdownSound = document.getElementById("countdownSound");
-
-  function playBacksound() { backsound.volume = 0.5; backsound.play().catch(()=>{}); }
-  function stopBacksound() { backsound.pause(); backsound.currentTime = 0; }
-  function playRoll() { rollSound.currentTime = 0; rollSound.play().catch(()=>{}); }
-  function playCountdown() { countdownSound.currentTime = 0; countdownSound.play().catch(()=>{}); }
-
-  // auto play backsound ketika masuk game
-  window.addEventListener("DOMContentLoaded", () => {
-    playBacksound();
-    // kalau autoplay diblokir, aktifkan saat klik pertama user
-    document.body.addEventListener("click", () => { if (backsound.paused) playBacksound(); }, { once:true });
-  });
-  </script>
-  
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, updateDoc, onSnapshot, collection, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
-    };
+    const firebaseConfig = { /* config mu */ };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // ====== SYMBOLS & PROBABILITAS (TOTAL 1000) ======
-    // Buah rata (dengan penyesuaian terakhir): 171,171,171,172
-    // Hotdog -2, Burger -1 → poin masuk ke buah agar rata naik
-    // Jackpot: 🥗 1% (10), 🍲 0.5% (5)
+    // === SYMBOLS dengan jackpot (tidak tampil di grid)
     const SYMBOLS = [
-      // FRUITS
-      { icon: "🍒", multi: 5,  weight: 171, type: "fruit" },
-      { icon: "🍊", multi: 5,  weight: 171, type: "fruit" },
-      { icon: "🍇", multi: 5,  weight: 171, type: "fruit" },
-      { icon: "🍏", multi: 5,  weight: 172, type: "fruit" },
+      { icon: "🍒", multi: 5, weight: 171, type: "fruit" },
+      { icon: "🍊", multi: 5, weight: 171, type: "fruit" },
+      { icon: "🍇", multi: 5, weight: 171, type: "fruit" },
+      { icon: "🍏", multi: 5, weight: 172, type: "fruit" },
 
-      // FOODS
-      { icon: "🌭", multi: 10, weight: 118, type: "food" }, // Hotdog 11.8%
-      { icon: "🍔", multi: 15, weight: 88,  type: "food" }, // Burger 8.8%
-      { icon: "🍖", multi: 25, weight: 60,  type: "food" }, // 6%
-      { icon: "🥩", multi: 45, weight: 35,  type: "food" }, // 3.5%
+      { icon: "🌭", multi: 10, weight: 118, type: "food" },
+      { icon: "🍔", multi: 15, weight: 88,  type: "food" },
+      { icon: "🍖", multi: 25, weight: 60,  type: "food" },
+      { icon: "🥩", multi: 45, weight: 35,  type: "food" },
 
-      // JACKPOTS
-      { icon: "🥗", multi: 0,  weight: 10,  type: "jackpot-fruit" }, // 1%
-      { icon: "🍲", multi: 0,  weight: 5,   type: "jackpot-food" }   // 0.5%
+      { icon: "🥗", multi: 0, weight: 10, type: "jackpot-fruit" },
+      { icon: "🍲", multi: 0, weight: 5,  type: "jackpot-food" }
     ];
 
-    const reel = document.getElementById("reel");
-    const countdownEl = document.getElementById("countdown");
     const grid = document.getElementById("grid");
-    const gridOverlay = document.getElementById("gridOverlay");
-    const historyList = document.getElementById("historyList");
+    const reel = document.getElementById("reel");
+    const saldoDisplay = document.getElementById("saldoDisplay");
+    const totalBetDisplay = document.getElementById("totalBetDisplay");
     const betDisplay = document.getElementById("betDisplay");
     const plusBtn = document.getElementById("plusBtn");
     const minusBtn = document.getElementById("minusBtn");
-    const saldoDisplay = document.getElementById("saldoDisplay");
-    const totalBetDisplay = document.getElementById("totalBetDisplay");
     const winOverlay = document.getElementById("winOverlay");
     const winAmount = document.getElementById("winAmount");
     const winTitle = document.getElementById("winTitle");
-    const MAX_HISTORY = 10;
+    const countdownEl = document.getElementById("countdown");
+    const gridOverlay = document.getElementById("gridOverlay");
+    const historyList = document.getElementById("historyList");
 
+    let saldo = 0, globalBet = 500;
     let bets = Array(SYMBOLS.length).fill(0);
     let betTextRefs = [];
-    let globalBet = 500, saldo = 0, spinning = false;
-    let canBet = true, userDocRef = null;
-    updateBetDisplay();
-    
-    // === Firebase sync saldo ===
+    let spinning = false, canBet = true;
+    let userDocRef = null;
+
     onAuthStateChanged(auth, (user) => {
       if (user) {
         userDocRef = doc(db, "users", user.uid);
@@ -280,134 +228,85 @@
       }
     });
 
-    async function saveBalance() {
-      if (userDocRef) await updateDoc(userDocRef, { saldo });
-    }
+    async function saveBalance() { if (userDocRef) await updateDoc(userDocRef, { saldo }); }
+    function updateSaldo(){ saldoDisplay.textContent = "Rp. " + saldo.toLocaleString("id-ID"); }
+    function updateBetDisplay(){ betDisplay.textContent = "Rp. " + globalBet.toLocaleString("id-ID"); }
+    function updateTotalBet(){ totalBetDisplay.textContent = "Rp. " + bets.reduce((a,b)=>a+b,0).toLocaleString("id-ID"); }
+    function clearBets(){ bets = Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>{ if(el) el.textContent="";}); updateTotalBet(); }
 
-    // Weighted random berdasarkan weight
-    function getWeightedRandomSymbol() {
-      const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0); // 1000
-      let rand = Math.random() * totalWeight;
-      for (let i = 0; i < SYMBOLS.length; i++) {
-        if (rand < SYMBOLS[i].weight) return { index: i, symbol: SYMBOLS[i] };
-        rand -= SYMBOLS[i].weight;
-      }
-      // fallback
-      return { index: SYMBOLS.length-1, symbol: SYMBOLS[SYMBOLS.length-1] };
-    }
+    plusBtn.addEventListener("click", ()=>{ globalBet+=500; updateBetDisplay(); });
+    minusBtn.addEventListener("click", ()=>{ if(globalBet>=1000){ globalBet-=500; updateBetDisplay(); }});
+    updateBetDisplay();
 
-    // Build grid (8 cell pertama untuk simbol, 4 atas + 4 bawah)
+    // === Bangun grid tanpa jackpot
     SYMBOLS.forEach((obj, index)=>{
+      if(obj.type.includes("jackpot")) return; // skip jackpot
       const div = document.createElement("div");
-      div.className = "cell";
+      div.className="cell";
       div.innerHTML = `<div>${obj.icon}</div><div class="multiplier">×${obj.multi}</div>`;
       grid.appendChild(div);
-
-      const betText = document.createElement("div");
-      betText.className = "bet-text";
-      if (index < 4) betText.classList.add("bet-top"); else betText.classList.add("bet-bottom");
-      div.appendChild(betText); betTextRefs[index] = betText;
-
-      // Taruhan per cell
+      const betText=document.createElement("div");
+      betText.className="bet-text";
+      if(index<4) betText.classList.add("bet-top"); else betText.classList.add("bet-bottom");
+      div.appendChild(betText); betTextRefs[index]=betText;
       div.addEventListener("click", async ()=>{
-        if (!canBet) return;
-        if (saldo >= globalBet){
-          saldo -= globalBet; bets[index] += globalBet;
-          betText.innerHTML = `<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
+        if(!canBet) return;
+        if(saldo>=globalBet){
+          saldo-=globalBet; bets[index]+=globalBet;
+          betText.innerHTML=`<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
           updateSaldo(); updateTotalBet();
           await saveBalance();
-        } else {
-          alert("Saldo tidak cukup!");
-        }
+        } else alert("Saldo tidak cukup!");
       });
     });
 
+    function getWeightedRandomSymbol() {
+      let totalWeight = SYMBOLS.reduce((s,x)=>s+x.weight,0);
+      let rand = Math.random()*totalWeight;
+      for(let i=0;i<SYMBOLS.length;i++){ if(rand<SYMBOLS[i].weight) return {index:i,symbol:SYMBOLS[i]}; rand-=SYMBOLS[i].weight; }
+      return {index:0,symbol:SYMBOLS[0]};
+    }
+
+    function addHistory(icon){
+      const item=document.createElement("div"); item.className="history-item"; item.textContent=icon;
+      historyList.prepend(item);
+      if(historyList.children.length>10) historyList.removeChild(historyList.lastChild);
+    }
+
+    function showWin(amount,title="MENANG!"){ winAmount.textContent="Rp. "+amount.toLocaleString("id-ID"); winTitle.textContent=title; winOverlay.classList.add("show"); setTimeout(()=>winOverlay.classList.remove("show"),2500); }
+
     function rollSymbol(){
-      if (spinning) return; 
-      spinning = true;
-      playRoll();
-
-      reel.innerHTML = "";
-      reel.style.transition = "none";
-      reel.style.transform = "translateY(0)";
-
-      const boxH = Math.round(document.getElementById("bigBox").getBoundingClientRect().height);
-      let sequence = [];
-      for (let i=0; i<20; i++){ SYMBOLS.forEach(s => sequence.push(s.icon)); }
-
-      const { index: resultIndex, symbol: result } = getWeightedRandomSymbol();
-      sequence.push(result.icon);
-
-      sequence.forEach(sym=>{
-        const div=document.createElement("div");
-        div.className="symbol";
-        div.style.height = boxH + 'px';
-        div.style.fontSize = Math.round(boxH*0.5) + 'px';
-        div.textContent = sym;
-        reel.appendChild(div);
-      });
-
-      const finalOffset = -(boxH*(sequence.length-1));
-
-      requestAnimationFrame(()=>{
-        reel.style.transition = "transform 5000ms linear";
-        reel.style.transform  = `translateY(${finalOffset}px)`;
-      });
-
-      reel.addEventListener('transitionend', async ()=>{
-        // stop roll sound
-        rollSound.pause(); rollSound.currentTime = 0;
-
-        reel.style.transition="none";
-        reel.style.transform=`translateY(${finalOffset}px)`;
-
+      if(spinning) return; spinning=true;
+      reel.innerHTML=""; reel.style.transition="none"; reel.style.transform="translateY(0)";
+      const boxH=document.getElementById("bigBox").getBoundingClientRect().height;
+      let sequence=[]; for(let i=0;i<20;i++){ SYMBOLS.forEach(s=>sequence.push(s.icon)); }
+      const {index:resultIndex,symbol:result}=getWeightedRandomSymbol(); sequence.push(result.icon);
+      sequence.forEach(sym=>{ const d=document.createElement("div"); d.className="symbol"; d.style.height=boxH+"px"; d.style.fontSize=Math.round(boxH*0.5)+"px"; d.textContent=sym; reel.appendChild(d); });
+      const finalOffset=-(boxH*(sequence.length-1));
+      requestAnimationFrame(()=>{ reel.style.transition="transform 5000ms linear"; reel.style.transform=`translateY(${finalOffset}px)`; });
+      reel.addEventListener("transitionend", async ()=>{
+        reel.style.transition="none"; reel.style.transform=`translateY(${finalOffset}px)`;
         addHistory(result.icon);
-
-        // ====== HITUNG KEMENANGAN ======
-        let totalWin = 0;
-        const resultType = result.type;
-
-        if (resultType === "jackpot-fruit") {
-          // Semua taruhan di FRUIT menang (sesuai multiplier masing-masing)
-          bets.forEach((bet, idx) => {
-            if (bet > 0 && SYMBOLS[idx].type === "fruit") {
-              totalWin += bet * SYMBOLS[idx].multi;
-            }
-          });
-          winTitle.textContent = "FRUIT JACKPOT! 🥗";
-        } else if (resultType === "jackpot-food") {
-          // Semua taruhan di FOOD menang
-          bets.forEach((bet, idx) => {
-            if (bet > 0 && SYMBOLS[idx].type === "food") {
-              totalWin += bet * SYMBOLS[idx].multi;
-            }
-          });
-          winTitle.textContent = "FOOD JACKPOT! 🍲";
+        let totalWin=0;
+        if(result.type==="jackpot-fruit"){
+          bets.forEach((bet,idx)=>{ if(bet>0 && SYMBOLS[idx].type==="fruit") totalWin+=bet*SYMBOLS[idx].multi; });
+          showWin(totalWin,"FRUIT JACKPOT 🥗");
+        } else if(result.type==="jackpot-food"){
+          bets.forEach((bet,idx)=>{ if(bet>0 && SYMBOLS[idx].type==="food") totalWin+=bet*SYMBOLS[idx].multi; });
+          showWin(totalWin,"FOOD JACKPOT 🍲");
         } else {
-          // Aturan normal: hanya simbol tepat
-          bets.forEach((bet, idx) => {
-            if (bet > 0 && idx === resultIndex) {
-              totalWin += bet * SYMBOLS[idx].multi;
-            }
-          });
-          winTitle.textContent = "MENANG!";
+          bets.forEach((bet,idx)=>{ if(bet>0 && idx===resultIndex) totalWin+=bet*SYMBOLS[idx].multi; });
+          if(totalWin>0) showWin(totalWin);
         }
 
-        if (totalWin > 0){
-          saldo += totalWin; 
-          updateSaldo(); 
-          showWin(totalWin);
-          await saveBalance();
-        }
+        if(totalWin>0){ saldo+=totalWin; updateSaldo(); await saveBalance(); }
 
-        // clear bets setelah 2 detik
-        setTimeout(clearBets, 2000);
-        spinning = false;
-
-        canBet = true; 
-        gridOverlay.style.display = "none";
-        setTimeout(()=> startCountdown(), 3000);
-      }, { once:true });
+        setTimeout(clearBets,2000);
+        spinning=false;
+        canBet=true; 
+        gridOverlay.style.display="none";
+        setTimeout(()=> startCountdown(),3000);
+      },{once:true});
     }
 
     function startCountdown(){
@@ -417,33 +316,18 @@
       const interval=setInterval(()=>{
         count--;
         if(count>=0){
-          countdownEl.textContent=count; playCountdown();
+          countdownEl.textContent=count;
         }
         if(count<0){
           clearInterval(interval);
-          countdownSound.pause(); countdownSound.currentTime = 0;
           countdownEl.style.visibility="hidden";
-          canBet = false;
-          gridOverlay.style.display = "block";
+          canBet=false;
+          gridOverlay.style.display="block";
           rollSymbol();
         }
       },1000);
     }
 
-    function addHistory(icon){
-      const item=document.createElement("div"); item.className="history-item"; item.textContent=icon;
-      historyList.prepend(item);
-      if(historyList.children.length>MAX_HISTORY){ historyList.removeChild(historyList.lastChild); }
-    }
-    function clearBets(){ bets = Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>{el.textContent="";}); updateTotalBet(); }
-    function updateBetDisplay(){ betDisplay.textContent="Rp. "+globalBet.toLocaleString("id-ID"); }
-    plusBtn.addEventListener("click", ()=>{ globalBet+=500; updateBetDisplay(); });
-    minusBtn.addEventListener("click", ()=>{ if(globalBet>=1000){ globalBet-=500; updateBetDisplay(); }});
-    function updateSaldo(){ saldoDisplay.textContent="Rp. "+saldo.toLocaleString("id-ID"); }
-    function updateTotalBet(){ totalBetDisplay.textContent="Rp. "+bets.reduce((a,b)=>a+b,0).toLocaleString("id-ID"); }
-    function showWin(amount){ winAmount.textContent="Rp. "+amount.toLocaleString("id-ID"); winOverlay.classList.add("show"); setTimeout(()=>{winOverlay.classList.remove("show");},2500); }
-
-    // mulai pertama
     startCountdown();
   </script>
 </body>
