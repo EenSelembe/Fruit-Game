@@ -43,10 +43,7 @@
     #username {
       font-size: 20px;
       font-weight: bold;
-      padding: 4px 8px;
-      border-radius: 6px;
-      border: 1px solid #000;
-      display: inline-block;
+      color: gold;
     }
     .saldo-box {
       display: flex;
@@ -66,8 +63,6 @@
     .logout-btn { background: crimson; color: #fff; }
     .play-btn { background: gold; color: #000; }
     .rank-btn { background: #ffd54f; color: #111; }
-
-    /* games */
     .games-container {
       display: flex;
       gap: 16px;
@@ -84,19 +79,11 @@
       border-radius: 10px;
       width: 200px;
       scroll-snap-align: center;
-      text-align: center;
     }
     .game-card img { width: 100%; border-radius: 10px; }
     .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
     .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }
     .dot.active { background: gold; }
-
-    /* animasi neon */
-    @keyframes neonAnim {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
   </style>
 </head>
 <body>
@@ -105,7 +92,8 @@
   <div class="profile-box">
     <span id="username">Loading...</span>
     <div class="saldo-box">
-      <span>Rp</span><span id="saldo">0</span>
+      <span>Rp</span>
+      <span id="saldo">0</span>
     </div>
     <button class="play-btn" onclick="window.location.href='transfer.html'">Transfer Saldo</button>
     <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>
@@ -115,31 +103,36 @@
   <div class="games-container" id="gamesContainer">
     <div class="game-card">
       <h2>Fruit Game</h2>
-      <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg">
-      <br><button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>
+      <img src="https://i.ibb.co.com/B2V4ffDf/IMG-20250915-215726.jpg" alt="Fruit Game">
+      <br>
+      <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>
     </div>
     <div class="game-card">
       <h2>Greedy Fruit</h2>
       <img src="https://api.imghippo.com/files/Ik3628oqo.png">
-      <br><button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
+      <br>
+      <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
     </div>
     <div class="game-card">
       <h2>Rollet Fruit</h2>
       <img src="https://api.imghippo.com/files/QA7164oVg.png">
-      <br><button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>
+      <br>
+      <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>
     </div>
     <div class="game-card">
       <h2>Coming Soon</h2>
-      <img src="./image/card-game-coming-soon.png">
-      <br><button class="play-btn" disabled>Segera</button>
+      <img src="./image/card-game-coming-soon.png" alt="Coming Soon">
+      <br>
+      <button class="play-btn" disabled>Segera</button>
     </div>
   </div>
+
   <div class="dots" id="dots"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, onSnapshot, collection, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -155,6 +148,17 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  // update status online/offline
+  async function setOnlineStatus(user, status) {
+    if (!user) return;
+    const userRef = doc(db, "users", user.uid);
+    try {
+      await updateDoc(userRef, { isOnline: status });
+    } catch (e) {
+      console.error("Gagal update status online:", e);
+    }
+  }
+
   onAuthStateChanged(auth, (user) => {
     if (user) {
       const userRef = doc(db, "users", user.uid);
@@ -163,7 +167,7 @@
           const data = snap.data();
           const usernameEl = document.getElementById("username");
 
-          // hitung rank
+          // hitung rank user
           const usersRef = collection(db, "users");
           const qAbove = query(usersRef, where("saldo", ">", data.saldo || 0));
           const above = await getCountFromServer(qAbove);
@@ -175,44 +179,24 @@
           else if (myRank === 3) emblem = "🥉 ";
 
           usernameEl.textContent = emblem + (data.name || data.username || "Anonim");
-
-          // cek bgGradient
-          if (data.bgGradient) {
-            usernameEl.style.color = data.color || "#fff";
-            usernameEl.style.background = data.bgGradient;
-            usernameEl.style.backgroundSize = "600% 600%";
-            usernameEl.style.animation = "neonAnim 8s ease infinite";
-            usernameEl.style.border = "1px solid " + (data.borderColor || "#000");
-          } else {
-            usernameEl.style.color = data.color || "#fff";
-            usernameEl.style.background = data.bgColor || "transparent";
-            usernameEl.style.border = "1px solid " + (data.borderColor || "#000");
-          }
-
-          // cek borderGradient
-          if (data.borderGradient) {
-            usernameEl.style.border = "3px solid transparent";
-            usernameEl.style.backgroundImage = `linear-gradient(${data.bgColor || 'transparent'}, ${data.bgColor || 'transparent'}), ${data.borderGradient}`;
-            usernameEl.style.backgroundOrigin = "border-box";
-            usernameEl.style.backgroundClip = "padding-box, border-box";
-          }
-
+          usernameEl.style.color = data.color || "gold";
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
-        } else {
-          const usernameEl = document.getElementById("username");
-          usernameEl.textContent = "Anonim";
-          usernameEl.style.color = "gold";
-          usernameEl.style.border = "1px solid #000";
-          usernameEl.style.background = "transparent";
-          document.getElementById("saldo").textContent = "0";
         }
       });
+
+      // set online saat login
+      setOnlineStatus(user, true);
+
+      // set offline saat tab ditutup
+      window.addEventListener("beforeunload", () => setOnlineStatus(user, false));
     } else {
       window.location.href = "index.html";
     }
   });
 
   document.getElementById("logoutBtn").addEventListener("click", () => {
+    const user = auth.currentUser;
+    if (user) setOnlineStatus(user, false);
     signOut(auth).then(() => window.location.href = "index.html");
   });
 
@@ -236,4 +220,4 @@
   });
 </script>
 </body>
-  </html>
+</html>
