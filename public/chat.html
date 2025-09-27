@@ -1,0 +1,109 @@
+<!-- chat.html -->
+<style>
+#chatIcon {
+  position:fixed;
+  bottom:20px;right:20px;
+  width:55px;height:55px;
+  background:gold;color:#111;
+  font-size:28px;font-weight:bold;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:9999;
+  box-shadow:0 4px 10px rgba(0,0,0,.5);
+}
+#chatPanel {
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;top:0;
+  background:rgba(0,0,0,0.8);
+  z-index:9998;
+  display:flex;flex-direction:column;
+}
+#chatPanel header {
+  padding:10px;background:#111;color:gold;
+  display:flex;justify-content:space-between;align-items:center;
+}
+#chatPanel #chatBox {
+  flex:1;overflow-y:auto;padding:10px;
+}
+#chatPanel footer {
+  display:flex;border-top:1px solid #333;
+}
+#chatPanel input {
+  flex:1;padding:10px;border:none;background:#222;color:#fff;
+}
+#chatPanel button {
+  padding:10px 16px;border:none;background:gold;color:#111;font-weight:bold;
+}
+</style>
+
+<div id="chatIcon" onclick="toggleChat()">💬</div>
+
+<div id="chatPanel">
+  <header>
+    <span>💬 Chat Global</span>
+    <button onclick="toggleChat()" style="background:#444;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">⟵</button>
+  </header>
+  <div id="chatBox"></div>
+  <footer>
+    <input type="text" id="msgInput" placeholder="Tulis pesan...">
+    <button id="sendBtn">Kirim</button>
+  </footer>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } 
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const firebaseConfig = { /* config mu */ };
+  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const chatBox = document.getElementById("chatBox");
+  const msgInput = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
+
+  let currentUser=null;
+  onAuthStateChanged(auth,(u)=>{currentUser=u;});
+
+  async function sendMessage(){
+    const text=msgInput.value.trim();
+    if(!text||!currentUser)return;
+    await addDoc(collection(db,"chatGlobal"),{
+      userId:currentUser.uid,
+      username:currentUser.email||currentUser.displayName||"Anonim",
+      text,createdAt:serverTimestamp()
+    });
+    msgInput.value="";
+  }
+  sendBtn.onclick=sendMessage;
+  msgInput.addEventListener("keypress",e=>{if(e.key==="Enter")sendMessage();});
+
+  const q=query(collection(db,"chatGlobal"),orderBy("createdAt","asc"),limit(50));
+  onSnapshot(q,(snap)=>{
+    chatBox.innerHTML="";
+    snap.forEach(d=>{
+      const m=d.data();
+      if(!m.text)return;
+      const isAdmin=m.userId===ADMIN_UID;
+      const div=document.createElement("div");
+      div.innerHTML=`<div style="${isAdmin?'color:#00ff00;font-weight:bold;':''}">${m.username||'Anonim'}: ${m.text}</div>`;
+      chatBox.appendChild(div);
+    });
+    chatBox.scrollTop=chatBox.scrollHeight;
+  });
+
+  window.toggleChat=function(){
+    const panel=document.getElementById("chatPanel");
+    const icon=document.getElementById("chatIcon");
+    if(panel.style.display==="none"||panel.style.display===""){
+      panel.style.display="flex"; icon.style.display="none";
+    }else{
+      panel.style.display="none"; icon.style.display="flex";
+    }
+  }
+</script>
