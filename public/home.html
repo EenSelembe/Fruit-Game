@@ -60,6 +60,12 @@
       margin-top: 5px;
     }
     .saldo-box span { margin: 0 3px; }
+    .level-box {
+      font-size: 16px;
+      margin-top: 6px;
+      color: #ffd54f;
+      font-weight: bold;
+    }
     button {
       padding: 10px 20px; margin: 10px;
       border: none; border-radius: 5px;
@@ -107,6 +113,7 @@
       <span>Rp</span>
       <span id="saldo">0</span>
     </div>
+    <div class="level-box">Level: <span id="level">0</span></div>
     <button class="play-btn" onclick="window.location.href='transfer.html'">Transfer Saldo</button>
     <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>
     <button class="logout-btn" id="logoutBtn">Logout</button>
@@ -165,6 +172,18 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  // Fungsi hitung level dari xpSaldo
+  function calcLevel(xpSaldo) {
+    let level = 0;
+    let need = 100000; // butuh 100rb pertama
+    while (xpSaldo >= need) {
+      level++;
+      xpSaldo -= need;
+      need += 100000; // tiap level berikutnya makin mahal
+    }
+    return level;
+  }
+
   onAuthStateChanged(auth, (user) => {
     if (user) {
       const userRef = doc(db, "users", user.uid);
@@ -219,6 +238,7 @@
           `;
 
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
+          document.getElementById("level").textContent = calcLevel(data.xpSaldo || 0);
         }
       });
     } else {
@@ -251,4 +271,4 @@
   });
 </script>
 </body>
-</html>
+      </html>
