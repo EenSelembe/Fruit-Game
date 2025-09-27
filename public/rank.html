@@ -66,7 +66,6 @@
     }
     .name .meTag { margin-left: 4px; font-size: 10px; background: var(--good); color: #111; padding: 1px 5px; border-radius: 999px; }
     .saldoCell { text-align: right; font-weight: 700; white-space: nowrap; }
-    .levelCell { text-align: center; font-weight: 600; }
     .rp { opacity: .8; margin-right: 3px; font-size: 11px; }
     tr.meRow { background: rgba(102, 255, 166, .08); }
     tr.top1 td { background: rgba(255,213,79,.08); }
@@ -109,7 +108,6 @@
       <div>
         <div id="myRank">—</div>
         <div id="myName">—</div>
-        <div id="myLevel">Lv —</div>
       </div>
       <div>
         <span class="rp">Rp</span><span id="mySaldo">0</span>
@@ -122,8 +120,8 @@
           <tr>
             <th class="rank">#</th>
             <th>Nama</th>
-            <th>Level</th>
             <th style="text-align:right">Saldo</th>
+            <th style="text-align:center">Lv</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -156,15 +154,9 @@
     const db = getFirestore(app);
 
     const fmtRp = (n) => Number(n || 0).toLocaleString('id-ID');
-
-    function calcLevel(xp) {
-      return Math.floor((xp || 0) / 100000) + 1;
-    }
-
     const rowsEl = document.getElementById('rows');
     const myRankEl = document.getElementById('myRank');
     const myNameEl = document.getElementById('myName');
-    const myLevelEl = document.getElementById('myLevel');
     const mySaldoEl = document.getElementById('mySaldo');
     const totalUsersEl = document.getElementById('totalUsers');
     const updatedAtEl = document.getElementById('updatedAt');
@@ -175,6 +167,18 @@
 
     const usersRef = collection(db, 'users');
     const qTop = query(usersRef, orderBy('saldo', 'desc'));
+
+    // === fungsi hitung level dari xpSaldo (mulai Lv 0) ===
+    function calcLevel(xp) {
+      let level = 0;
+      let need = 100000; // 100 ribu awal
+      while (xp >= need) {
+        level++;
+        xp -= need;
+        need = Math.floor(need * 1.5);
+      }
+      return level;
+    }
 
     onSnapshot(qTop, (snap) => {
       rowsEl.innerHTML = '';
@@ -194,24 +198,20 @@
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
-        // cek lastSeen → online kalau < 60 detik
+        // cek online
         let statusClass = 'offline';
         if (u.lastSeen && (now - u.lastSeen.toMillis()) < 60000) {
           statusClass = 'online';
         }
         const statusDot = `<span class="status-dot ${statusClass}"></span>`;
 
-        // hitung level
-        const level = calcLevel(u.xpSaldo);
-
-        // background dan border nickname
+        // nickname style
         let bg = u.bgColor || 'transparent';
         let extraAnim = '';
         if (u.bgGradient) {
           bg = u.bgGradient;
           extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
         }
-
         let border = `1px solid ${u.borderColor || '#000'}`;
         let extraBorder = '';
         if (u.borderGradient) {
@@ -221,7 +221,6 @@
                          background-origin: border-box;
                          background-clip: padding-box, border-box;`;
         }
-
         const style = `
           color:${u.color || '#fff'};
           background:${bg};
@@ -232,6 +231,9 @@
           ${extraBorder}
         `;
 
+        // hitung level user dari xpSaldo
+        const level = calcLevel(u.xpSaldo || 0);
+
         tr.innerHTML = `
           <td class="rank">${rank}</td>
           <td class="name">
@@ -241,8 +243,8 @@
               ${isMe ? '<span class="meTag">Saya</span>' : ''}
             </span>
           </td>
-          <td class="levelCell">Lv ${level}</td>
           <td class="saldoCell"><span class="rp">Rp</span>${fmtRp(u.saldo)}</td>
+          <td style="text-align:center">${level}</td>
         `;
         rowsEl.appendChild(tr);
       });
@@ -263,7 +265,6 @@
       if(!user){ 
         myRankEl.textContent = 'Login'; 
         myNameEl.textContent = '—'; 
-        myLevelEl.textContent = 'Lv —';
         mySaldoEl.textContent = '0'; 
         return; 
       }
@@ -271,9 +272,8 @@
       const meSnap = await getDoc(meRef);
       if (!meSnap.exists()) return;
       const me = meSnap.data();
-      myNameEl.textContent = me.name || me.username || '(Tanpa Nama)';
+      myNameEl.textContent = (me.name || me.username || '(Tanpa Nama)') + " (Lv " + calcLevel(me.xpSaldo || 0) + ")";
       mySaldoEl.textContent = fmtRp(me.saldo || 0);
-      myLevelEl.textContent = 'Lv ' + calcLevel(me.xpSaldo);
       const qAbove = query(usersRef, where('saldo', '>', me.saldo || 0));
       const above = await getCountFromServer(qAbove);
       myRankEl.textContent = '#' + ((above.data().count || 0) + 1);
