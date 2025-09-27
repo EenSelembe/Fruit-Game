@@ -1,105 +1,131 @@
+// chat.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } 
-  from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { 
+  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { 
+  getAuth, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Firebase Config
+// Firebase config (sama persis dengan home.html)
 const firebaseConfig = {
   apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
   authDomain: "fruit-game-5e4a8.firebaseapp.com",
   projectId: "fruit-game-5e4a8",
   storageBucket: "fruit-game-5e4a8.appspot.com",
   messagingSenderId: "936228678997",
-  appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc"
+  appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+  measurementId: "G-EPTSQQPM4D"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-let chatToggle, chatWindow, closeChat, sendChat, chatMessage, messagesBox;
+const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
 export function initChat() {
-  chatToggle = document.getElementById("chatToggle");
-  chatWindow = document.getElementById("chatWindow");
-  closeChat = document.getElementById("closeChat");
-  sendChat = document.getElementById("sendChat");
-  chatMessage = document.getElementById("chatMessage");
-  messagesBox = document.getElementById("messages");
+  const chatIcon = document.getElementById("chatIcon");
+  const chatBox = document.getElementById("chatBox");
+  const chatMessages = document.getElementById("chatMessages");
+  const chatInput = document.getElementById("chatInput");
+  const chatSend = document.getElementById("chatSend");
+  const chatClose = document.getElementById("chatClose");
 
-  // Buka/tutup
-  chatToggle.onclick = () => {
-    chatWindow.style.display = "flex";
-    chatToggle.style.display = "none";
-  };
-  closeChat.onclick = () => {
-    chatWindow.style.display = "none";
-    chatToggle.style.display = "flex";
-  };
+  // === draggable icon ===
+  let isDragging = false, offsetX = 0, offsetY = 0;
+  chatIcon.addEventListener("mousedown", startDrag);
+  chatIcon.addEventListener("touchstart", startDrag);
 
-  // Kirim pesan
-  sendChat.onclick = sendMessage;
-  chatMessage.addEventListener("keypress", (e) => {
+  function startDrag(e) {
+    isDragging = true;
+    const rect = chatIcon.getBoundingClientRect();
+    if (e.touches) {
+      offsetX = e.touches[0].clientX - rect.left;
+      offsetY = e.touches[0].clientY - rect.top;
+    } else {
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+    }
+    document.addEventListener("mousemove", onDrag);
+    document.addEventListener("mouseup", stopDrag);
+    document.addEventListener("touchmove", onDrag);
+    document.addEventListener("touchend", stopDrag);
+  }
+
+  function onDrag(e) {
+    if (!isDragging) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    chatIcon.style.left = (x - offsetX) + "px";
+    chatIcon.style.top = (y - offsetY) + "px";
+  }
+
+  function stopDrag() {
+    isDragging = false;
+    document.removeEventListener("mousemove", onDrag);
+    document.removeEventListener("mouseup", stopDrag);
+    document.removeEventListener("touchmove", onDrag);
+    document.removeEventListener("touchend", stopDrag);
+  }
+
+  // === toggle chat ===
+  chatIcon.addEventListener("click", () => {
+    chatBox.style.display = "flex";
+    chatIcon.style.display = "none";
+  });
+  chatClose.addEventListener("click", () => {
+    chatBox.style.display = "none";
+    chatIcon.style.display = "block";
+  });
+
+  // === kirim pesan ===
+  async function sendMessage() {
+    const msg = chatInput.value.trim();
+    if (!msg) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    await addDoc(collection(db, "globalChat"), {
+      uid: user.uid,
+      text: msg,
+      name: user.displayName || user.email || "Anonim",
+      createdAt: serverTimestamp()
+    });
+
+    chatInput.value = "";
+  }
+
+  chatSend.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
   });
 
-  // Bisa digeser
-  dragElement(chatToggle);
+  // === tampilkan pesan ===
+  const q = query(
+    collection(db, "globalChat"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
 
-  // Ambil pesan realtime
-  loadMessages();
-}
-
-async function sendMessage() {
-  const user = auth.currentUser;
-  if (!user || !chatMessage.value.trim()) return;
-
-  await addDoc(collection(db, "chatGlobal"), {
-    uid: user.uid,
-    text: chatMessage.value,
-    time: serverTimestamp()
-  });
-
-  chatMessage.value = "";
-}
-
-function loadMessages() {
-  const q = query(collection(db, "chatGlobal"), orderBy("time", "desc"), limit(50));
   onSnapshot(q, (snap) => {
-    messagesBox.innerHTML = "";
+    chatMessages.innerHTML = "";
     snap.forEach((doc) => {
-      const m = doc.data();
-      let color = "#fff";
-      if (m.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") color = "lime"; // admin
-
+      const d = doc.data();
       const div = document.createElement("div");
-      div.innerHTML = `<span style="color:${color}">${m.text}</span>`;
-      messagesBox.prepend(div);
-    });
-  });
-}
+      div.className = "chat-message";
 
-// Fungsi drag
-function dragElement(elmnt) {
-  let pos1=0,pos2=0,pos3=0,pos4=0;
-  elmnt.onmousedown = dragMouseDown;
-  function dragMouseDown(e) {
-    e.preventDefault();
-    pos3 = e.clientX; pos4 = e.clientY;
-    document.onmouseup = closeDragElement;
-    document.onmousemove = elementDrag;
-  }
-  function elementDrag(e) {
-    e.preventDefault();
-    pos1 = pos3 - e.clientX;
-    pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-  }
-  function closeDragElement() {
-    document.onmouseup = null;
-    document.onmousemove = null;
-  }
-}
+      // admin hijau stabilo
+      if (d.uid === ADMIN_UID) {
+        div.style.color = "#00ff7f";
+        div.style.fontWeight = "bold";
+      }
+
+      div.textContent = `${d.name}: ${d.text}`;
+      chatMessages.prepend(div); // urut naik
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  });
+
+  console.log("✅ Chat initialized");
+} // << ini penutup function initChat()
