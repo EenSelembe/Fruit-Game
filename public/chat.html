@@ -72,6 +72,13 @@
       cursor: pointer;
       font-weight: bold;
     }
+    #closeBtn {
+      background: red;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -82,7 +89,7 @@
   <div id="chatWindow">
     <div id="chatHeader">
       <span>🌍 Global Chat</span>
-      <button onclick="toggleChat()" style="background:red;color:white;border:none;padding:4px 8px;cursor:pointer;">✖</button>
+      <button id="closeBtn">✖</button>
     </div>
     <div id="chatMessages"></div>
     <div id="chatInputBox">
@@ -115,18 +122,20 @@
     const chatMessages = document.getElementById("chatMessages");
     const chatInput = document.getElementById("chatInput");
     const sendBtn = document.getElementById("sendBtn");
+    const closeBtn = document.getElementById("closeBtn");
 
     // 🔘 Toggle buka/tutup chat
-    function toggleChat() {
-      if (chatWindow.style.display === "none") {
-        chatWindow.style.display = "flex";
-        chatIcon.style.display = "none";
-      } else {
-        chatWindow.style.display = "none";
-        chatIcon.style.display = "flex";
-      }
+    function openChat() {
+      chatWindow.style.display = "flex";
+      chatIcon.style.display = "none";
     }
-    chatIcon.addEventListener("click", toggleChat);
+    function closeChat() {
+      chatWindow.style.display = "none";
+      chatIcon.style.display = "flex";
+    }
+
+    chatIcon.addEventListener("click", openChat);
+    closeBtn.addEventListener("click", closeChat);
 
     // 🖱️ draggable icon
     let offsetX, offsetY, isDragging = false;
