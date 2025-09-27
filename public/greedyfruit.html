@@ -194,6 +194,7 @@
   function stopBacksound() { backsound.pause(); backsound.currentTime = 0; }
   function playRoll() { rollSound.currentTime = 0; rollSound.play().catch(()=>{}); }
   function playCountdown() { countdownSound.currentTime = 0; countdownSound.play().catch(()=>{}); }
+    
 
   // auto play backsound ketika masuk game
   window.addEventListener("DOMContentLoaded", () => {
@@ -204,9 +205,11 @@
   </script>
   
   <script type="module">
+    import { increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, doc, updateDoc, onSnapshot, collection, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { initOnlineStatus } from "./online.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -310,17 +313,25 @@
       div.appendChild(betText); betTextRefs[index] = betText;
 
       // Taruhan per cell
-      div.addEventListener("click", async ()=>{
-        if (!canBet) return;
-        if (saldo >= globalBet){
-          saldo -= globalBet; bets[index] += globalBet;
-          betText.innerHTML = `<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
-          updateSaldo(); updateTotalBet();
-          await saveBalance();
-        } else {
-          alert("Saldo tidak cukup!");
-        }
-      });
+      
+div.addEventListener("click", async ()=>{
+  if (!canBet) return;
+  if (saldo >= globalBet){
+    saldo -= globalBet; 
+    bets[index] += globalBet;
+    betText.innerHTML = `<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
+    updateSaldo(); 
+    updateTotalBet();
+
+    // 🔥 update saldo & konsumsi
+    await updateDoc(userDocRef, {
+      saldo: saldo,
+      consumedSaldo: increment(globalBet)  // << ini yang nambah konsumsi
+    });
+  } else {
+    alert("Saldo tidak cukup!");
+  }
+});
     });
 
     function rollSymbol(){
@@ -446,7 +457,7 @@
 
     // mulai pertama
     startCountdown();
-    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
+     initOnlineStatus();
   </script>
 </body>
 </html>
