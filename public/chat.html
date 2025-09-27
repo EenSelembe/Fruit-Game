@@ -1,210 +1,196 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <style>
-    /* === ICON CHAT MENGAMBANG === */
-    #chatIcon {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 55px;
-      height: 55px;
-      background: crimson;
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      cursor: grab;
-      z-index: 9999;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-      user-select: none;
-    }
+<style>
+  /* Icon chat mengambang */
+  #chatIcon {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #ffd54f;
+    color: #111;
+    border-radius: 50%;
+    width: 55px;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,.4);
+    z-index: 9999;
+    user-select: none;
+  }
 
-    /* === BOX CHAT === */
-    #chatBox {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 60%;
-      background: rgba(0,0,0,0.85);
-      color: white;
-      display: none;
-      flex-direction: column;
-      z-index: 9998;
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-    }
-    #chatHeader {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      background: rgba(255,255,255,0.1);
-      font-weight: bold;
-    }
-    #chatMessages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      font-size: 14px;
-    }
-    #chatInputArea {
-      display: flex;
-      padding: 8px;
-      background: rgba(255,255,255,0.1);
-    }
-    #chatInput {
-      flex: 1;
-      padding: 6px;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-    }
-    #chatSend {
-      margin-left: 8px;
-      padding: 6px 12px;
-      background: gold;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+  /* Overlay chat */
+  #chatOverlay {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60%;
+    background: rgba(0,0,0,0.85);
+    border-top: 2px solid #ffd54f;
+    z-index: 9998;
+    color: white;
+    display: flex;
+    flex-direction: column;
+  }
 
-    /* Pesan admin */
-    .adminMsg {
-      color: #00ff66;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <!-- Icon chat mengambang -->
-  <div id="chatIcon">💬</div>
+  #chatHeader {
+    padding: 8px;
+    background: #222;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-  <!-- Box chat -->
-  <div id="chatBox">
-    <div id="chatHeader">
-      <span>🌐 Chat Global</span>
-      <button id="chatClose">✖</button>
-    </div>
-    <div id="chatMessages"></div>
-    <div id="chatInputArea">
-      <input type="text" id="chatInput" placeholder="Ketik pesan..." />
-      <button id="chatSend">Kirim</button>
-    </div>
+  #chatMessages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    font-size: 14px;
+  }
+
+  #chatInputBox {
+    display: flex;
+    border-top: 1px solid #444;
+  }
+
+  #chatInput {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    outline: none;
+  }
+
+  #chatSend {
+    background: #ffd54f;
+    border: none;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .msg { margin: 4px 0; }
+  .admin { color: #00ff66; font-weight: bold; } /* hijau stabilo */
+</style>
+
+<div id="chatIcon">💬</div>
+
+<div id="chatOverlay">
+  <div id="chatHeader">
+    <span>💬 Chat Global</span>
+    <button id="chatClose">✖</button>
   </div>
+  <div id="chatMessages"></div>
+  <div id="chatInputBox">
+    <input type="text" id="chatInput" placeholder="Ketik pesan..."/>
+    <button id="chatSend">Kirim</button>
+  </div>
+</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } 
-      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } 
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // === CONFIG FIREBASE ===
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",
+    projectId: "fruit-game-5e4a8",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
+    messagingSenderId: "936228678997",
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    const chatIcon = document.getElementById("chatIcon");
-    const chatBox = document.getElementById("chatBox");
-    const chatClose = document.getElementById("chatClose");
-    const chatMessages = document.getElementById("chatMessages");
-    const chatInput = document.getElementById("chatInput");
-    const chatSend = document.getElementById("chatSend");
+  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
-    let currentUser = null;
+  const chatIcon = document.getElementById("chatIcon");
+  const chatOverlay = document.getElementById("chatOverlay");
+  const chatClose = document.getElementById("chatClose");
+  const chatMessages = document.getElementById("chatMessages");
+  const chatInput = document.getElementById("chatInput");
+  const chatSend = document.getElementById("chatSend");
 
-    // === Auth listener ===
-    onAuthStateChanged(auth, (user) => {
-      currentUser = user;
-    });
+  // toggle buka/tutup
+  chatIcon.addEventListener("click", () => {
+    chatOverlay.style.display = "flex";
+    chatIcon.style.display = "none";
+  });
+  chatClose.addEventListener("click", () => {
+    chatOverlay.style.display = "none";
+    chatIcon.style.display = "flex";
+  });
 
-    // === Toggle chat ===
-    chatIcon.addEventListener("click", () => {
-      chatBox.style.display = "flex";
-      chatIcon.style.display = "none";
-    });
-    chatClose.addEventListener("click", () => {
-      chatBox.style.display = "none";
-      chatIcon.style.display = "flex";
-    });
-
-    // === Geser icon ===
-    let offsetX, offsetY, isDragging = false;
-    chatIcon.addEventListener("mousedown", startDrag);
-    chatIcon.addEventListener("touchstart", startDrag);
-    function startDrag(e) {
-      isDragging = true;
-      offsetX = (e.touches ? e.touches[0].clientX : e.clientX) - chatIcon.offsetLeft;
-      offsetY = (e.touches ? e.touches[0].clientY : e.clientY) - chatIcon.offsetTop;
-      document.addEventListener("mousemove", drag);
-      document.addEventListener("touchmove", drag);
-      document.addEventListener("mouseup", stopDrag);
-      document.addEventListener("touchend", stopDrag);
-    }
-    function drag(e) {
-      if (!isDragging) return;
-      e.preventDefault();
-      let x = (e.touches ? e.touches[0].clientX : e.clientX) - offsetX;
-      let y = (e.touches ? e.touches[0].clientY : e.clientY) - offsetY;
-      chatIcon.style.left = x + "px";
-      chatIcon.style.top = y + "px";
+  // drag icon
+  let isDragging = false, offsetX, offsetY;
+  chatIcon.addEventListener("mousedown", (e)=>{
+    isDragging = true;
+    offsetX = e.clientX - chatIcon.getBoundingClientRect().left;
+    offsetY = e.clientY - chatIcon.getBoundingClientRect().top;
+  });
+  document.addEventListener("mousemove",(e)=>{
+    if(isDragging){
+      chatIcon.style.left = (e.clientX-offsetX)+"px";
+      chatIcon.style.top = (e.clientY-offsetY)+"px";
       chatIcon.style.right = "auto";
       chatIcon.style.bottom = "auto";
-      chatIcon.style.position = "fixed";
     }
-    function stopDrag() {
-      isDragging = false;
-      document.removeEventListener("mousemove", drag);
-      document.removeEventListener("touchmove", drag);
-    }
+  });
+  document.addEventListener("mouseup",()=>isDragging=false);
 
-    // === Load pesan (max 50 terakhir) ===
-    const q = query(collection(db, "globalChat"), orderBy("time", "desc"), limit(50));
-    onSnapshot(q, (snap) => {
-      chatMessages.innerHTML = "";
-      let messages = [];
-      snap.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
-      messages.reverse().forEach(m => {
-        const div = document.createElement("div");
-        const isAdmin = m.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // UID admin
-        div.innerHTML = `<span class="${isAdmin ? 'adminMsg' : ''}">
-          ${m.name || "Anonim"}: ${m.text}
-        </span>`;
-        chatMessages.appendChild(div);
-      });
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
-
-    // === Kirim pesan ===
-    async function sendMessage() {
-      if (!currentUser || !chatInput.value.trim()) return;
-      await addDoc(collection(db, "globalChat"), {
-        uid: currentUser.uid,
-        name: currentUser.displayName || currentUser.email || "Anonim",
-        text: chatInput.value.trim(),
-        time: serverTimestamp()
-      });
-      chatInput.value = "";
+  // untuk mobile touch
+  chatIcon.addEventListener("touchstart",(e)=>{
+    isDragging=true;
+    offsetX=e.touches[0].clientX-chatIcon.getBoundingClientRect().left;
+    offsetY=e.touches[0].clientY-chatIcon.getBoundingClientRect().top;
+  });
+  document.addEventListener("touchmove",(e)=>{
+    if(isDragging){
+      chatIcon.style.left=(e.touches[0].clientX-offsetX)+"px";
+      chatIcon.style.top=(e.touches[0].clientY-offsetY)+"px";
+      chatIcon.style.right="auto";
+      chatIcon.style.bottom="auto";
     }
-    chatSend.addEventListener("click", sendMessage);
-    chatInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
+  });
+  document.addEventListener("touchend",()=>isDragging=false);
+
+  // load pesan
+  const q = query(collection(db,"globalChat"), orderBy("time","desc"), limit(50));
+  onSnapshot(q,(snap)=>{
+    chatMessages.innerHTML="";
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const isAdmin = d.uid===ADMIN_UID;
+      const div=document.createElement("div");
+      div.className="msg "+(isAdmin?"admin":"");
+      div.textContent=`${d.name||"Anonim"}: ${d.text}`;
+      chatMessages.prepend(div);
     });
-  </script>
-</body>
-</html>
+  });
+
+  // kirim pesan
+  async function sendMessage(){
+    const text=chatInput.value.trim();
+    if(!text) return;
+    const user=auth.currentUser;
+    if(!user) return;
+    await addDoc(collection(db,"globalChat"),{
+      uid:user.uid,
+      name:user.displayName||user.email||"Anonim",
+      text,
+      time:serverTimestamp()
+    });
+    chatInput.value="";
+  }
+  chatSend.addEventListener("click",sendMessage);
+  chatInput.addEventListener("keypress",(e)=>{
+    if(e.key==="Enter"){ sendMessage(); }
+  });
+
+  onAuthStateChanged(auth,(user)=>{
+    if(!user) console.log("Belum login");
+  });
+</script>
