@@ -5,87 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat Global</title>
   <style>
-    /* === ICON FLOAT === */
+    /* === ICON CHAT === */
     #chatIcon {
       position: fixed;
-      top: calc(100% - 100px);
-      left: calc(100% - 80px);
-      width: 50px; height: 50px;
+      bottom: 20px;
+      right: 20px;
+      background: #ffcc00;
+      color: #000;
+      font-size: 28px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      background: gold;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px;
-      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
       z-index: 9999;
-      box-shadow: 0 4px 8px rgba(0,0,0,.4);
-      user-select: none;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
 
-    /* === PANEL CHAT === */
-    #chatPanel {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 60%;
-      background: rgba(0,0,0,0.9);
+    /* === BOX CHAT === */
+    #chatBox {
       display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: rgba(0,0,0,0.85);
+      border-radius: 12px 12px 0 0;
+      color: white;
+      z-index: 9998;
+      display: flex;
       flex-direction: column;
-      z-index: 10000;
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
+      overflow: hidden;
     }
-    #chatHeader {
-      padding: 10px;
-      background: #222;
-      color: #fff;
-      font-weight: bold;
+
+    .chat-header {
+      background: rgba(255,255,255,0.1);
+      padding: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-weight: bold;
     }
+
+    .chat-header button {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
     #chatMessages {
       flex: 1;
-      overflow-y: auto;
       padding: 10px;
-      color: #fff;
+      overflow-y: auto;
       font-size: 14px;
     }
-    .msg { margin: 5px 0; padding: 6px 10px; border-radius: 6px; }
-    .me { background: #444; text-align: right; }
-    .admin { background: #00ff88; color: #000; font-weight: bold; }
-    .other { background: #555; text-align: left; }
-    #chatInputBox {
+
+    .msg {
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .msg.admin {
+      color: #00ff66; /* hijau stabilo admin */
+      font-weight: bold;
+    }
+
+    .msg.me {
+      background: rgba(0,128,255,0.3);
+    }
+
+    .msg small {
+      display: block;
+      font-size: 10px;
+      opacity: 0.6;
+    }
+
+    .chat-input {
       display: flex;
       padding: 8px;
-      background: #111;
+      background: rgba(255,255,255,0.1);
     }
-    #chatInput {
+
+    .chat-input input {
       flex: 1;
-      padding: 8px;
+      padding: 6px;
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
     }
-    #sendBtn {
+
+    .chat-input button {
       margin-left: 8px;
-      padding: 8px 12px;
-      background: gold;
+      padding: 6px 12px;
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
+      background: #ffd54f;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <!-- ICON FLOAT -->
+
+  <!-- Icon Mengambang -->
   <div id="chatIcon">💬</div>
 
-  <!-- PANEL CHAT -->
-  <div id="chatPanel">
-    <div id="chatHeader">
+  <!-- Box Chat -->
+  <div id="chatBox">
+    <div class="chat-header">
       <span>💬 Chat Global</span>
-      <button id="closeChat" style="background:red;color:#fff;border:none;border-radius:4px;cursor:pointer;">❌</button>
+      <button id="closeChat">✖</button>
     </div>
     <div id="chatMessages"></div>
-    <div id="chatInputBox">
+    <div class="chat-input">
       <input type="text" id="chatInput" placeholder="Ketik pesan..." />
       <button id="sendBtn">Kirim</button>
     </div>
@@ -94,7 +131,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } 
+  import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, deleteDoc, doc, getDocs } 
     from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -112,30 +149,15 @@
   const db = getFirestore(app);
 
   const chatIcon = document.getElementById("chatIcon");
-  const chatPanel = document.getElementById("chatPanel");
+  const chatBox = document.getElementById("chatBox");
   const closeChat = document.getElementById("closeChat");
   const chatMessages = document.getElementById("chatMessages");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
 
-  // === Buka/tutup chat ===
-  chatIcon.addEventListener("click", () => {
-    chatPanel.style.display = "flex";
-    chatIcon.style.display = "none";
-  });
-  closeChat.addEventListener("click", () => {
-    chatPanel.style.display = "none";
-    chatIcon.style.display = "flex";
-  });
+  let currentUser = null;
 
-  // === Draggable + Simpan Posisi ===
-  const savedX = localStorage.getItem("chatIconX");
-  const savedY = localStorage.getItem("chatIconY");
-  if (savedX && savedY) {
-    chatIcon.style.left = savedX + "px";
-    chatIcon.style.top = savedY + "px";
-  }
-
+  // === Drag Icon ===
   let isDragging = false, offsetX, offsetY;
   chatIcon.addEventListener("mousedown", (e) => {
     isDragging = true;
@@ -143,55 +165,107 @@
     offsetY = e.clientY - chatIcon.getBoundingClientRect().top;
   });
   document.addEventListener("mousemove", (e) => {
-    if (isDragging) {
-      let x = e.clientX - offsetX;
-      let y = e.clientY - offsetY;
-      chatIcon.style.left = x + "px";
-      chatIcon.style.top = y + "px";
-      localStorage.setItem("chatIconX", x);
-      localStorage.setItem("chatIconY", y);
+    if (!isDragging) return;
+    chatIcon.style.left = (e.clientX - offsetX) + "px";
+    chatIcon.style.top = (e.clientY - offsetY) + "px";
+    chatIcon.style.right = "auto";
+    chatIcon.style.bottom = "auto";
+    chatIcon.style.position = "fixed";
+  });
+  document.addEventListener("mouseup", () => isDragging = false);
+
+  // Touch drag
+  chatIcon.addEventListener("touchstart", (e) => {
+    isDragging = true;
+    const touch = e.touches[0];
+    offsetX = touch.clientX - chatIcon.getBoundingClientRect().left;
+    offsetY = touch.clientY - chatIcon.getBoundingClientRect().top;
+  });
+  document.addEventListener("touchmove", (e) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    chatIcon.style.left = (touch.clientX - offsetX) + "px";
+    chatIcon.style.top = (touch.clientY - offsetY) + "px";
+    chatIcon.style.right = "auto";
+    chatIcon.style.bottom = "auto";
+    chatIcon.style.position = "fixed";
+  });
+  document.addEventListener("touchend", () => isDragging = false);
+
+  // === Toggle Chat Box ===
+  chatIcon.addEventListener("click", () => {
+    chatBox.style.display = "flex";
+    chatIcon.style.display = "none";
+  });
+  closeChat.addEventListener("click", () => {
+    chatBox.style.display = "none";
+    chatIcon.style.display = "flex";
+  });
+
+  // === Load User ===
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "index.html";
+    } else {
+      currentUser = user;
+      loadMessages();
     }
   });
-  document.addEventListener("mouseup", () => { isDragging = false; });
 
-  // === Realtime Chat ===
-  const qChat = query(collection(db, "globalChat"), orderBy("timestamp","desc"), limit(50));
-  onSnapshot(qChat, (snap) => {
-    chatMessages.innerHTML = "";
-    snap.forEach(doc => {
-      const d = doc.data();
-      const msgDiv = document.createElement("div");
-      msgDiv.classList.add("msg");
-
-      if (d.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") {
-        msgDiv.classList.add("admin"); // admin special
-      } else if (auth.currentUser && d.uid === auth.currentUser.uid) {
-        msgDiv.classList.add("me");
-      } else {
-        msgDiv.classList.add("other");
-      }
-
-      msgDiv.textContent = `${d.name || "Anon"}: ${d.text}`;
-      chatMessages.appendChild(msgDiv);
+  // === Load Messages ===
+  function loadMessages() {
+    const q = query(collection(db, "globalChat"), orderBy("time", "desc"), limit(50));
+    onSnapshot(q, (snap) => {
+      chatMessages.innerHTML = "";
+      const arr = [];
+      snap.forEach((doc) => arr.push({ id: doc.id, ...doc.data() }));
+      arr.reverse().forEach((msg) => {
+        const div = document.createElement("div");
+        div.className = "msg";
+        if (msg.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") {
+          div.classList.add("admin");
+        }
+        if (msg.uid === currentUser.uid) {
+          div.classList.add("me");
+        }
+        div.innerHTML = `<strong>${msg.name || "Anon"}:</strong> ${msg.text}<br><small>${msg.time?.toDate().toLocaleTimeString("id-ID")}</small>`;
+        chatMessages.appendChild(div);
+      });
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     });
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  });
+  }
 
   // === Kirim Pesan ===
   sendBtn.addEventListener("click", sendMessage);
-  chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
 
-  function sendMessage() {
+  async function sendMessage() {
     const text = chatInput.value.trim();
-    if (!text) return;
-    if (!auth.currentUser) return alert("Harus login!");
-    addDoc(collection(db,"globalChat"), {
-      uid: auth.currentUser.uid,
-      name: auth.currentUser.displayName || "User",
+    if (!text || !currentUser) return;
+    await addDoc(collection(db, "globalChat"), {
+      uid: currentUser.uid,
+      name: currentUser.displayName || "User",
       text,
-      timestamp: serverTimestamp()
+      time: serverTimestamp()
     });
     chatInput.value = "";
+    cleanupOldMessages();
+  }
+
+  // === Bersihkan jika > 50 pesan ===
+  async function cleanupOldMessages() {
+    const q = query(collection(db, "globalChat"), orderBy("time", "asc"));
+    const snap = await getDocs(q);
+    if (snap.size > 50) {
+      let extra = snap.size - 50;
+      for (let docu of snap.docs) {
+        if (extra <= 0) break;
+        await deleteDoc(doc(db, "globalChat", docu.id));
+        extra--;
+      }
+    }
   }
 </script>
 </body>
