@@ -249,9 +249,23 @@ const saldoBox=document.getElementById("saldoBox");
 function updateSaldo(){ saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID"); }
 async function setSaldo(newSaldo){
   if(!userId) return;
-  saldo=newSaldo; updateSaldo();
-  const userRef=doc(db,"users",userId);
-  await updateDoc(userRef,{saldo:saldo});
+
+  const userRef = doc(db,"users",userId);
+
+  // kalau saldo berkurang = berarti konsumsi saldo
+  if (newSaldo < saldo) {
+    const consumed = saldo - newSaldo; // selisih yang dipakai main
+    await updateDoc(userRef, {
+      saldo: newSaldo,
+      consumedSaldo: (saldo - newSaldo) + ( (await (await getDoc(userRef)).data()?.consumedSaldo) || 0 )
+    });
+  } else {
+    // kalau saldo naik (misalnya menang) → cuma update saldo saja
+    await updateDoc(userRef, { saldo: newSaldo });
+  }
+
+  saldo = newSaldo;
+  updateSaldo();
 }
 onAuthStateChanged(auth,(user)=>{
   if(user){
