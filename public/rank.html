@@ -131,12 +131,11 @@
   </div>
 
   <script type="module">
+    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, where, getCountFromServer, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-
-    
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
       authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -150,7 +149,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    
+
     const fmtRp = (n) => Number(n || 0).toLocaleString('id-ID');
     const rowsEl = document.getElementById('rows');
     const myRankEl = document.getElementById('myRank');
@@ -169,6 +168,8 @@
     onSnapshot(qTop, (snap) => {
       rowsEl.innerHTML = '';
       let rank = 0;
+      const now = Date.now();
+
       snap.forEach((docu) => {
         rank++;
         const u = docu.data();
@@ -182,8 +183,11 @@
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
-        // status online/offline
-        const statusClass = u.isOnline ? 'online' : 'offline';
+        // cek lastSeen → online kalau < 60 detik
+        let statusClass = 'offline';
+        if (u.lastSeen && (now - u.lastSeen.toMillis()) < 60000) {
+          statusClass = 'online';
+        }
         const statusDot = `<span class="status-dot ${statusClass}"></span>`;
 
         // background dan border nickname
@@ -270,7 +274,6 @@
       loadMe(auth.currentUser); 
       setUpdated(); 
     });
-    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
   </script>
 </body>
 </html>
