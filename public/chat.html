@@ -1,5 +1,4 @@
 <style>
-  /* Icon chat mengambang */
   #chatIcon {
     position: fixed;
     bottom: 20px;
@@ -18,21 +17,18 @@
     z-index: 9999;
     user-select: none;
   }
-
-  /* Overlay chat */
   #chatOverlay {
     display: none;
     position: fixed;
     bottom: 0; left: 0; right: 0;
     height: 60%;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.9);
     border-top: 2px solid #ffd54f;
     z-index: 9998;
     color: white;
     display: flex;
     flex-direction: column;
   }
-
   #chatHeader {
     padding: 8px;
     background: #222;
@@ -40,26 +36,22 @@
     justify-content: space-between;
     align-items: center;
   }
-
   #chatMessages {
     flex: 1;
     padding: 10px;
     overflow-y: auto;
     font-size: 14px;
   }
-
   #chatInputBox {
     display: flex;
     border-top: 1px solid #444;
   }
-
   #chatInput {
     flex: 1;
     padding: 8px;
     border: none;
     outline: none;
   }
-
   #chatSend {
     background: #ffd54f;
     border: none;
@@ -67,9 +59,8 @@
     cursor: pointer;
     font-weight: bold;
   }
-
   .msg { margin: 4px 0; }
-  .admin { color: #00ff66; font-weight: bold; } /* hijau stabilo */
+  .admin { color: #00ff66; font-weight: bold; }
 </style>
 
 <div id="chatIcon">💬</div>
@@ -114,17 +105,19 @@
   const chatInput = document.getElementById("chatInput");
   const chatSend = document.getElementById("chatSend");
 
-  // toggle buka/tutup
+  // buka
   chatIcon.addEventListener("click", () => {
     chatOverlay.style.display = "flex";
     chatIcon.style.display = "none";
   });
+
+  // tutup
   chatClose.addEventListener("click", () => {
     chatOverlay.style.display = "none";
     chatIcon.style.display = "flex";
   });
 
-  // drag icon
+  // drag (desktop)
   let isDragging = false, offsetX, offsetY;
   chatIcon.addEventListener("mousedown", (e)=>{
     isDragging = true;
@@ -141,7 +134,7 @@
   });
   document.addEventListener("mouseup",()=>isDragging=false);
 
-  // untuk mobile touch
+  // drag (mobile)
   chatIcon.addEventListener("touchstart",(e)=>{
     isDragging=true;
     offsetX=e.touches[0].clientX-chatIcon.getBoundingClientRect().left;
@@ -157,7 +150,7 @@
   });
   document.addEventListener("touchend",()=>isDragging=false);
 
-  // load pesan
+  // load chat
   const q = query(collection(db,"globalChat"), orderBy("time","desc"), limit(50));
   onSnapshot(q,(snap)=>{
     chatMessages.innerHTML="";
@@ -171,12 +164,12 @@
     });
   });
 
-  // kirim pesan
+  // kirim chat
   async function sendMessage(){
     const text=chatInput.value.trim();
     if(!text) return;
     const user=auth.currentUser;
-    if(!user) return;
+    if(!user){ alert("Harus login dulu"); return; }
     await addDoc(collection(db,"globalChat"),{
       uid:user.uid,
       name:user.displayName||user.email||"Anonim",
