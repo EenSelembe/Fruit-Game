@@ -172,13 +172,13 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // Fungsi hitung level dari xpSaldo
-  function calcLevel(xpSaldo) {
+  // Fungsi hitung level dari consumedSaldo
+  function calcLevel(consumedSaldo) {
     let level = 0;
     let need = 100000; // butuh 100rb pertama
-    while (xpSaldo >= need) {
+    while (consumedSaldo >= need) {
       level++;
-      xpSaldo -= need;
+      consumedSaldo -= need;
       need += 100000; // tiap level berikutnya makin mahal
     }
     return level;
@@ -238,7 +238,7 @@
           `;
 
           document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
-          document.getElementById("level").textContent = calcLevel(data.xpSaldo || 0);
+          document.getElementById("level").textContent = calcLevel(data.consumedSaldo || 0);
         }
       });
     } else {
@@ -271,4 +271,4 @@
   });
 </script>
 </body>
-      </html>
+</html>
