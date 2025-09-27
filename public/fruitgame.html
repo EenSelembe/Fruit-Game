@@ -310,10 +310,10 @@ document.getElementById("confirmYes").addEventListener("click", () => {
   const cost = bet * 100;
 
   if (balance >= cost) {
-    balance -= cost;
-    updateStats();
-    if (typeof saveBalance === "function") saveBalance();
-
+  const prevSaldo = balance;   // saldo sebelum dipotong
+  balance -= cost;             // potong saldo
+  updateStats();
+  if (typeof saveBalance === "function") saveBalance(prevSaldo);
     // aktifkan scatter mode manual
     inScatterMode = true;
     freeSpins = 15;
@@ -486,9 +486,10 @@ if (inScatterMode) {
     updateStats();
       
   if (!inScatterMode) {
-    balance -= bet;  
-    if (typeof saveBalance === "function") saveBalance();
-  }
+  const prevSaldo = balance;   // saldo sebelum dipotong
+  balance -= bet;              // potong saldo
+  if (typeof saveBalance === "function") saveBalance(prevSaldo);
+}
 
   // reset cascade & multiplier
   cascadeCount = 0;
@@ -879,12 +880,29 @@ import { initOnlineStatus } from "./online.js";
   });
 
   // fungsi simpan saldo
-  async function saveBalance() {
-    if (userDocRef) {
-      await updateDoc(userDocRef, { saldo:balance });
-    }
+  // fungsi simpan saldo + hitung konsumsi saldo untuk level
+async function saveBalance(prevSaldo) {
+  if (!userDocRef) return;
+
+  const diff = (prevSaldo ?? saldo) - balance; // selisih saldo yang hilang
+  let updates = { saldo: balance };
+
+  if (diff > 0) {
+    // ada konsumsi saldo
+    const snap = await getDoc(userDocRef);
+    const prevConsumed = snap.exists() ? (snap.data().consumedSaldo || 0) : 0;
+    const totalConsumed = prevConsumed + diff;
+
+    // hitung level berdasarkan konsumsi
+    const newLevel = Math.floor(totalConsumed / 100000);
+
+    updates.consumedSaldo = totalConsumed;
+    updates.level = newLevel;
   }
-  window.saveBalance = saveBalance;
+
+  await updateDoc(userDocRef, updates);
+}
+window.saveBalance = saveBalance;
 
   // helper fungsi saldo
   function deductBet(amount) {
