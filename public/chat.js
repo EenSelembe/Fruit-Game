@@ -1,10 +1,10 @@
 // chat.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp 
+  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { 
-  getAuth, onAuthStateChanged 
+  getAuth
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Firebase config (sama persis dengan home.html)
@@ -86,10 +86,22 @@ export function initChat() {
     const user = auth.currentUser;
     if (!user) return;
 
+    // 🔥 ambil nama dari Firestore users/{uid}
+    let username = "Anonim";
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const d = userDoc.data();
+        username = d.name || d.username || "Anonim";
+      }
+    } catch (err) {
+      console.error("Gagal ambil nama user:", err);
+    }
+
     await addDoc(collection(db, "globalChat"), {
       uid: user.uid,
       text: msg,
-      name: user.displayName || user.email || "Anonim",
+      name: username,
       createdAt: serverTimestamp()
     });
 
@@ -128,4 +140,4 @@ export function initChat() {
   });
 
   console.log("✅ Chat initialized");
-} // << ini penutup function initChat()
+} // << penutup function initChat()
