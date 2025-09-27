@@ -893,7 +893,6 @@ window.addEventListener("DOMContentLoaded", () => {
       const newLevel = Math.floor(totalConsumed / 100000);
 
       updates.consumedSaldo = totalConsumed;
-      updates.level = newLevel;
     }
 
     await updateDoc(userDocRef, updates);
