@@ -31,7 +31,6 @@
       z-index: 10000;
       color: white;
       font-family: Arial, sans-serif;
-      display: flex;
       flex-direction: column;
     }
 
@@ -41,6 +40,15 @@
       padding: 6px 10px;
       background: rgba(255,215,0,0.2);
       border-bottom: 1px solid gold;
+    }
+
+    #closeBtn {
+      background: red;
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      cursor: pointer;
+      z-index: 10001; /* pastikan di atas */
     }
 
     #chatMessages {
@@ -71,13 +79,6 @@
       padding: 8px 14px;
       cursor: pointer;
       font-weight: bold;
-    }
-    #closeBtn {
-      background: red;
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      cursor: pointer;
     }
   </style>
 </head>
@@ -119,17 +120,15 @@
 
     const chatIcon = document.getElementById("chatIcon");
     const chatWindow = document.getElementById("chatWindow");
-    const chatMessages = document.getElementById("chatMessages");
-    const chatInput = document.getElementById("chatInput");
-    const sendBtn = document.getElementById("sendBtn");
     const closeBtn = document.getElementById("closeBtn");
 
-    // 🔘 Toggle buka/tutup chat
+    // Toggle
     function openChat() {
       chatWindow.style.display = "flex";
       chatIcon.style.display = "none";
     }
     function closeChat() {
+      console.log("✖ ditekan"); // debug
       chatWindow.style.display = "none";
       chatIcon.style.display = "flex";
     }
@@ -137,7 +136,7 @@
     chatIcon.addEventListener("click", openChat);
     closeBtn.addEventListener("click", closeChat);
 
-    // 🖱️ draggable icon
+    // draggable
     let offsetX, offsetY, isDragging = false;
     chatIcon.addEventListener("mousedown", (e)=>{
       isDragging = true;
@@ -152,7 +151,11 @@
     });
     document.addEventListener("mouseup", ()=> isDragging=false);
 
-    // 📩 Kirim pesan
+    // pesan
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    const sendBtn = document.getElementById("sendBtn");
+
     async function sendMessage() {
       const text = chatInput.value.trim();
       if (!text || !auth.currentUser) return;
@@ -164,10 +167,11 @@
       });
       chatInput.value = "";
     }
+
     sendBtn.addEventListener("click", sendMessage);
     chatInput.addEventListener("keypress", (e)=>{ if(e.key==="Enter") sendMessage(); });
 
-    // 📡 Load pesan (50 terakhir)
+    // load pesan
     const q = query(collection(db,"globalChat"), orderBy("createdAt","desc"), limit(50));
     onSnapshot(q,(snap)=>{
       chatMessages.innerHTML = "";
