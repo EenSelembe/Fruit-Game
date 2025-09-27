@@ -1,5 +1,6 @@
-import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } 
-  from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+// chat.js
+import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot }
+from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 let db, auth;
@@ -25,32 +26,33 @@ export function initChat() {
     chatIcon.style.display = "flex";
   });
 
-  // Kirim pesan
+  // Fungsi kirim
   async function sendMessage() {
     const text = chatInput.value.trim();
     if (!text) return;
     const user = auth.currentUser;
     if (!user) return;
 
-    await addDoc(collection(db, "globalChat"), {
-      uid: user.uid,
-      name: user.displayName || "Anonim",
-      text,
-      createdAt: serverTimestamp()
-    });
+    await addDoc(collection(db, "globalChat"), {  
+      uid: user.uid,  
+      name: user.displayName || "Anonim",  
+      text,  
+      createdAt: serverTimestamp()  
+    });  
     chatInput.value = "";
   }
 
   chatSend.addEventListener("click", sendMessage);
   chatInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === "Enter") sendMessage();
   });
 
-  // Ambil pesan realtime
-  const q = query(collection(db, "globalChat"), orderBy("createdAt", "desc"), limit(50));
+  // Ambil pesan realtime (maksimal 50 terakhir)
+  const q = query(
+    collection(db, "globalChat"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
   onSnapshot(q, snap => {
     chatMessages.innerHTML = "";
     snap.forEach(doc => {
@@ -58,14 +60,16 @@ export function initChat() {
       const div = document.createElement("div");
       div.className = "chat-message";
       if (m.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") {
-        div.style.color = "#00ff00"; // admin
+        div.style.color = "#00ff00"; // admin hijau stabilo
       }
+      // ✅ Perbaikan disini (pakai backtick)
       div.textContent = `${m.name || "Anonim"}: ${m.text}`;
       chatMessages.prepend(div);
     });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   });
 
-  // Geser icon (versi FIXED, bukan absolute)
+  // Geser icon
   let isDragging = false, offsetX, offsetY;
   chatIcon.addEventListener("mousedown", e => {
     isDragging = true;
