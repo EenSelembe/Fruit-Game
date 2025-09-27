@@ -1,92 +1,131 @@
 // chat.js
-import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot }
-from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { 
+  getAuth, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-let db, auth;
+// Firebase config (sama persis dengan home.html)
+const firebaseConfig = {
+  apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+  authDomain: "fruit-game-5e4a8.firebaseapp.com",
+  projectId: "fruit-game-5e4a8",
+  storageBucket: "fruit-game-5e4a8.appspot.com",
+  messagingSenderId: "936228678997",
+  appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+  measurementId: "G-EPTSQQPM4D"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
 export function initChat() {
-  auth = getAuth();
-  db = getFirestore();
-
   const chatIcon = document.getElementById("chatIcon");
   const chatBox = document.getElementById("chatBox");
-  const chatClose = document.getElementById("chatClose");
+  const chatMessages = document.getElementById("chatMessages");
   const chatInput = document.getElementById("chatInput");
   const chatSend = document.getElementById("chatSend");
-  const chatMessages = document.getElementById("chatMessages");
+  const chatClose = document.getElementById("chatClose");
 
-  // Buka & tutup
+  // === draggable icon ===
+  let isDragging = false, offsetX = 0, offsetY = 0;
+  chatIcon.addEventListener("mousedown", startDrag);
+  chatIcon.addEventListener("touchstart", startDrag);
+
+  function startDrag(e) {
+    isDragging = true;
+    const rect = chatIcon.getBoundingClientRect();
+    if (e.touches) {
+      offsetX = e.touches[0].clientX - rect.left;
+      offsetY = e.touches[0].clientY - rect.top;
+    } else {
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+    }
+    document.addEventListener("mousemove", onDrag);
+    document.addEventListener("mouseup", stopDrag);
+    document.addEventListener("touchmove", onDrag);
+    document.addEventListener("touchend", stopDrag);
+  }
+
+  function onDrag(e) {
+    if (!isDragging) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    chatIcon.style.left = (x - offsetX) + "px";
+    chatIcon.style.top = (y - offsetY) + "px";
+  }
+
+  function stopDrag() {
+    isDragging = false;
+    document.removeEventListener("mousemove", onDrag);
+    document.removeEventListener("mouseup", stopDrag);
+    document.removeEventListener("touchmove", onDrag);
+    document.removeEventListener("touchend", stopDrag);
+  }
+
+  // === toggle chat ===
   chatIcon.addEventListener("click", () => {
     chatBox.style.display = "flex";
     chatIcon.style.display = "none";
   });
   chatClose.addEventListener("click", () => {
     chatBox.style.display = "none";
-    chatIcon.style.display = "flex";
+    chatIcon.style.display = "block";
   });
 
-  // Fungsi kirim
+  // === kirim pesan ===
   async function sendMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
+    const msg = chatInput.value.trim();
+    if (!msg) return;
     const user = auth.currentUser;
     if (!user) return;
 
-    await addDoc(collection(db, "globalChat"), {  
-      uid: user.uid,  
-      name: user.displayName || "Anonim",  
-      text,  
-      createdAt: serverTimestamp()  
-    });  
+    await addDoc(collection(db, "globalChat"), {
+      uid: user.uid,
+      text: msg,
+      name: user.displayName || user.email || "Anonim",
+      createdAt: serverTimestamp()
+    });
+
     chatInput.value = "";
   }
 
   chatSend.addEventListener("click", sendMessage);
-  chatInput.addEventListener("keypress", e => {
+  chatInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
   });
 
-  // Ambil pesan realtime (maksimal 50 terakhir)
+  // === tampilkan pesan ===
   const q = query(
     collection(db, "globalChat"),
     orderBy("createdAt", "desc"),
     limit(50)
   );
-  onSnapshot(q, snap => {
+
+  onSnapshot(q, (snap) => {
     chatMessages.innerHTML = "";
-    snap.forEach(doc => {
-      const m = doc.data();
+    snap.forEach((doc) => {
+      const d = doc.data();
       const div = document.createElement("div");
       div.className = "chat-message";
-      if (m.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") {
-        div.style.color = "#00ff00"; // admin hijau stabilo
+
+      // admin hijau stabilo
+      if (d.uid === ADMIN_UID) {
+        div.style.color = "#00ff7f";
+        div.style.fontWeight = "bold";
       }
-      // ✅ Perbaikan disini (pakai backtick)
-      div.textContent = `${m.name || "Anonim"}: ${m.text}`;
-      chatMessages.prepend(div);
+
+      div.textContent = `${d.name}: ${d.text}`;
+      chatMessages.prepend(div); // urut naik
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
   });
 
-  // Geser icon
-  let isDragging = false, offsetX, offsetY;
-  chatIcon.addEventListener("mousedown", e => {
-    isDragging = true;
-    offsetX = e.clientX - chatIcon.offsetLeft;
-    offsetY = e.clientY - chatIcon.offsetTop;
-    chatIcon.style.cursor = "grabbing";
-  });
-  document.addEventListener("mousemove", e => {
-    if (isDragging) {
-      chatIcon.style.left = (e.clientX - offsetX) + "px";
-      chatIcon.style.top = (e.clientY - offsetY) + "px";
-      chatIcon.style.right = "auto";
-      chatIcon.style.bottom = "auto";
-    }
-  });
-  document.addEventListener("mouseup", () => {
-    isDragging = false;
-    chatIcon.style.cursor = "grab";
-  });
-}
+  console.log("✅ Chat initialized");
+} // << ini penutup function initChat()
