@@ -1,99 +1,107 @@
+<!-- chat.html -->
 <style>
-  #chatWidget {
+  /* Ikon chat mengambang */
+  #chatIcon {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 9999;
-    font-family: Arial, sans-serif;
-  }
-
-  /* Tombol 💬 */
-  #chatToggle {
     width: 60px;
     height: 60px;
     background: gold;
+    color: #111;
+    font-size: 28px;
     border-radius: 50%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    font-size: 26px;
-    cursor: move;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    position: absolute;
-    bottom: 0;
-    right: 0;
+    justify-content: center;
+    cursor: grab;
+    z-index: 9999;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    user-select: none;
   }
 
-  /* Window chat */
-  #chatWindow {
+  /* Box chat */
+  #chatBox {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    height: 60%;
+    background: rgba(0,0,0,0.85);
+    border: 2px solid gold;
+    border-radius: 10px 10px 0 0;
     display: none;
     flex-direction: column;
-    width: 300px;
-    height: 400px;
-    background: rgba(0,0,0,0.85);
-    color: white;
-    border-radius: 10px;
-    overflow: hidden;
-    position: absolute;
-    bottom: 70px;
-    right: 0;
+    z-index: 9999;
   }
 
-  .chat-header {
-    background: #222;
+  /* Header chat */
+  #chatHeader {
     padding: 8px;
+    background: gold;
+    color: #111;
+    font-weight: bold;
+    text-align: center;
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+  #chatClose {
+    cursor: pointer;
+    font-size: 18px;
     font-weight: bold;
   }
-  .chat-header button {
-    background: crimson;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 6px;
-    cursor: pointer;
-  }
 
-  #messages {
+  /* Area pesan */
+  #chatMessages {
     flex: 1;
     padding: 10px;
     overflow-y: auto;
     font-size: 14px;
+    text-align: left;
+  }
+  .chat-message {
+    margin-bottom: 6px;
+    word-wrap: break-word;
   }
 
-  .chat-input {
+  /* Input area */
+  #chatInputArea {
     display: flex;
-    border-top: 1px solid #444;
-  }
-  .chat-input input {
-    flex: 1;
     padding: 8px;
+    background: rgba(255,255,255,0.05);
+  }
+  #chatInput {
+    flex: 1;
+    padding: 6px;
+    border-radius: 4px;
     border: none;
     outline: none;
   }
-  .chat-input button {
-    background: gold;
+  #chatSend {
+    margin-left: 6px;
+    padding: 6px 10px;
     border: none;
-    padding: 8px 12px;
-    cursor: pointer;
+    background: gold;
+    color: #111;
     font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
   }
 </style>
 
-<div id="chatWidget">
-  <div id="chatToggle">💬</div>
+<div id="chatIcon">💬</div>
 
-  <div id="chatWindow">
-    <div class="chat-header">
-      <span>💬 Chat Global</span>
-      <button id="closeChat">✖</button>
-    </div>
-    <div id="messages"></div>
-    <div class="chat-input">
-      <input type="text" id="chatMessage" placeholder="Ketik pesan...">
-      <button id="sendChat">Kirim</button>
-    </div>
+<div id="chatBox">
+  <div id="chatHeader">
+    <span>💬 Chat Global</span>
+    <span id="chatClose">✖</span>
+  </div>
+  <div id="chatMessages"></div>
+  <div id="chatInputArea">
+    <input type="text" id="chatInput" placeholder="Ketik pesan..." />
+    <button id="chatSend">Kirim</button>
   </div>
 </div>
