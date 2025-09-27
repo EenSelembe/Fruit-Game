@@ -1,4 +1,5 @@
 <style>
+  /* Ikon chat mengambang */
   #chatIcon {
     position: fixed;
     bottom: 20px;
@@ -16,9 +17,10 @@
     z-index: 9999;
     box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     user-select: none;
-    line-height: 1;
+    line-height: 1; /* ✅ Biar icon 💬 pas di tengah */
   }
 
+  /* Box chat */
   #chatBox {
     position: fixed;
     bottom: 0;
@@ -27,7 +29,7 @@
     width: 90%;
     max-width: 400px;
     height: 60%;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.85);
     border: 2px solid gold;
     border-radius: 10px 10px 0 0;
     display: none;
@@ -35,11 +37,13 @@
     z-index: 9999;
   }
 
+  /* Header chat */
   #chatHeader {
     padding: 8px;
     background: gold;
     color: #111;
     font-weight: bold;
+    text-align: center;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -50,6 +54,7 @@
     font-weight: bold;
   }
 
+  /* Area pesan */
   #chatMessages {
     flex: 1;
     padding: 10px;
@@ -62,6 +67,7 @@
     word-wrap: break-word;
   }
 
+  /* Input area */
   #chatInputArea {
     display: flex;
     padding: 8px;
@@ -76,7 +82,7 @@
   }
   #chatSend {
     margin-left: 6px;
-    padding: 6px 12px;
+    padding: 6px 10px;
     border: none;
     background: gold;
     color: #111;
