@@ -77,14 +77,15 @@ export function initChat() {
   let isDragging = false, offsetX, offsetY;
   chatIcon.addEventListener("mousedown", e => {
     isDragging = true;
-    offsetX = e.clientX - chatIcon.offsetLeft;
-    offsetY = e.clientY - chatIcon.offsetTop;
+    offsetX = e.clientX - chatIcon.getBoundingClientRect().left;
+    offsetY = e.clientY - chatIcon.getBoundingClientRect().top;
     chatIcon.style.cursor = "grabbing";
+    chatIcon.style.position = "absolute"; // ⬅️ ini kunci biar bisa geser
   });
   document.addEventListener("mousemove", e => {
     if (isDragging) {
-      chatIcon.style.left = (e.clientX - offsetX) + "px";
-      chatIcon.style.top = (e.clientY - offsetY) + "px";
+      chatIcon.style.left = (e.pageX - offsetX) + "px";
+      chatIcon.style.top = (e.pageY - offsetY) + "px";
       chatIcon.style.right = "auto";
       chatIcon.style.bottom = "auto";
     }
@@ -93,4 +94,4 @@ export function initChat() {
     isDragging = false;
     chatIcon.style.cursor = "grab";
   });
-                 }
+}
