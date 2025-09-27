@@ -172,15 +172,17 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // Fungsi hitung level dari consumedSaldo
+  // ✅ Fungsi hitung level baru
   function calcLevel(consumedSaldo) {
     let level = 0;
-    let need = 100000; // butuh 100rb pertama
-    while (consumedSaldo >= need) {
-      level++;
-      consumedSaldo -= need;
-      need += 100000; // tiap level berikutnya makin mahal
+    let nextNeed = 100000; // Level 1 butuh 100rb
+
+    while (consumedSaldo >= nextNeed) {
+      consumedSaldo -= nextNeed;   // kurangi saldo konsumsi dengan kebutuhan saat ini
+      level++;                     // naik level
+      nextNeed += 100000;          // level berikutnya makin mahal
     }
+
     return level;
   }
 
