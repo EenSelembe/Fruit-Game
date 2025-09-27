@@ -836,16 +836,15 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-
-  
- <script type="module">
+    
+    <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getFirestore, doc, updateDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { initOnlineStatus } from "./online.js";
 
-import { initOnlineStatus } from "./online.js";
   initOnlineStatus();
-   
+
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
     authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -862,93 +861,14 @@ import { initOnlineStatus } from "./online.js";
 
   let userDocRef = null;
 
-  // saat user login → realtime saldo
+  // Realtime listener saldo
   onAuthStateChanged(auth, (user) => {
     if (user) {
       userDocRef = doc(db, "users", user.uid);
-
       onSnapshot(userDocRef, (snap) => {
         if (snap.exists()) {
           balance = snap.data().saldo || 0;
           updateStats();
-        }
-      });
-
-    } else {
-      window.location.href = "index.html"; 
-    }
-  });
-
-  // fungsi simpan saldo
-  // fungsi simpan saldo + hitung konsumsi saldo untuk level
-async function saveBalance(prevSaldo) {
-  if (!userDocRef) return;
-
-  const diff = (prevSaldo ?? saldo) - balance; // selisih saldo yang hilang
-  let updates = { saldo: balance };
-
-  if (diff > 0) {
-    // ada konsumsi saldo
-    const snap = await getDoc(userDocRef);
-    const prevConsumed = snap.exists() ? (snap.data().consumedSaldo || 0) : 0;
-    const totalConsumed = prevConsumed + diff;
-
-    // hitung level berdasarkan konsumsi
-    const newLevel = Math.floor(totalConsumed / 100000);
-
-    updates.consumedSaldo = totalConsumed;
-    updates.level = newLevel;
-  }
-
-  await updateDoc(userDocRef, updates);
-}
-window.saveBalance = saveBalance;
-
-  // helper fungsi saldo
-  function deductBet(amount) {
-    balance = Math.max(balance - amount, 0);
-    updateStats();
-    saveBalance();
-  }
-
-  function addWin(amount) {
-    balance += amount;
-    updateStats();
-    saveBalance();
-  }
-</script>
-    <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  let currentUser = null;
-  let saldo = 0;
-
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      currentUser = user;
-      const userRef = doc(db, "users", user.uid);
-
-      // realtime listener saldo
-      onSnapshot(userRef, (snap) => {
-        if (snap.exists()) {
-          saldo = snap.data().saldo || 0;
-          updateSaldoDisplay();
         }
       });
     } else {
@@ -956,31 +876,47 @@ window.saveBalance = saveBalance;
     }
   });
 
-  function updateSaldoDisplay() {
-    document.getElementById("saldoDisplay").textContent = "Rp. " + saldo.toLocaleString("id-ID");
+  // === Simpan Saldo + Hitung Konsumsi & Level ===
+  async function saveBalance(prevSaldo) {
+    if (!userDocRef) return;
+
+    const diff = (prevSaldo ?? balance) - balance; // selisih saldo yang hilang
+    let updates = { saldo: balance };
+
+    if (diff > 0) {
+      // ada konsumsi saldo
+      const snap = await getDoc(userDocRef);
+      const prevConsumed = snap.exists() ? (snap.data().consumedSaldo || 0) : 0;
+      const totalConsumed = prevConsumed + diff;
+
+      // hitung level berdasarkan total konsumsi
+      const newLevel = Math.floor(totalConsumed / 100000);
+
+      updates.consumedSaldo = totalConsumed;
+      updates.level = newLevel;
+    }
+
+    await updateDoc(userDocRef, updates);
+  }
+  window.saveBalance = saveBalance;
+
+  // Helper saldo
+  function deductBet(amount) {
+    const prevSaldo = balance;
+    balance = Math.max(balance - amount, 0);
+    updateStats();
+    saveBalance(prevSaldo);
   }
 
-  // fungsi untuk mengurangi saldo saat pasang taruhan
-  async function kurangiSaldo(jumlah) {
-    if (!currentUser) return;
-    const userRef = doc(db, "users", currentUser.uid);
-    saldo -= jumlah;
-    if (saldo < 0) saldo = 0;
-    await updateDoc(userRef, { saldo });
+  function addWin(amount) {
+    balance += amount;
+    updateStats();
+    saveBalance();
   }
 
-  // fungsi untuk menambah saldo saat menang
-  async function tambahSaldo(jumlah) {
-    if (!currentUser) return;
-    const userRef = doc(db, "users", currentUser.uid);
-    saldo += jumlah;
-    await updateDoc(userRef, { saldo });
-  }
-
-  // export biar bisa dipanggil di script game
-  window.kurangiSaldo = kurangiSaldo;
-  window.tambahSaldo = tambahSaldo;
-      import { initOnlineStatus } from "./online.js"; initOnlineStatus();
+  // Biar bisa dipanggil dari script utama
+  window.deductBet = deductBet;
+  window.addWin = addWin;
 </script>
 </body>
 </html>
