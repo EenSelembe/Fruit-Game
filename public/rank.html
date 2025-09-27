@@ -173,14 +173,14 @@
     const usersRef = collection(db, 'users');
     const qTop = query(usersRef, orderBy('saldo', 'desc'));
 
-    function calcLevel(consumed = 0) {
+    // 🔥 fungsi sama persis seperti di home.html
+    function calcLevel(consumedSaldo = 0) {
       let level = 0;
-      let need = 100000;
-      let total = consumed;
-      while (total >= need) {
-        total -= need;
+      let nextNeed = 100000; // Lv1 butuh 100rb
+      while (consumedSaldo >= nextNeed) {
+        consumedSaldo -= nextNeed;
         level++;
-        need = Math.floor(need * 1.5); // tiap level berikutnya makin sulit
+        nextNeed += 100000; // Lv selanjutnya makin mahal +100rb
       }
       return level;
     }
