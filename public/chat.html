@@ -18,6 +18,8 @@
       cursor: grab;
       z-index: 9999;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      user-select: none;
+      touch-action: none; /* biar bisa drag di HP */
     }
 
     /* 💬 Jendela Chat */
@@ -48,7 +50,7 @@
       border: none;
       padding: 4px 10px;
       cursor: pointer;
-      z-index: 10001; /* pastikan di atas */
+      z-index: 10001;
     }
 
     #chatMessages {
@@ -122,13 +124,12 @@
     const chatWindow = document.getElementById("chatWindow");
     const closeBtn = document.getElementById("closeBtn");
 
-    // Toggle
+    // Toggle buka/tutup chat
     function openChat() {
       chatWindow.style.display = "flex";
       chatIcon.style.display = "none";
     }
     function closeChat() {
-      console.log("✖ ditekan"); // debug
       chatWindow.style.display = "none";
       chatIcon.style.display = "flex";
     }
@@ -136,8 +137,10 @@
     chatIcon.addEventListener("click", openChat);
     closeBtn.addEventListener("click", closeChat);
 
-    // draggable
+    // ==== Drag support mouse + touch ====
     let offsetX, offsetY, isDragging = false;
+
+    // mouse
     chatIcon.addEventListener("mousedown", (e)=>{
       isDragging = true;
       offsetX = e.clientX - chatIcon.offsetLeft;
@@ -151,7 +154,23 @@
     });
     document.addEventListener("mouseup", ()=> isDragging=false);
 
-    // pesan
+    // touch (HP)
+    chatIcon.addEventListener("touchstart", (e)=>{
+      isDragging = true;
+      const touch = e.touches[0];
+      offsetX = touch.clientX - chatIcon.offsetLeft;
+      offsetY = touch.clientY - chatIcon.offsetTop;
+    });
+    document.addEventListener("touchmove", (e)=>{
+      if(isDragging){
+        const touch = e.touches[0];
+        chatIcon.style.left = (touch.clientX - offsetX) + "px";
+        chatIcon.style.top = (touch.clientY - offsetY) + "px";
+      }
+    });
+    document.addEventListener("touchend", ()=> isDragging=false);
+
+    // ==== Pesan ====
     const chatMessages = document.getElementById("chatMessages");
     const chatInput = document.getElementById("chatInput");
     const sendBtn = document.getElementById("sendBtn");
@@ -171,7 +190,7 @@
     sendBtn.addEventListener("click", sendMessage);
     chatInput.addEventListener("keypress", (e)=>{ if(e.key==="Enter") sendMessage(); });
 
-    // load pesan
+    // load pesan realtime
     const q = query(collection(db,"globalChat"), orderBy("createdAt","desc"), limit(50));
     onSnapshot(q,(snap)=>{
       chatMessages.innerHTML = "";
@@ -179,7 +198,7 @@
         const d = doc.data();
         const div = document.createElement("div");
         div.className = "msg";
-        const isAdmin = d.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
+        const isAdmin = d.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // uid admin
         div.innerHTML = `<span class="user ${isAdmin ? 'admin' : ''}">${d.name||"Anonim"}:</span> ${d.text}`;
         chatMessages.appendChild(div);
       });
