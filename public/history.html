@@ -177,5 +177,14 @@
   });
     import { initOnlineStatus } from "./online.js"; initOnlineStatus();
   </script>
+<div id="chatContainer"></div>
+<script type="module">
+  fetch("chat.html")
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById("chatContainer").innerHTML = html;
+      import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
+    });
+</script>
 </body>
 </html>
