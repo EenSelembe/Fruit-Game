@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } 
   from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-// 🔑 Config Firebase
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
   authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -19,8 +19,7 @@ const db = getFirestore(app);
 
 let chatToggle, chatWindow, closeChat, sendChat, chatMessage, messagesBox;
 
-// 🔥 Init chat widget setelah HTML dimuat
-function initChat() {
+export function initChat() {
   chatToggle = document.getElementById("chatToggle");
   chatWindow = document.getElementById("chatWindow");
   closeChat = document.getElementById("closeChat");
@@ -28,31 +27,29 @@ function initChat() {
   chatMessage = document.getElementById("chatMessage");
   messagesBox = document.getElementById("messages");
 
-  // Toggle buka/tutup
-  chatToggle.addEventListener("click", () => {
+  // Buka/tutup
+  chatToggle.onclick = () => {
     chatWindow.style.display = "flex";
     chatToggle.style.display = "none";
-  });
-
-  closeChat.addEventListener("click", () => {
+  };
+  closeChat.onclick = () => {
     chatWindow.style.display = "none";
-    chatToggle.style.display = "block";
-  });
+    chatToggle.style.display = "flex";
+  };
 
   // Kirim pesan
-  sendChat.addEventListener("click", sendMessage);
+  sendChat.onclick = sendMessage;
   chatMessage.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
   });
 
-  // Geser tombol 💬
+  // Bisa digeser
   dragElement(chatToggle);
 
-  // Ambil pesan dari Firestore
+  // Ambil pesan realtime
   loadMessages();
 }
 
-// 🚀 Fungsi kirim pesan
 async function sendMessage() {
   const user = auth.currentUser;
   if (!user || !chatMessage.value.trim()) return;
@@ -66,40 +63,33 @@ async function sendMessage() {
   chatMessage.value = "";
 }
 
-// 🚀 Ambil pesan realtime
 function loadMessages() {
   const q = query(collection(db, "chatGlobal"), orderBy("time", "desc"), limit(50));
   onSnapshot(q, (snap) => {
     messagesBox.innerHTML = "";
     snap.forEach((doc) => {
       const m = doc.data();
-      const div = document.createElement("div");
       let color = "#fff";
+      if (m.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") color = "lime"; // admin
 
-      if (m.uid === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") {
-        color = "lime"; // Admin hijau stabilo
-      }
-
+      const div = document.createElement("div");
       div.innerHTML = `<span style="color:${color}">${m.text}</span>`;
       messagesBox.prepend(div);
     });
   });
 }
 
-// 🚀 Fungsi drag
+// Fungsi drag
 function dragElement(elmnt) {
-  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+  let pos1=0,pos2=0,pos3=0,pos4=0;
   elmnt.onmousedown = dragMouseDown;
   function dragMouseDown(e) {
-    e = e || window.event;
     e.preventDefault();
-    pos3 = e.clientX;
-    pos4 = e.clientY;
+    pos3 = e.clientX; pos4 = e.clientY;
     document.onmouseup = closeDragElement;
     document.onmousemove = elementDrag;
   }
   function elementDrag(e) {
-    e = e || window.event;
     e.preventDefault();
     pos1 = pos3 - e.clientX;
     pos2 = pos4 - e.clientY;
@@ -113,5 +103,3 @@ function dragElement(elmnt) {
     document.onmousemove = null;
   }
 }
-
-window.initChat = initChat;
