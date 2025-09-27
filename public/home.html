@@ -272,5 +272,13 @@
     dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
   });
 </script>
+  <div id="chatContainer"></div>
+  <script>
+    fetch("chat.html")
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById("chatContainer").innerHTML = html;
+      });
+  </script>
 </body>
 </html>
