@@ -1,8 +1,9 @@
-// online.js
+// === online.js ===
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+// Konfigurasi Firebase (SAMAKAN dengan project kamu)
 const firebaseConfig = {
   apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
   authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -17,26 +18,24 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Fungsi init presence
 export function initOnlineStatus() {
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      try {
-        const meRef = doc(db, "users", user.uid);
-        await updateDoc(meRef, { isOnline: true });
-      } catch (e) {
-        console.error("Gagal update status online:", e);
-      }
-    } else {
-      window.location.href = "index.html";
-    }
-  });
+  onAuthStateChanged(auth, (user) => {
+    if (!user) return;
 
-  // Saat tab ditutup → offline
-  window.addEventListener("beforeunload", () => {
-    const user = auth.currentUser;
-    if (user) {
-      const meRef = doc(db, "users", user.uid);
-      updateDoc(meRef, { isOnline: false });
-    }
+    const userRef = doc(db, "users", user.uid);
+
+    // Update lastSeen pertama kali saat login
+    updateDoc(userRef, { lastSeen: serverTimestamp() });
+
+    // Update lastSeen tiap 30 detik
+    setInterval(() => {
+      updateDoc(userRef, { lastSeen: serverTimestamp() });
+    }, 30000);
+
+    // Update lastSeen terakhir saat tab ditutup
+    window.addEventListener("beforeunload", () => {
+      updateDoc(userRef, { lastSeen: serverTimestamp() });
+    });
   });
 }
