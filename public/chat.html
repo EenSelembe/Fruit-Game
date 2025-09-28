@@ -50,6 +50,15 @@
     font-weight: bold;
   }
 
+  /* Dropdown tujuan */
+  #chatTarget {
+    margin-left: 6px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: none;
+    font-size: 12px;
+  }
+
   /* Area pesan */
   #chatMessages {
     flex: 1;
@@ -92,7 +101,14 @@
 
 <div id="chatBox">
   <div id="chatHeader">
-    <span>💬 Chat Global</span>
+    <span>
+      💬 Chat 
+      <select id="chatTarget">
+        <option value="global" selected>🌍 Global</option>
+        <option value="uid123">👤 User A</option>
+        <option value="uid456">👤 User B</option>
+      </select>
+    </span>
     <span id="chatClose">✖</span>
   </div>
   <div id="chatMessages"></div>
