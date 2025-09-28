@@ -149,7 +149,7 @@ export function initChat() {
     dmBox.style.display = "flex";
 
     const qDM = query(
-      collection(db, "dm", uid),
+      collection(db, "dm", auth.currentUser.uid), // ambil chat dari folder user login
       orderBy("createdAt", "desc"),
       limit(50)
     );
@@ -158,10 +158,14 @@ export function initChat() {
       dmMessages.innerHTML = "";
       snap.forEach((docSnap) => {
         const d = docSnap.data();
-        const div = document.createElement("div");
-        div.className = "chat-message";
-        div.textContent = `${d.fromName}: ${d.text}`;
-        dmMessages.prepend(div);
+        // tampilkan hanya pesan yang relevan (antara user login dan target)
+        if ((d.from === currentDM && d.to === auth.currentUser.uid) ||
+            (d.from === auth.currentUser.uid && d.to === currentDM)) {
+          const div = document.createElement("div");
+          div.className = "chat-message";
+          div.textContent = `${d.fromName}: ${d.text}`;
+          dmMessages.prepend(div);
+        }
       });
       dmMessages.scrollTop = dmMessages.scrollHeight;
     });
@@ -182,13 +186,19 @@ export function initChat() {
       }
     } catch {}
 
-    await addDoc(collection(db, "dm", currentDM), {
+    const dmData = {
       from: user.uid,
-      to: currentDM,            // ✅ ditambahkan biar sesuai rules
+      to: currentDM,
       fromName: username,
       text: msg,
       createdAt: serverTimestamp()
-    });
+    };
+
+    // simpan di folder penerima
+    await addDoc(collection(db, "dm", currentDM), dmData);
+
+    // simpan juga di folder pengirim
+    await addDoc(collection(db, "dm", user.uid), dmData);
 
     dmInput.value = "";
   }
