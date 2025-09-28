@@ -355,15 +355,18 @@
       ctx.fillText(segments[i], cx+Math.cos(mid)*R*0.72, cy+Math.sin(mid)*R*0.72);
 
       if (betsActive[segments[i]]) {
-        ctx.beginPath();
-        ctx.arc(
-          cx + Math.cos(mid) * R * 0.92,
-          cy + Math.sin(mid) * R * 0.92,
-          8, 0, Math.PI * 2
-        );
-        ctx.fillStyle = "red";
-        ctx.fill();
-      }
+  ctx.beginPath();
+  ctx.arc(
+    cx + Math.cos(mid) * R * 0.92,
+    cy + Math.sin(mid) * R * 0.92,
+    8, 0, Math.PI * 2
+  );
+  ctx.fillStyle = "#ff0000";   // 🔴 merah terang
+  ctx.fill();
+  ctx.lineWidth = 2;           // ketebalan garis
+  ctx.strokeStyle = "#000";    // ⚫ stroke hitam
+  ctx.stroke();
+}
     }
     if(highlightIndex!==null){
       ctx.save();
