@@ -129,7 +129,8 @@ export function initChat() {
         div.style.fontWeight = "bold";
       }
       div.textContent = `${d.name}: ${d.text}`;
-      div.addEventListener("dblclick", () => openDM(d.uid, d.name)); // DM
+      // klik 2x untuk buka DM
+      div.addEventListener("dblclick", () => openDM(d.uid, d.name));
       chatMessages.prepend(div);
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -149,7 +150,7 @@ export function initChat() {
     dmBox.style.display = "flex";
 
     const qDM = query(
-      collection(db, "dm", auth.currentUser.uid), // ambil chat dari folder user login
+      collection(db, "dm", uid, "messages"),   // ✅ subkoleksi messages
       orderBy("createdAt", "desc"),
       limit(50)
     );
@@ -158,14 +159,10 @@ export function initChat() {
       dmMessages.innerHTML = "";
       snap.forEach((docSnap) => {
         const d = docSnap.data();
-        // tampilkan hanya pesan yang relevan (antara user login dan target)
-        if ((d.from === currentDM && d.to === auth.currentUser.uid) ||
-            (d.from === auth.currentUser.uid && d.to === currentDM)) {
-          const div = document.createElement("div");
-          div.className = "chat-message";
-          div.textContent = `${d.fromName}: ${d.text}`;
-          dmMessages.prepend(div);
-        }
+        const div = document.createElement("div");
+        div.className = "chat-message";
+        div.textContent = `${d.fromName}: ${d.text}`;
+        dmMessages.prepend(div);
       });
       dmMessages.scrollTop = dmMessages.scrollHeight;
     });
@@ -186,19 +183,16 @@ export function initChat() {
       }
     } catch {}
 
-    const dmData = {
-      from: user.uid,
-      to: currentDM,
-      fromName: username,
-      text: msg,
-      createdAt: serverTimestamp()
-    };
-
-    // simpan di folder penerima
-    await addDoc(collection(db, "dm", currentDM), dmData);
-
-    // simpan juga di folder pengirim
-    await addDoc(collection(db, "dm", user.uid), dmData);
+    await addDoc(
+      collection(db, "dm", currentDM, "messages"),   // ✅ simpan di subkoleksi
+      {
+        from: user.uid,
+        to: currentDM,
+        fromName: username,
+        text: msg,
+        createdAt: serverTimestamp()
+      }
+    );
 
     dmInput.value = "";
   }
@@ -212,4 +206,4 @@ export function initChat() {
   });
 
   console.log("✅ Chat initialized with Global + DM");
-} // << penutup function initChat()
+} // end initChat
