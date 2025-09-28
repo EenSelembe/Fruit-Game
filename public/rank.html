@@ -189,16 +189,45 @@
       let rank = 0;
       const now = Date.now();
 
-      // === render admin di atas rank 1 ===
+      // === render admin paling atas ===
       let adminDoc = null;
       snap.forEach(d => { if (d.id === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") adminDoc = d; });
       if (adminDoc) {
         const u = adminDoc.data();
+
+        // gunakan style nickname sama seperti user biasa
+        let bg = u.bgColor || 'transparent';
+        let extraAnim = '';
+        if (u.bgGradient) {
+          bg = u.bgGradient;
+          extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
+        }
+
+        let border = `1px solid ${u.borderColor || '#000'}`;
+        let extraBorder = '';
+        if (u.borderGradient) {
+          const baseBg = u.bgColor || 'transparent';
+          border = '3px solid transparent';
+          extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
+                         background-origin: border-box;
+                         background-clip: padding-box, border-box;`;
+        }
+
+        const style = `
+          color:${u.color || '#fff'};
+          background:${bg};
+          ${extraAnim}
+          border:${border};
+          border-radius:6px;
+          padding:2px 6px;
+          ${extraBorder}
+        `;
+
         const trAdmin = document.createElement('tr');
         trAdmin.innerHTML = `
           <td class="rank">💀</td>
           <td class="name">
-            <span class="nickname" style="font-weight:700; color:${u.color||'#fff'}; border-radius:6px; padding:2px 6px;">
+            <span class="nickname" style="${style}">
               👑 ${u.name || u.username || '(Admin)'}
             </span>
             <span class="levelTag">Lv ${calcLevel(u.consumedSaldo||0)}</span>
@@ -209,7 +238,7 @@
       }
 
       snap.forEach((docu) => {
-        if (docu.id === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") return;
+        if (docu.id === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") return; // skip admin
 
         rank++;
         const u = docu.data();
