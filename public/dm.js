@@ -1,7 +1,7 @@
 // dm.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc, getDoc
+  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc, getDoc 
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
@@ -30,16 +30,16 @@ export function initDM() {
   let currentDM = null;
   let unsubscribeDM = null;
 
-  // === buka DM ===
+  // === buka DM dengan user tertentu ===
   window.openDM = function(uid, name) {
     currentDM = uid;
     dmTitle.textContent = `📩 DM dengan ${name}`;
     dmBox.style.display = "flex";
 
-    // stop listener lama
+    // hentikan listener lama
     if (unsubscribeDM) unsubscribeDM();
 
-    // listen pesan di subkoleksi /dm/{userId}/messages
+    // dengarkan pesan di subkoleksi
     const qDM = query(
       collection(db, "dm", auth.currentUser.uid, "messages"),
       orderBy("createdAt", "desc"),
@@ -50,9 +50,10 @@ export function initDM() {
       dmMessages.innerHTML = "";
       snap.forEach((docSnap) => {
         const d = docSnap.data();
-        // tampilkan kalau pesan untuk dia atau dari dia
-        if ((d.from === uid && d.to === auth.currentUser.uid) ||
-            (d.from === auth.currentUser.uid && d.to === uid)) {
+        if (
+          (d.from === uid && d.to === auth.currentUser.uid) ||
+          (d.from === auth.currentUser.uid && d.to === uid)
+        ) {
           const div = document.createElement("div");
           div.className = "chat-message";
           div.textContent = `${d.fromName}: ${d.text}`;
@@ -77,9 +78,11 @@ export function initDM() {
         const d = u.data();
         username = d.name || d.username || "Anonim";
       }
-    } catch {}
+    } catch (err) {
+      console.error("Gagal ambil nama user:", err);
+    }
 
-    // simpan ke subkoleksi DM penerima
+    // simpan ke kotak DM penerima
     await addDoc(collection(db, "dm", currentDM, "messages"), {
       from: user.uid,
       to: currentDM,
@@ -88,7 +91,7 @@ export function initDM() {
       createdAt: serverTimestamp()
     });
 
-    // simpan juga ke subkoleksi DM pengirim biar sinkron
+    // simpan juga ke kotak DM pengirim
     await addDoc(collection(db, "dm", user.uid, "messages"), {
       from: user.uid,
       to: currentDM,
@@ -101,7 +104,7 @@ export function initDM() {
   }
 
   dmSend.addEventListener("click", sendDM);
-  dmInput.addEventListener("keypress", e => {
+  dmInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendDM();
   });
   dmClose.addEventListener("click", () => {
@@ -109,5 +112,5 @@ export function initDM() {
     if (unsubscribeDM) unsubscribeDM();
   });
 
-  console.log("✅ DM initialized");
-}
+  console.log("✅ DM initialized (terpisah dari global chat)");
+} // << penutup function initDM()
