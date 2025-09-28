@@ -173,14 +173,13 @@
     const usersRef = collection(db, 'users');
     const qTop = query(usersRef, orderBy('saldo', 'desc'));
 
-    // 🔥 fungsi sama persis seperti di home.html
     function calcLevel(consumedSaldo = 0) {
       let level = 0;
-      let nextNeed = 100000; // Lv1 butuh 100rb
+      let nextNeed = 100000;
       while (consumedSaldo >= nextNeed) {
         consumedSaldo -= nextNeed;
         level++;
-        nextNeed += 100000; // Lv selanjutnya makin mahal +100rb
+        nextNeed += 100000;
       }
       return level;
     }
@@ -197,9 +196,9 @@
         const u = adminDoc.data();
         const trAdmin = document.createElement('tr');
         trAdmin.innerHTML = `
-          <td class="rank">ADM</td>
+          <td class="rank">💀</td>
           <td class="name">
-            <span class="nickname" style="font-weight:700; background:${u.bgColor||'transparent'}; color:${u.color||'#fff'}; border-radius:6px; padding:2px 6px;">
+            <span class="nickname" style="font-weight:700; color:${u.color||'#fff'}; border-radius:6px; padding:2px 6px;">
               👑 ${u.name || u.username || '(Admin)'}
             </span>
             <span class="levelTag">Lv ${calcLevel(u.consumedSaldo||0)}</span>
@@ -210,7 +209,7 @@
       }
 
       snap.forEach((docu) => {
-        if (docu.id === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") return; // skip admin
+        if (docu.id === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") return;
 
         rank++;
         const u = docu.data();
@@ -218,23 +217,19 @@
         const isMe = auth.currentUser && docu.id === auth.currentUser.uid;
         if (isMe) tr.classList.add('meRow');
 
-        // emblem otomatis
         let emblem = '';
         if (rank === 1) emblem = '🥇 ';
         else if (rank === 2) emblem = '🥈 ';
         else if (rank === 3) emblem = '🥉 ';
 
-        // cek lastSeen → online kalau < 60 detik
         let statusClass = 'offline';
         if (u.lastSeen && (now - u.lastSeen.toMillis()) < 60000) {
           statusClass = 'online';
         }
         const statusDot = `<span class="status-dot ${statusClass}"></span>`;
 
-        // hitung level dari consumedSaldo
         const level = calcLevel(u.consumedSaldo || 0);
 
-        // background dan border nickname
         let bg = u.bgColor || 'transparent';
         let extraAnim = '';
         if (u.bgGradient) {
@@ -283,7 +278,7 @@
     async function totalUsers(){
       try { 
         const res = await getCountFromServer(usersRef); 
-        totalUsersEl.textContent = (res.data().count - 1) + ' user'; // -1 admin
+        totalUsersEl.textContent = (res.data().count - 1) + ' user'; 
       } catch(e){ 
         totalUsersEl.textContent = '—'; 
       }
@@ -306,7 +301,6 @@
       const above = await getCountFromServer(qAbove);
       let rankMe = (above.data().count || 0);
 
-      // kurangi 1 kalau admin ada di atas saya
       const adminRef = doc(db, 'users', "AxB4G2xwhiXdJnyDrzn82Xanc4x2");
       const admSnap = await getDoc(adminRef);
       if (admSnap.exists() && (admSnap.data().saldo || 0) > (me.saldo||0)) {
@@ -335,7 +329,7 @@
     .then(r => r.text())
     .then(html => {
       document.getElementById("chatContainer").innerHTML = html;
-      import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
+      import("./chat.js").then(mod => mod.initChat());
     });
 </script>
 </body>
