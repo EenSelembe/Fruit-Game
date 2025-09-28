@@ -348,8 +348,17 @@
     for(let i=0;i<N;i++){
       const a0=startOffset+i*(2*Math.PI/N);
       const a1=a0+(2*Math.PI/N);
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
-      ctx.fillStyle=colors[i]; ctx.fill();
+      ctx.beginPath(); 
+ctx.moveTo(cx,cy); 
+ctx.arc(cx,cy,R,a0,a1); 
+ctx.closePath();
+ctx.fillStyle=colors[i]; 
+ctx.fill();
+
+// 🟡 Tambahkan garis border
+ctx.lineWidth = 2;        // ketebalan garis
+ctx.strokeStyle = "#111"; // warna garis (misalnya hitam/abu gelap)
+ctx.stroke();
       const mid=(a0+a1)/2;
       ctx.font="38px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff";
       ctx.fillText(segments[i], cx+Math.cos(mid)*R*0.72, cy+Math.sin(mid)*R*0.72);
