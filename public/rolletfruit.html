@@ -210,60 +210,6 @@
     }, { once: true });
   </script>
   
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { initOnlineStatus } from "./online.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-  authDomain: "fruit-game-5e4a8.firebaseapp.com",
-  projectId: "fruit-game-5e4a8",
-  storageBucket: "fruit-game-5e4a8.appspot.com",
-  messagingSenderId: "936228678997",
-  appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-  measurementId: "G-EPTSQQPM4D"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const backsound = document.getElementById("backsound");
-const soundMultiplier = document.getElementById("soundMultiplier");
-const soundRolet = document.getElementById("soundRolet");
-
-function playLoop(audio) {
-  audio.loop = true;
-  audio.currentTime = 0;
-  audio.play().catch(()=>{});
-}
-function stopAudio(audio) {
-  audio.pause();
-  audio.currentTime = 0;
-}
-
-let userId=null;
-let saldo=0;
-const saldoBox=document.getElementById("saldoBox");
-function updateSaldo(){ saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID"); }
-async function setSaldo(newSaldo){
-  if(!userId) return;
-
-  const userRef = doc(db,"users",userId);
-
-  // kalau saldo berkurang = berarti konsumsi saldo
-  if (newSaldo < saldo) {
-    const consumed = saldo - newSaldo; // selisih yang dipakai main
-    await updateDoc(userRef, {
-      saldo: newSaldo,
-      consumedSaldo: (saldo - newSaldo) + ( (await (await getDoc(userRef)).data()?.consumedSaldo) || 0 )
-    });
-  } else {
-    // kalau saldo naik (misalnya menang) → cuma update saldo saja
-    await updateDoc(userRef, { saldo: newSaldo });
-  }
-
   saldo = newSaldo;
   updateSaldo();
 }
@@ -456,6 +402,273 @@ function spinWheel(multiplier){
       if(betsActive[symbol]){win=betsActive[symbol]*multiplier; setSaldo(saldo+win);}
       addHistory(symbol,multiplier);
       showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp."+win:"\nKalah"));
+      betsActive={}; updateBetsList(); spinning=false;
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { initOnlineStatus } from "./online.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+  authDomain: "fruit-game-5e4a8.firebaseapp.com",
+  projectId: "fruit-game-5e4a8",
+  storageBucket: "fruit-game-5e4a8.appspot.com",
+  messagingSenderId: "936228678997",
+  appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+  measurementId: "G-EPTSQQPM4D"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const backsound = document.getElementById("backsound");
+const soundMultiplier = document.getElementById("soundMultiplier");
+const soundRolet = document.getElementById("soundRolet");
+
+function playLoop(audio) {
+  audio.loop = true;
+  audio.currentTime = 0;
+  audio.play().catch(()=>{});
+}
+function stopAudio(audio) {
+  audio.pause();
+  audio.currentTime = 0;
+}
+
+let userId=null;
+let saldo=0;
+const saldoBox=document.getElementById("saldoBox");
+function updateSaldo(){ saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID"); }
+async function setSaldo(newSaldo){
+  if(!userId) return;
+
+  const userRef = doc(db,"users",userId);
+
+  // kalau saldo berkurang = berarti konsumsi saldo
+  if (newSaldo < saldo) {
+    const consumed = saldo - newSaldo; // selisih yang dipakai main
+    await updateDoc(userRef, {
+      saldo: newSaldo,
+      consumedSaldo: (saldo - newSaldo) + ( (await (await getDoc(userRef)).data()?.consumedSaldo) || 0 )
+    });
+  } else {
+    // kalau saldo naik (misalnya menang) → cuma update saldo saja
+    await updateDoc(userRef, { saldo: newSaldo });
+  }
+
+  saldo = newSaldo;
+  updateSaldo();
+}
+onAuthStateChanged(auth,(user)=>{
+  if(user){
+    userId=user.uid;
+    const userRef=doc(db,"users",userId);
+    onSnapshot(userRef,(snap)=>{
+      if(snap.exists()){ saldo=snap.data().saldo||0; updateSaldo(); }
+    });
+  } else { window.location.href="index.html"; }
+});
+
+// === logika rolet ===
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+const size=340;
+canvas.width=size; canvas.height=size;
+
+const spinBtn=document.getElementById("spinBtn");
+const historyDiv=document.getElementById("history");
+const betsList=document.getElementById("betsList");
+const totalBetBox=document.getElementById("totalBet");
+const overlayWin=document.getElementById("overlayWin");
+const overlayContent=document.getElementById("overlayContent");
+
+function showOverlay(msg){
+  overlayContent.textContent=msg;
+  overlayWin.classList.add("show");
+  setTimeout(()=>overlayWin.classList.remove("show"),3000);
+}
+
+// bet
+let bet=500;
+const betValue=document.getElementById("betValue");
+function updateBet(){ betValue.textContent="Rp. "+bet.toLocaleString("id-ID"); }
+document.getElementById("minusBet").addEventListener("click",()=>{if(bet>500){bet-=500;updateBet();}});
+document.getElementById("plusBet").addEventListener("click",()=>{ bet+=500; updateBet(); });
+updateBet();
+
+// simbol
+const segments=["🍎","🍌","🍇","🍉","🍒","🍍","🍋","🥭","🥝","🍑"];
+const colors=["#e74c3c","#3498db","#2ecc71","#f1c40f","#9b59b6","#e67e22","#1abc9c","#ff6f61","#16a085","#d35400"];
+const N=segments.length;
+const R=size/2; const cx=size/2,cy=size/2;
+
+let betsActive={};
+function updateBetsList(){
+  if(Object.keys(betsActive).length===0){
+    betsList.textContent="Belum ada taruhan";
+    totalBetBox.textContent="Total Taruhan: Rp. 0";
+    return;
+  }
+  betsList.innerHTML=""; let total=0;
+  for(const [sym,val] of Object.entries(betsActive)){
+    const div=document.createElement("div");
+    div.textContent=sym+" = Rp. "+val.toLocaleString("id-ID");
+    betsList.appendChild(div);
+    total+=val;
+  }
+  totalBetBox.textContent="Total Taruhan: Rp. "+total.toLocaleString("id-ID");
+}
+function getTotalBet(){return Object.values(betsActive).reduce((a,b)=>a+b,0);}
+
+canvas.addEventListener("click",e=>{
+  if(spinning) return;
+  if(saldo<bet){alert("Saldo tidak cukup!");return;}
+  const rect=canvas.getBoundingClientRect();
+  const x=e.clientX-rect.left; const y=e.clientY-rect.top;
+  const dx=x-cx,dy=y-cy;
+  let angle=Math.atan2(dy,dx);
+  let norm=(angle+2*Math.PI)%(2*Math.PI);
+  norm=(norm+Math.PI/2)%(2*Math.PI);
+  const index=Math.floor(norm/(2*Math.PI/N));
+  const symbol=segments[index];
+  setSaldo(saldo-bet);
+  betsActive[symbol]=(betsActive[symbol]||0)+bet;
+  updateBetsList();
+});
+
+// draw wheel + tanda merah di tepi
+function drawWheel(highlightIndex=null){
+  ctx.clearRect(0,0,size,size);
+  const startOffset=-Math.PI/2;
+  for(let i=0;i<N;i++){
+    const a0=startOffset+i*(2*Math.PI/N);
+    const a1=a0+(2*Math.PI/N);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
+    ctx.fillStyle=colors[i]; ctx.fill();
+    const mid=(a0+a1)/2;
+    ctx.font="38px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff";
+    ctx.fillText(segments[i], cx+Math.cos(mid)*R*0.72, cy+Math.sin(mid)*R*0.72);
+
+    // 🔴 tanda titik merah kalau ada taruhan di simbol ini (samping emoji, tepi rolet)
+    if (betsActive[segments[i]]) {
+      ctx.beginPath();
+      ctx.arc(
+        cx + Math.cos(mid) * R * 0.92,  // dekat tepi rolet
+        cy + Math.sin(mid) * R * 0.92,
+        8, 0, Math.PI * 2
+      );
+      ctx.fillStyle = "red";
+      ctx.fill();
+    }
+  }
+  if(highlightIndex!==null){
+    ctx.save();
+    const a0=-Math.PI/2+highlightIndex*(2*Math.PI/N);
+    const a1=a0+(2*Math.PI/N);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
+    ctx.lineWidth=14; ctx.strokeStyle="yellow"; ctx.shadowBlur=30; ctx.shadowColor="yellow"; ctx.stroke();
+    ctx.restore();
+  }
+}
+drawWheel();
+
+function addHistory(symbol,mult){
+  const item=document.createElement("div");
+  item.className="hist-item"; item.textContent=symbol+" x"+mult;
+  historyDiv.appendChild(item);
+  if(historyDiv.children.length>6) historyDiv.removeChild(historyDiv.firstChild);
+}
+
+// multiplier
+const multiplierChances={5:40,6:20,7:10,8:8,9:6,10:5,30:4,50:4,99:3};
+function weightedRandom(chances){
+  const total=Object.values(chances).reduce((a,b)=>a+b,0);
+  let r=Math.random()*total;
+  for(const [value,weight] of Object.entries(chances)){
+    if(r<weight) return parseInt(value);
+    r-=weight;
+  }
+}
+const multipliers=Object.keys(multiplierChances).map(n=>parseInt(n));
+const multiplierRoll=document.getElementById("multiplierRoll");
+
+// isi multipler diulang banyak kali supaya tidak putus
+for(let k=0;k<30;k++){
+  multipliers.forEach(m=>{
+    const d=document.createElement("div");
+    d.className="mult-item"+(m>=50?" mult-gold":"");
+    d.textContent="x"+m;
+    multiplierRoll.appendChild(d);
+  });
+}
+
+function easeOutCubic(t){return 1-Math.pow(1-t,3);}
+function spinMultiplier(callback){
+  const itemHeight = 50;
+  const chosen = weightedRandom(multiplierChances);
+  const chosenIndex = multipliers.indexOf(chosen);
+  const loops = 20;
+  const targetIndex = chosenIndex + multipliers.length * loops;
+  const targetY = -targetIndex * itemHeight;
+  const duration = 5000;
+
+  playLoop(soundMultiplier);
+
+  multiplierRoll.style.transition = `transform ${duration/1000}s linear`;
+  multiplierRoll.style.transform = `translateY(${targetY}px)`;
+
+  setTimeout(() => {
+    stopAudio(soundMultiplier);
+    const finalY = -chosenIndex * itemHeight;
+    multiplierRoll.style.transition = "none";
+    multiplierRoll.style.transform = `translateY(${finalY}px)`;
+    callback(chosen);
+  }, duration);
+}
+
+// spin
+let spinning=false;
+let lastPlay=0;
+function playStepSound(audio){
+  const now=Date.now();
+  if(now-lastPlay>0){
+    audio.currentTime=0;
+    audio.play().catch(()=>{});
+    lastPlay=now;
+  }
+}
+function spinWheel(multiplier){
+  const duration=10000, rotations=10;
+  const startIndex=Math.floor(Math.random()*N);
+  const finalIndex=Math.floor(Math.random()*N);
+  let startTime=null;
+  function animate(ts){
+    if(!startTime) startTime=ts;
+    const progress=Math.min(1,(ts-startTime)/duration);
+    const eased=easeOutCubic(progress);
+    const stepsTotal=rotations*N+((finalIndex-startIndex+N)%N);
+    const currentStep=Math.floor(eased*stepsTotal);
+    const index=(startIndex+currentStep)%N;
+    drawWheel(index);
+    playStepSound(soundRolet);
+    if(progress<1){requestAnimationFrame(animate);}
+    else{
+      drawWheel(finalIndex);
+      stopAudio(soundRolet);
+      const symbol=segments[finalIndex];
+      let win=0;
+      if(betsActive[symbol]){
+        win=betsActive[symbol]*multiplier;
+        setSaldo(saldo+win);
+      }
+      addHistory(symbol,multiplier);
+      showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp. "+win.toLocaleString("id-ID"):"\nKalah"));
       betsActive={}; updateBetsList(); spinning=false;
     }
   }
