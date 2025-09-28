@@ -184,7 +184,7 @@ export function initChat() {
 
     await addDoc(collection(db, "dm", currentDM), {
       from: user.uid,
-      to: currentDM,              // ✅ WAJIB ada biar rules cocok
+      to: currentDM,            // ✅ ditambahkan biar sesuai rules
       fromName: username,
       text: msg,
       createdAt: serverTimestamp()
