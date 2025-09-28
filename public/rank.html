@@ -224,17 +224,18 @@
         `;
 
         const trAdmin = document.createElement('tr');
-        trAdmin.innerHTML = `
-          <td class="rank">💀</td>
-          <td class="name">
-            <span class="nickname" style="${style}">
-              👑 ${u.name || u.username || '(Admin)'}
-            </span>
-            <span class="levelTag">Lv ${calcLevel(u.consumedSaldo||0)}</span>
-          </td>
-          <td class="saldoCell"><span class="rp">Rp</span>${fmtRp(u.saldo)}</td>
-        `;
-        rowsEl.appendChild(trAdmin);
+        const trAdmin = document.createElement('tr');
+trAdmin.innerHTML = `
+  <td class="rank">💀</td>
+  <td class="name">
+    <span class="nickname" style="${style}">
+      👑 ${u.name || u.username || '(Admin)'}
+    </span>
+    <span class="levelTag">Lv ${calcLevel(u.consumedSaldo||0)}</span>
+  </td>
+  <td class="saldoCell"><span class="rp">Rp</span>∞</td>
+`;
+rowsEl.appendChild(trAdmin);
       }
 
       snap.forEach((docu) => {
