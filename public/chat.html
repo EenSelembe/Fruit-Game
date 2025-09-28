@@ -5,18 +5,30 @@
     position: fixed;
     bottom: 20px;
     right: 20px;
-    font-size: 40px;   /* besar emoji */
+    font-size: 40px;
     cursor: grab;
     z-index: 9999;
     user-select: none;
     line-height: 1;
-    background: none;  /* pastikan tidak ada background */
-    border: none;      /* pastikan tidak ada border */
-    width: auto;       /* auto biar gak kotak */
-    height: auto;      /* auto biar gak kotak */
+    background: none;
+    border: none;
+    width: auto;
+    height: auto;
+  }
+  #chatBadge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: red;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 50%;
+    display: none;
   }
 
-  /* Box chat */
+  /* Box chat global */
   #chatBox {
     position: fixed;
     bottom: 0;
@@ -32,88 +44,90 @@
     flex-direction: column;
     z-index: 9999;
   }
-
-  /* Header chat */
   #chatHeader {
     padding: 8px;
     background: gold;
     color: #111;
     font-weight: bold;
-    text-align: center;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  #chatClose {
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: bold;
-  }
+  #chatClose { cursor: pointer; font-size: 18px; font-weight: bold; }
 
-  /* Dropdown tujuan */
-  #chatTarget {
-    margin-left: 6px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    border: none;
-    font-size: 12px;
-  }
-
-  /* Area pesan */
   #chatMessages {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    font-size: 14px;
-    text-align: left;
+    flex: 1; padding: 10px; overflow-y: auto; font-size: 14px; text-align: left;
   }
-  .chat-message {
-    margin-bottom: 6px;
-    word-wrap: break-word;
-  }
+  .chat-message { margin-bottom: 6px; word-wrap: break-word; }
 
-  /* Input area */
   #chatInputArea {
-    display: flex;
-    padding: 8px;
-    background: rgba(255,255,255,0.05);
+    display: flex; padding: 8px; background: rgba(255,255,255,0.05);
   }
   #chatInput {
-    flex: 1;
-    padding: 6px;
-    border-radius: 4px;
-    border: none;
-    outline: none;
+    flex: 1; padding: 6px; border-radius: 4px; border: none; outline: none;
   }
   #chatSend {
-    margin-left: 6px;
-    padding: 6px 10px;
-    border: none;
-    background: gold;
+    margin-left: 6px; padding: 6px 10px; border: none; background: gold; color: #111;
+    font-weight: bold; border-radius: 4px; cursor: pointer;
+  }
+
+  /* Box chat pribadi (DM) */
+  #dmBox {
+    position: fixed;
+    bottom: 0;
+    right: 50%;
+    transform: translateX(50%);
+    width: 90%;
+    max-width: 400px;
+    height: 50%;
+    background: rgba(0,0,50,0.9);
+    border: 2px solid deepskyblue;
+    border-radius: 10px 10px 0 0;
+    display: none;
+    flex-direction: column;
+    z-index: 9999;
+  }
+  #dmHeader {
+    padding: 8px;
+    background: deepskyblue;
     color: #111;
     font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
+  #dmClose { cursor: pointer; font-size: 18px; font-weight: bold; }
+  #dmMessages { flex: 1; padding: 10px; overflow-y: auto; font-size: 14px; text-align: left; }
+  #dmInputArea { display: flex; padding: 8px; background: rgba(255,255,255,0.05); }
+  #dmInput { flex: 1; padding: 6px; border-radius: 4px; border: none; outline: none; }
+  #dmSend { margin-left: 6px; padding: 6px 10px; border: none; background: deepskyblue; color: #111;
+    font-weight: bold; border-radius: 4px; cursor: pointer; }
 </style>
 
-<div id="chatIcon">💬</div>
+<div id="chatIcon">💬<span id="chatBadge"></span></div>
 
+<!-- GLOBAL CHAT -->
 <div id="chatBox">
   <div id="chatHeader">
-    <span>
-      💬 Chat 
-      <select id="chatTarget">
-        <option value="global" selected>🌍 Global</option>
-        <option value="uid123">👤 User A</option>
-        <option value="uid456">👤 User B</option>
-      </select>
-    </span>
+    <span>💬 Chat Global</span>
     <span id="chatClose">✖</span>
   </div>
   <div id="chatMessages"></div>
   <div id="chatInputArea">
-    <input type="text" id="chatInput" placeholder="Ketik pesan..." />
+    <input type="text" id="chatInput" placeholder="Ketik pesan global..." />
     <button id="chatSend">Kirim</button>
+  </div>
+</div>
+
+<!-- PRIVATE CHAT (DM) -->
+<div id="dmBox">
+  <div id="dmHeader">
+    <span id="dmTitle">📩 DM</span>
+    <span id="dmClose">✖</span>
+  </div>
+  <div id="dmMessages"></div>
+  <div id="dmInputArea">
+    <input type="text" id="dmInput" placeholder="Ketik pesan pribadi..." />
+    <button id="dmSend">Kirim</button>
   </div>
 </div>
