@@ -1,10 +1,13 @@
 // chat.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc, getDoc 
+  getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { 
+  getAuth
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
+// Firebase config (sama persis dengan home.html)
 const firebaseConfig = {
   apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
   authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -28,21 +31,6 @@ export function initChat() {
   const chatInput = document.getElementById("chatInput");
   const chatSend = document.getElementById("chatSend");
   const chatClose = document.getElementById("chatClose");
-
-  // 🔹 Tambahkan badge di atas icon
-  let badge = document.createElement("span");
-  badge.id = "chatBadge";
-  badge.style.position = "absolute";
-  badge.style.top = "5px";
-  badge.style.right = "5px";
-  badge.style.background = "red";
-  badge.style.color = "white";
-  badge.style.fontSize = "12px";
-  badge.style.padding = "2px 5px";
-  badge.style.borderRadius = "50%";
-  badge.style.display = "none";
-  chatIcon.style.position = "relative";
-  chatIcon.appendChild(badge);
 
   // === draggable icon ===
   let isDragging = false, offsetX = 0, offsetY = 0;
@@ -85,7 +73,9 @@ export function initChat() {
   chatIcon.addEventListener("click", () => {
     chatBox.style.display = "flex";
     chatIcon.style.display = "none";
-    badge.style.display = "none"; // reset badge saat buka chat
+    // reset badge saat buka
+    unread = 0;
+    badge.style.display = "none";
   });
   chatClose.addEventListener("click", () => {
     chatBox.style.display = "none";
@@ -99,6 +89,7 @@ export function initChat() {
     const user = auth.currentUser;
     if (!user) return;
 
+    // 🔥 ambil nama dari Firestore users/{uid}
     let username = "Anonim";
     try {
       const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -125,9 +116,32 @@ export function initChat() {
     if (e.key === "Enter") sendMessage();
   });
 
-  // === tampilkan pesan + update badge ===
-  const q = query(collection(db, "globalChat"), orderBy("createdAt", "desc"), limit(50));
+  // === tampilkan pesan + badge unread ===
+  const q = query(
+    collection(db, "globalChat"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+
+  // 🔹 Tambahan badge unread
+  let badge = document.createElement("span");
+  badge.id = "chatBadge";
+  badge.style.position = "absolute";
+  badge.style.top = "2px";
+  badge.style.right = "2px";
+  badge.style.background = "red";
+  badge.style.color = "white";
+  badge.style.fontSize = "12px";
+  badge.style.fontWeight = "bold";
+  badge.style.padding = "2px 5px";
+  badge.style.borderRadius = "50%";
+  badge.style.display = "none";
+  badge.style.zIndex = "10000";
+  chatIcon.style.position = "fixed";
+  chatIcon.appendChild(badge);
+
   let unread = 0;
+
   onSnapshot(q, (snap) => {
     chatMessages.innerHTML = "";
     snap.forEach((doc) => {
@@ -135,6 +149,7 @@ export function initChat() {
       const div = document.createElement("div");
       div.className = "chat-message";
 
+      // admin hijau stabilo
       if (d.uid === ADMIN_UID) {
         div.style.color = "#00ff7f";
         div.style.fontWeight = "bold";
@@ -145,16 +160,13 @@ export function initChat() {
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // 🔹 Tambah badge kalau chat sedang ditutup
+    // Hitung unread kalau chatBox lagi ditutup
     if (chatBox.style.display === "none") {
       unread++;
       badge.textContent = unread;
       badge.style.display = "block";
-    } else {
-      unread = 0;
-      badge.style.display = "none";
     }
   });
 
-  console.log("✅ Chat initialized with badge");
-      }
+  console.log("✅ Chat initialized");
+} // << penutup function initChat()
