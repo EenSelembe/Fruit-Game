@@ -456,21 +456,21 @@
       playStepSound(soundRolet);
       if(progress<1){requestAnimationFrame(animate);}
       else{
-        drawWheel(finalIndex);
-        stopAudio(soundRolet);
-        const symbol=segments[finalIndex];
-        let win=0;
-        if(betsActive[symbol]){
-          win=betsActive[symbol]*multiplier;
-          setSaldo(saldo+win);
-        }
-        addHistory(symbol,multiplier);
-        showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp. "+win.toLocaleString("showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp. "+win.toLocaleString("id-ID"):"\nKalah"));
-        betsActive={}; 
-        updateBetsList(); 
-        drawWheel(); // 🔴 reset titik merah setelah spin selesai
-        spinning=false;
-      }
+  drawWheel(finalIndex);
+  stopAudio(soundRolet);
+  const symbol=segments[finalIndex];
+  let win=0;
+  if(betsActive[symbol]){
+    win=betsActive[symbol]*multiplier;
+    setSaldo(saldo+win);
+  }
+  addHistory(symbol,multiplier);
+  showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0 ? "\nMenang Rp. "+win.toLocaleString("id-ID") : "\nKalah"));
+  betsActive={}; 
+  updateBetsList(); 
+  drawWheel(); // 🔴 reset titik merah setelah spin selesai
+  spinning=false;
+}
     }
     requestAnimationFrame(animate);
   }
