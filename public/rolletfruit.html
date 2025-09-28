@@ -338,48 +338,56 @@
     setSaldo(saldo-bet);
     betsActive[symbol]=(betsActive[symbol]||0)+bet;
     updateBetsList();
-    drawWheel(); // 🔴 titik merah langsung muncul
+    drawWheel(); // titik merah langsung muncul
   });
 
-  // draw wheel + titik merah
+  // draw wheel + highlight
+  let persistentHighlight = null;
   function drawWheel(highlightIndex=null){
     ctx.clearRect(0,0,size,size);
     const startOffset=-Math.PI/2;
+
     for(let i=0;i<N;i++){
       const a0=startOffset+i*(2*Math.PI/N);
       const a1=a0+(2*Math.PI/N);
       ctx.beginPath(); 
-ctx.moveTo(cx,cy); 
-ctx.arc(cx,cy,R,a0,a1); 
-ctx.closePath();
-ctx.fillStyle=colors[i]; 
-ctx.fill();
+      ctx.moveTo(cx,cy); 
+      ctx.arc(cx,cy,R,a0,a1); 
+      ctx.closePath();
+      ctx.fillStyle=colors[i]; 
+      ctx.fill();
 
-// 🟡 Tambahkan garis border
-ctx.lineWidth = 2;        // ketebalan garis
-ctx.strokeStyle = "#111"; // warna garis (misalnya hitam/abu gelap)
-ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#111";
+      ctx.stroke();
+
       const mid=(a0+a1)/2;
       ctx.font="38px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff";
       ctx.fillText(segments[i], cx+Math.cos(mid)*R*0.72, cy+Math.sin(mid)*R*0.72);
 
+      // Titik merah
       if (betsActive[segments[i]]) {
-  ctx.beginPath();
-  ctx.arc(
-    cx + Math.cos(mid) * R * 0.92,
-    cy + Math.sin(mid) * R * 0.92,
-    8, 0, Math.PI * 2
-  );
-  ctx.fillStyle = "#ff0000";   // 🔴 merah terang
-  ctx.fill();
-  ctx.lineWidth = 2;           // ketebalan garis
-  ctx.strokeStyle = "#000";    // ⚫ stroke hitam
-  ctx.stroke();
-}
+        ctx.beginPath();
+        ctx.arc(
+          cx + Math.cos(mid) * R * 0.92,
+          cy + Math.sin(mid) * R * 0.92,
+          8, 0, Math.PI * 2
+        );
+        ctx.fillStyle = "#ff0000";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#000";
+        ctx.stroke();
+      }
     }
-    if(highlightIndex!==null){
+
+    if (highlightIndex !== null) {
+      persistentHighlight = highlightIndex;
+    }
+
+    if (persistentHighlight !== null){
       ctx.save();
-      const a0=-Math.PI/2+highlightIndex*(2*Math.PI/N);
+      const a0=-Math.PI/2+persistentHighlight*(2*Math.PI/N);
       const a1=a0+(2*Math.PI/N);
       ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
       ctx.lineWidth=14; ctx.strokeStyle="yellow"; ctx.shadowBlur=30; ctx.shadowColor="yellow"; ctx.stroke();
@@ -468,21 +476,21 @@ ctx.stroke();
       playStepSound(soundRolet);
       if(progress<1){requestAnimationFrame(animate);}
       else{
-  drawWheel(finalIndex);
-  stopAudio(soundRolet);
-  const symbol=segments[finalIndex];
-  let win=0;
-  if(betsActive[symbol]){
-    win=betsActive[symbol]*multiplier;
-    setSaldo(saldo+win);
-  }
-  addHistory(symbol,multiplier);
-  showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0 ? "\nMenang Rp. "+win.toLocaleString("id-ID") : "\nKalah"));
-  betsActive={}; 
-  updateBetsList(); 
-  drawWheel(); // 🔴 reset titik merah setelah spin selesai
-  spinning=false;
-}
+        drawWheel(finalIndex);
+        stopAudio(soundRolet);
+        const symbol=segments[finalIndex];
+        let win=0;
+        if(betsActive[symbol]){
+          win=betsActive[symbol]*multiplier;
+          setSaldo(saldo+win);
+        }
+        addHistory(symbol,multiplier);
+        showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0 ? "\nMenang Rp. "+win.toLocaleString("id-ID") : "\nKalah"));
+        betsActive={}; 
+        updateBetsList(); 
+        drawWheel(); // 🔴 reset titik merah setelah spin selesai
+        spinning=false;
+      }
     }
     requestAnimationFrame(animate);
   }
