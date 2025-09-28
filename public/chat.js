@@ -143,28 +143,18 @@ export function initChat() {
 
   // === DM logic ===
   let currentDM = null;
-  let unsubDM = null;
-
   function openDM(uid, name) {
-    const user = auth.currentUser;
-    if (!user) return;
-
     currentDM = uid;
     dmTitle.textContent = `📩 DM dengan ${name}`;
     dmBox.style.display = "flex";
 
-    // buat pairId unik (urutan uid kecil_besar supaya sama di 2 user)
-    const pairId = [user.uid, uid].sort().join("_");
-
-    if (unsubDM) unsubDM(); // stop listener lama
-
     const qDM = query(
-      collection(db, "privateChats", pairId, "messages"),
+      collection(db, "dm", uid),
       orderBy("createdAt", "desc"),
       limit(50)
     );
 
-    unsubDM = onSnapshot(qDM, (snap) => {
+    onSnapshot(qDM, (snap) => {
       dmMessages.innerHTML = "";
       snap.forEach((docSnap) => {
         const d = docSnap.data();
@@ -192,13 +182,10 @@ export function initChat() {
       }
     } catch {}
 
-    const pairId = [user.uid, currentDM].sort().join("_");
-    const dmRef = collection(db, "privateChats", pairId, "messages");
-
-    await addDoc(dmRef, {
+    await addDoc(collection(db, "dm", currentDM), {
       from: user.uid,
+      to: currentDM,              // ✅ WAJIB ada biar rules cocok
       fromName: username,
-      to: currentDM,
       text: msg,
       createdAt: serverTimestamp()
     });
@@ -212,7 +199,6 @@ export function initChat() {
   });
   dmClose.addEventListener("click", () => {
     dmBox.style.display = "none";
-    if (unsubDM) unsubDM();
   });
 
   console.log("✅ Chat initialized with Global + DM");
