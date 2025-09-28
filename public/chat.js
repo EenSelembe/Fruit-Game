@@ -3,9 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import { 
   getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { 
-  getAuth
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Firebase config (sama persis dengan home.html)
 const firebaseConfig = {
@@ -82,14 +80,14 @@ export function initChat() {
     chatIcon.style.display = "block";
   });
 
-  // === kirim pesan ===
+  // === kirim pesan GLOBAL ===
   async function sendMessage() {
     const msg = chatInput.value.trim();
     if (!msg) return;
     const user = auth.currentUser;
     if (!user) return;
 
-    // 🔥 ambil nama dari Firestore users/{uid}
+    // ambil nama user dari Firestore
     let username = "Anonim";
     try {
       const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -116,14 +114,14 @@ export function initChat() {
     if (e.key === "Enter") sendMessage();
   });
 
-  // === tampilkan pesan + badge unread ===
+  // === tampilkan pesan GLOBAL + badge unread ===
   const q = query(
     collection(db, "globalChat"),
     orderBy("createdAt", "desc"),
     limit(50)
   );
 
-  // 🔹 Tambahan badge unread
+  // 🔹 Badge unread
   let badge = document.createElement("span");
   badge.id = "chatBadge";
   badge.style.position = "absolute";
@@ -160,7 +158,6 @@ export function initChat() {
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Hitung unread kalau chatBox lagi ditutup
     if (chatBox.style.display === "none") {
       unread++;
       badge.textContent = unread;
@@ -168,5 +165,58 @@ export function initChat() {
     }
   });
 
-  console.log("✅ Chat initialized");
-} // << penutup function initChat()
+  // === fitur tambahan: kirim PRIVATE MESSAGE ===
+  async function sendPrivateMessage(targetUid, msg) {
+    if (!msg) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // bikin chatId unik
+    const chatId = [user.uid, targetUid].sort().join("_");
+
+    // ambil nama user
+    let username = "Anonim";
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const d = userDoc.data();
+        username = d.name || d.username || "Anonim";
+      }
+    } catch (err) {
+      console.error("Gagal ambil nama user:", err);
+    }
+
+    await addDoc(collection(db, "privateChats", chatId, "messages"), {
+      uid: user.uid,
+      text: msg,
+      name: username,
+      createdAt: serverTimestamp()
+    });
+  }
+
+  // Listener private chat
+  function listenPrivateChat(targetUid, callback) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const chatId = [user.uid, targetUid].sort().join("_");
+
+    const q = query(
+      collection(db, "privateChats", chatId, "messages"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+
+    return onSnapshot(q, (snap) => {
+      const messages = [];
+      snap.forEach(doc => messages.push(doc.data()));
+      callback(messages.reverse());
+    });
+  }
+
+  // expose biar bisa dipanggil dari luar
+  window.sendPrivateMessage = sendPrivateMessage;
+  window.listenPrivateChat = listenPrivateChat;
+
+  console.log("✅ Chat initialized (global + private)");
+} // end initChat
