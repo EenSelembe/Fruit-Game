@@ -338,6 +338,7 @@
     setSaldo(saldo-bet);
     betsActive[symbol]=(betsActive[symbol]||0)+bet;
     updateBetsList();
+    drawWheel(); // 🔴 titik merah langsung muncul
   });
 
   // draw wheel + titik merah
@@ -353,7 +354,6 @@
       ctx.font="38px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff";
       ctx.fillText(segments[i], cx+Math.cos(mid)*R*0.72, cy+Math.sin(mid)*R*0.72);
 
-      // titik merah di tepi rolet kalau ada taruhan
       if (betsActive[segments[i]]) {
         ctx.beginPath();
         ctx.arc(
@@ -463,9 +463,13 @@
         if(betsActive[symbol]){
           win=betsActive[symbol]*multiplier;
           setSaldo(saldo+win);
-        }addHistory(symbol,multiplier);
-        showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp. "+win.toLocaleString("id-ID"):"\nKalah"));
-        betsActive={}; updateBetsList(); spinning=false;
+        }
+        addHistory(symbol,multiplier);
+        showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp. "+win.toLocaleString("showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0? "\nMenang Rp. "+win.toLocaleString("id-ID"):"\nKalah"));
+        betsActive={}; 
+        updateBetsList(); 
+        drawWheel(); // 🔴 reset titik merah setelah spin selesai
+        spinning=false;
       }
     }
     requestAnimationFrame(animate);
