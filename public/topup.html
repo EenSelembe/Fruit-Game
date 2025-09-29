@@ -21,9 +21,7 @@
       display: flex; align-items: center; justify-content: center;
       padding: 20px;
     }
-    .wrap{
-      width: 100%; max-width: 420px;
-    }
+    .wrap{ width: 100%; max-width: 420px; }
     h1{
       text-align: center; margin: 0 0 12px;
       text-shadow: 0 0 12px #000;
@@ -63,6 +61,11 @@
       background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
       font-size:12px; margin-top:6px;
     }
+    .pay-info{
+      margin-top:10px; padding:10px;
+      border-radius:8px; background:rgba(0,0,0,.45);
+      font-size:14px; line-height:1.4;
+    }
   </style>
 </head>
 <body>
@@ -87,12 +90,16 @@
 
       <label for="method">Metode Pembayaran</label>
       <select id="method">
+        <option value="">-- Pilih Metode --</option>
         <option value="DANA">DANA</option>
         <option value="GoPay">GoPay</option>
         <option value="BNI">Transfer Bank BNI</option>
         <option value="BRI">Transfer Bank BRI</option>
         <option value="BCA">Transfer Bank BCA</option>
       </select>
+
+      <!-- tempat muncul nomor tujuan -->
+      <div id="payInfo" class="pay-info" style="display:none;"></div>
 
       <label for="note">WAJIB ISI (SALDO AWAL)</label>
       <textarea id="note" rows="2" placeholder="Rp. 123"></textarea>
@@ -112,10 +119,18 @@
   </div>
 
   <script>
-    // === Konfigurasi: Ganti nomor WA admin di sini (format internasional tanpa +) ===
-    const ADMIN_WA = "62895704349760"; // contoh: 6285xxxx
+    // === Konfigurasi: nomor tujuan per metode ===
+    const ACCOUNTS = {
+      "DANA": "0895-7043-49760 (a.n. Rendi Waniko)",
+      "GoPay": "0895-7043-49760 (a.n. Rendi Waniko)",
+      "BNI": "1911637415 (BNI a.n. Rendi Waniko)",
+      "BRI": "480801020529539 (BRI a.n. Rendi Waniko)",
+      "BCA": "8955480364 (BCA a.n. Rendi Waniko)"
+    };
 
-    // Generate ID TopUp unik (contoh: FG-250929-8K3F2C)
+    const ADMIN_WA = "62895704349760"; 
+
+    // Generate ID TopUp unik
     function genTopupId(){
       const d = new Date();
       const pad = n => String(n).padStart(2,'0');
@@ -135,12 +150,25 @@
     const idEl = document.getElementById('topupId');
     const nomEl = document.getElementById('nominal');
     const prevEl = document.getElementById('previewRupiah');
+    const methodEl = document.getElementById('method');
+    const payInfoEl = document.getElementById('payInfo');
 
     function refreshId(){ idEl.value = genTopupId(); }
     refreshId();
 
     nomEl.addEventListener('input', () => {
       prevEl.textContent = formatRupiah(nomEl.value);
+    });
+
+    // Update info pembayaran saat pilih metode
+    methodEl.addEventListener('change', () => {
+      const val = methodEl.value;
+      if(val && ACCOUNTS[val]){
+        payInfoEl.style.display = "block";
+        payInfoEl.textContent = "Tujuan Transfer: " + ACCOUNTS[val];
+      } else {
+        payInfoEl.style.display = "none";
+      }
     });
 
     function goWhatsApp(){
@@ -152,9 +180,12 @@
 
       if(!username){ alert("Isi username dulu ya."); return; }
       if(!nominal || Number(nominal) <= 0){ alert("Isi nominal top up yang valid."); return; }
+      if(!method){ alert("Pilih metode pembayaran."); return; }
 
       const now = new Date();
       const waktu = now.toLocaleString("id-ID", { hour12:false });
+
+      const tujuan = ACCOUNTS[method] || "";
 
       const message =
 `Halo admin, saya ingin TOP UP saldo Fruit Game.
@@ -163,6 +194,7 @@ ID TopUp : ${topupId}
 Username : ${username}
 Nominal  : ${formatRupiah(nominal)}
 Metode   : ${method}
+Tujuan   : ${tujuan}
 Waktu    : ${waktu}
 ${note ? "Catatan  : " + note + "\n" : ""}
 
@@ -170,7 +202,6 @@ Setelah pesan ini terkirim, saya akan mengirimkan *screenshot bukti transfer* di
 
       const url = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(message)}`;
       window.open(url, "_blank");
-      // Refresh ID untuk transaksi berikutnya
       refreshId();
     }
   </script>
