@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fruit Slots – 5x4 1024 Cara</title>
 
-  
+  <!-- === NOTIF ADD: CSS notif -->
+  <link rel="stylesheet" href="notif.css">
+
   <!-- BAGIAN CSS -->
   <style>
 
@@ -181,6 +183,9 @@
   </style>
 </head>
 <body>
+
+  <!-- === NOTIF ADD: container notif global -->
+  <div id="notifContainer"></div>
 
   <!-- BAGIAN HTML -->
   <div class="top">
@@ -699,6 +704,11 @@ if (inScatterMode) {
     async function finishSpin(matrix){
   await cascade(matrix);
 
+  // === NOTIF ADD: publish notif kalau total menang ≥ 10.000
+  if (typeof publishWinNotifIfNeeded === "function") {
+    publishWinNotifIfNeeded(win);
+  }
+
   if (inScatterMode) {
     updateBanner();
     // paksa wild di reel 2 & 4 saat free spin berjalan
@@ -840,7 +850,9 @@ window.addEventListener("DOMContentLoaded", () => {
     <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, updateDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getFirestore, doc, updateDoc, onSnapshot, getDoc,
+           // === NOTIF ADD: import untuk publish notifs
+           collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   import { initOnlineStatus } from "./online.js";
 
   initOnlineStatus();
@@ -860,6 +872,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const db = getFirestore(app);
 
   let userDocRef = null;
+  // === NOTIF ADD: cache data user utk ambil nickname
+  let meData = null;
 
   // Realtime listener saldo
   onAuthStateChanged(auth, (user) => {
@@ -868,6 +882,7 @@ window.addEventListener("DOMContentLoaded", () => {
       onSnapshot(userDocRef, (snap) => {
         if (snap.exists()) {
           balance = snap.data().saldo || 0;
+          meData = snap.data(); // simpan untuk nickname notif
           updateStats();
         }
       });
@@ -916,7 +931,61 @@ window.addEventListener("DOMContentLoaded", () => {
   // Biar bisa dipanggil dari script utama
   window.deductBet = deductBet;
   window.addWin = addWin;
+
+  // === NOTIF ADD: publish notif saat total menang ≥ 10.000
+  async function publishWinNotifIfNeeded(spinTotalWin) {
+    try {
+      const THRESHOLD = 10000;
+      if (!userDocRef || !meData) return;
+      if (spinTotalWin < THRESHOLD) return;
+
+      const nickname = meData.name || meData.username || "Player";
+      await addDoc(collection(db, "notifs"), {
+        nickname,
+        amount: spinTotalWin,
+        createdAt: serverTimestamp()
+      });
+    } catch (e) {
+      // diamkan saja agar tidak ganggu gameplay
+    }
+  }
+  // expose ke global agar bisa dipanggil dari script non-module
+  window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
 </script>
+
+<!-- === NOTIF ADD: listener agar SEMUA user melihat notif + tampilkan & hapus -->
+<script type="module">
+  import { showWinNotif } from "./notif.js";
+  window.showWinNotif = showWinNotif; // opsional
+
+  import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc }
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const db = getFirestore();
+
+  // fallback container kalau belum ada
+  if (!document.getElementById('notifContainer')) {
+    const el = document.createElement('div');
+    el.id = 'notifContainer';
+    document.body.prepend(el);
+  }
+
+  // Dengarkan 1 notif terbaru. Lewati snapshot awal (biar gak replay notif lama)
+  let first = true;
+  const q = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+  onSnapshot(q, (snap) => {
+    if (first) { first = false; return; }
+    snap.docChanges().forEach((chg) => {
+      if (chg.type === "added") {
+        const d = chg.doc.data();
+        showWinNotif(String(d?.nickname || "Player"), Number(d?.amount || 0));
+        // hapus dokumen setelah 10 detik → notif hanya sekali lewat
+        setTimeout(() => { deleteDoc(chg.doc.ref).catch(()=>{}); }, 10000);
+      }
+    });
+  });
+</script>
+
 <div id="chatContainer"></div>
 <script type="module">
   fetch("chat.html")
