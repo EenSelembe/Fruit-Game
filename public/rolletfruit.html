@@ -439,6 +439,12 @@
   }
 
   function easeOutCubic(t){return 1-Math.pow(1-t,3);}
+  // ⬇️ Tambahan: ekor pendek agar tidak "menggantung"
+  function easeShortTail(t){
+    const e = easeOutCubic(t);
+    return 0.45 * t + 0.55 * e; // campur linear + easeOut
+  }
+
   function spinMultiplier(callback){
     const itemHeight = 50;
     const chosen = weightedRandom(multiplierChances);
@@ -473,22 +479,38 @@
       lastPlay=now;
     }
   }
+
+  // ⬇️ Diperbaiki: ekor pendek + anti-stall
   function spinWheel(multiplier){
-    const duration=10000, rotations=15;
+    const duration=8000, rotations=15; // lebih singkat dari 10000
     const startIndex=Math.floor(Math.random()*N);
     const finalIndex=Math.floor(Math.random()*N);
     let startTime=null;
+    let prevStep = -1; // untuk anti-stall
+
     function animate(ts){
       if(!startTime) startTime=ts;
       const progress=Math.min(1,(ts-startTime)/duration);
-      const eased=easeOutCubic(progress);
+
+      // gunakan kurva baru
+      const eased = easeShortTail(progress);
+
       const stepsTotal=rotations*N+((finalIndex-startIndex+N)%N);
-      const currentStep=Math.floor(eased*stepsTotal);
+      let currentStep=Math.floor(eased*stepsTotal);
+
+      // Anti-stall: kalau sisa langkah <= 3 dan step tidak bertambah, paksa maju 1
+      if (currentStep === prevStep && (stepsTotal - currentStep) <= 3) {
+        currentStep = Math.min(prevStep + 1, stepsTotal);
+      }
+      prevStep = currentStep;
+
       const index=(startIndex+currentStep)%N;
       drawWheel(index);
       playStepSound(soundRolet);
-      if(progress<1){requestAnimationFrame(animate);}
-      else{
+
+      if(progress<1){
+        requestAnimationFrame(animate);
+      } else {
         drawWheel(finalIndex);
         stopAudio(soundRolet);
         const symbol=segments[finalIndex];
@@ -499,19 +521,17 @@
 
           // 🔔 Notifikasi lokal + tulis ke Firestore agar semua user melihat
           if (win > 0) {
-            // tampilkan di klien sendiri (elemen akan terhapus otomatis oleh CSS/JS)
             window.showWinNotif(nickname, win);
 
-            // simpan event untuk klien lain, lalu hapus otomatis agar "sekali lewat"
             addDoc(collection(db, "notifs"), {
               nickname: nickname,
               amount: win,
               createdAt: serverTimestamp()
             })
             .then(ref => {
-              setTimeout(() => { deleteDoc(ref).catch(()=>{}); }, 7000); // hapus setelah animasi lewat
+              setTimeout(() => { deleteDoc(ref).catch(()=>{}); }, 7000);
             })
-            .catch(()=>{ /* abaikan error penulisan */ });
+            .catch(()=>{});
           }
         }
         addHistory(symbol,multiplier);
