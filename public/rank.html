@@ -147,7 +147,10 @@
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import {
+      getFirestore, collection, query, orderBy, doc, getDoc, where,
+      getCountFromServer, getDocs, limit
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -176,7 +179,7 @@
     }
 
     const usersRef = collection(db, 'users');
-    const qTop = query(usersRef, orderBy('saldo', 'desc'));
+    const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
     function calcLevel(consumedSaldo = 0) {
       let level = 0;
@@ -189,131 +192,145 @@
       return level;
     }
 
-    onSnapshot(qTop, (snap) => {
-      rowsEl.innerHTML = '';
-      let rank = 0;
-      const now = Date.now();
+    // ===== RANKING: Admin di atas + 10 besar user biasa, polling 60 detik =====
+    async function loadRanking() {
+      try {
+        rowsEl.innerHTML = '';
+        const now = Date.now();
 
-      // === render admin paling atas ===
-      let adminDoc = null;
-      snap.forEach(d => { if (d.id === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") adminDoc = d; });
-      if (adminDoc) {
-        const u = adminDoc.data();
+        // 1) Render Admin di paling atas (tidak dihitung)
+        const adminRef = doc(db, 'users', ADMIN_UID);
+        const admSnap = await getDoc(adminRef);
+        if (admSnap.exists()) {
+          const u = admSnap.data();
 
-        // gunakan style nickname sama seperti user biasa
-        let bg = u.bgColor || 'transparent';
-        let extraAnim = '';
-        if (u.bgGradient) {
-          bg = u.bgGradient;
-          extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
+          // style nickname admin (ikuti gaya user biasa)
+          let bg = u.bgColor || 'transparent';
+          let extraAnim = '';
+          if (u.bgGradient) {
+            bg = u.bgGradient;
+            extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
+          }
+
+          let border = `1px solid ${u.borderColor || '#000'}`;
+          let extraBorder = '';
+          if (u.borderGradient) {
+            const baseBg = u.bgColor || 'transparent';
+            border = '3px solid transparent';
+            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
+                           background-origin: border-box;
+                           background-clip: padding-box, border-box;`;
+          }
+
+          const style = `
+            color:${u.color || '#fff'};
+            background:${bg};
+            ${extraAnim}
+            border:${border};
+            border-radius:6px;
+            padding:2px 6px;
+            ${extraBorder}
+          `;
+
+          const trAdmin = document.createElement('tr');
+          trAdmin.innerHTML = `
+            <td class="rank">👑</td>
+            <td class="name">
+              <span class="nickname" style="${style}">
+                👑 ${u.name || u.username || '(Admin)'}
+              </span>
+              <span class="levelTag">Lv ∞</span>
+            </td>
+            <td class="saldoCell"><span class="rp">Rp</span>∞</td>
+          `;
+          rowsEl.appendChild(trAdmin);
         }
 
-        let border = `1px solid ${u.borderColor || '#000'}`;
-        let extraBorder = '';
-        if (u.borderGradient) {
-          const baseBg = u.bgColor || 'transparent';
-          border = '3px solid transparent';
-          extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
-                         background-origin: border-box;
-                         background-clip: padding-box, border-box;`;
-        }
+        // 2) Ambil top user biasa (ambil lebih dari 10, skip admin, render maksimal 10)
+        //    Ambil 20 untuk jaga-jaga kalau admin ikut di top saldo.
+        const qTop = query(usersRef, orderBy('saldo', 'desc'), limit(20));
+        const snap = await getDocs(qTop);
 
-        const style = `
-          color:${u.color || '#fff'};
-          background:${bg};
-          ${extraAnim}
-          border:${border};
-          border-radius:6px;
-          padding:2px 6px;
-          ${extraBorder}
-        `;
+        let rank = 0;
+        snap.forEach((docu) => {
+          if (docu.id === ADMIN_UID) return; // skip admin
+          if (rank >= 10) return;            // cukup 10 besar
 
-        const trAdmin = document.createElement('tr');
-        trAdmin.innerHTML = `
-          <td class="rank">💀</td>
-          <td class="name">
-            <span class="nickname" style="${style}">
-              👑 ${u.name || u.username || '(Admin)'}
-            </span>
-            <span class="levelTag">Lv ∞</span>
-          </td>
-          <td class="saldoCell"><span class="rp">Rp</span>∞</td>
-        `;
-        rowsEl.appendChild(trAdmin);
+          rank++;
+          const u = docu.data();
+          const tr = document.createElement('tr');
+          const isMe = auth.currentUser && docu.id === auth.currentUser.uid;
+          if (isMe) tr.classList.add('meRow');
+          if (rank === 1) tr.classList.add('top1');
+          if (rank === 2) tr.classList.add('top2');
+          if (rank === 3) tr.classList.add('top3');
+
+          let emblem = '';
+          if (rank === 1) emblem = '🥇 ';
+          else if (rank === 2) emblem = '🥈 ';
+          else if (rank === 3) emblem = '🥉 ';
+
+          let statusClass = 'offline';
+          if (u.lastSeen && typeof u.lastSeen.toMillis === 'function' && (now - u.lastSeen.toMillis()) < 60000) {
+            statusClass = 'online';
+          }
+          const statusDot = `<span class="status-dot ${statusClass}"></span>`;
+
+          const level = calcLevel(u.consumedSaldo || 0);
+
+          let bg = u.bgColor || 'transparent';
+          let extraAnim = '';
+          if (u.bgGradient) {
+            bg = u.bgGradient;
+            extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
+          }
+
+          let border = `1px solid ${u.borderColor || '#000'}`;
+          let extraBorder = '';
+          if (u.borderGradient) {
+            const baseBg = u.bgColor || 'transparent';
+            border = '3px solid transparent';
+            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
+                           background-origin: border-box;
+                           background-clip: padding-box, border-box;`;
+          }
+
+          const style = `
+            color:${u.color || '#fff'};
+            background:${bg};
+            ${extraAnim}
+            border:${border};
+            border-radius:6px;
+            padding:2px 6px;
+            ${extraBorder}
+          `;
+
+          tr.innerHTML = `
+            <td class="rank">${rank}</td>
+            <td class="name">
+              ${statusDot}
+              <span class="nickname" style="${style}">
+                ${emblem}${u.name || u.username || '—'}
+                ${isMe ? '<span class="meTag">Saya</span>' : ''}
+              </span>
+              <span class="levelTag">Lv ${level}</span>
+            </td>
+            <td class="saldoCell"><span class="rp">Rp</span>${fmtRp(u.saldo)}</td>
+          `;
+          rowsEl.appendChild(tr);
+        });
+
+        setUpdated();
+        totalUsers(); // update badge total user
+      } catch (e) {
+        console.error("Gagal ambil ranking:", e);
       }
-
-      // === render user biasa ===
-      snap.forEach((docu) => {
-        if (docu.id === "AxB4G2xwhiXdJnyDrzn82Xanc4x2") return; // skip admin
-
-        rank++;
-        const u = docu.data();
-        const tr = document.createElement('tr');
-        const isMe = auth.currentUser && docu.id === auth.currentUser.uid;
-        if (isMe) tr.classList.add('meRow');
-
-        let emblem = '';
-        if (rank === 1) emblem = '🥇 ';
-        else if (rank === 2) emblem = '🥈 ';
-        else if (rank === 3) emblem = '🥉 ';
-
-        let statusClass = 'offline';
-        if (u.lastSeen && (now - u.lastSeen.toMillis()) < 60000) {
-          statusClass = 'online';
-        }
-        const statusDot = `<span class="status-dot ${statusClass}"></span>`;
-
-        const level = calcLevel(u.consumedSaldo || 0);
-
-        let bg = u.bgColor || 'transparent';
-        let extraAnim = '';
-        if (u.bgGradient) {
-          bg = u.bgGradient;
-          extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
-        }
-
-        let border = `1px solid ${u.borderColor || '#000'}`;
-        let extraBorder = '';
-        if (u.borderGradient) {
-          const baseBg = u.bgColor || 'transparent';
-          border = '3px solid transparent';
-          extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
-                         background-origin: border-box;
-                         background-clip: padding-box, border-box;`;
-        }
-
-        const style = `
-          color:${u.color || '#fff'};
-          background:${bg};
-          ${extraAnim}
-          border:${border};
-          border-radius:6px;
-          padding:2px 6px;
-          ${extraBorder}
-        `;
-
-        tr.innerHTML = `
-          <td class="rank">${rank}</td>
-          <td class="name">
-            ${statusDot}
-            <span class="nickname" style="${style}">
-              ${emblem}${u.name || u.username || '—'}
-              ${isMe ? '<span class="meTag">Saya</span>' : ''}
-            </span>
-            <span class="levelTag">Lv ${level}</span>
-          </td>
-          <td class="saldoCell"><span class="rp">Rp</span>${fmtRp(u.saldo)}</td>
-        `;
-        rowsEl.appendChild(tr);
-      });
-      setUpdated();
-      totalUsers();
-    });
+    }
 
     async function totalUsers(){
       try { 
         const res = await getCountFromServer(usersRef); 
-        totalUsersEl.textContent = (res.data().count - 1) + ' user'; 
+        totalUsersEl.textContent = Math.max(0, (res.data().count - 1)) + ' user'; // -1 untuk exclude admin
       } catch(e){ 
         totalUsersEl.textContent = '—'; 
       }
@@ -332,17 +349,23 @@
       const me = meSnap.data();
       myNameEl.textContent = me.name || me.username || '(Tanpa Nama)';
       mySaldoEl.textContent = fmtRp(me.saldo || 0);
-      const qAbove = query(usersRef, where('saldo', '>', me.saldo || 0));
-      const above = await getCountFromServer(qAbove);
-      let rankMe = (above.data().count || 0);
 
-      const adminRef = doc(db, 'users', "AxB4G2xwhiXdJnyDrzn82Xanc4x2");
-      const admSnap = await getDoc(adminRef);
-      if (admSnap.exists() && (admSnap.data().saldo || 0) > (me.saldo||0)) {
-        rankMe = Math.max(0, rankMe-1);
+      // Hitung rank saya (exclude admin jika saldo admin di atas saya)
+      try {
+        const qAbove = query(usersRef, where('saldo', '>', me.saldo || 0));
+        const above = await getCountFromServer(qAbove);
+        let rankMe = (above.data().count || 0);
+
+        const adminRef = doc(db, 'users', ADMIN_UID);
+        const admSnap = await getDoc(adminRef);
+        if (admSnap.exists() && (admSnap.data().saldo || 0) > (me.saldo||0)) {
+          rankMe = Math.max(0, rankMe-1); // kurangi 1 karena admin tidak dihitung
+        }
+
+        myRankEl.textContent = '#' + (rankMe+1);
+      } catch (e) {
+        myRankEl.textContent = '—';
       }
-
-      myRankEl.textContent = '#' + (rankMe+1);
     }
 
     onAuthStateChanged(auth, (user)=>{
@@ -353,59 +376,66 @@
       }
     });
 
+    // Pertama kali load
+    loadRanking();
+
+    // Polling ranking tiap 60 detik
+    setInterval(loadRanking, 60000);
+
     document.getElementById('refreshBtn').addEventListener('click', ()=>{
       loadMe(auth.currentUser); 
-      setUpdated(); 
+      loadRanking();
     });
   </script>
-<div id="chatContainer"></div>
-<script type="module">
-  fetch("chat.html")
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById("chatContainer").innerHTML = html;
-      import("./chat.js").then(mod => mod.initChat());
-    });
-</script>
 
-<!-- ⬇️ TAMBAHAN: expose fungsi notif ke global (optional, kalau mau panggil manual) -->
-<script type="module">
-  import { showWinNotif } from "./notif.js";
-  window.showWinNotif = showWinNotif;
-</script>
+  <div id="chatContainer"></div>
+  <script type="module">
+    fetch("chat.html")
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById("chatContainer").innerHTML = html;
+        import("./chat.js").then(mod => mod.initChat());
+      });
+  </script>
 
-<!-- ⬇️ TAMBAHAN: listener notifikasi global agar semua user melihat -->
-<script type="module">
-  import { showWinNotif } from "./notif.js";
-  import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc }
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  <!-- ⬇️ TAMBAHAN: expose fungsi notif ke global (optional, kalau mau panggil manual) -->
+  <script type="module">
+    import { showWinNotif } from "./notif.js";
+    window.showWinNotif = showWinNotif;
+  </script>
 
-  const db = getFirestore();
+  <!-- ⬇️ TAMBAHAN: listener notifikasi global agar semua user melihat -->
+  <script type="module">
+    import { showWinNotif } from "./notif.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc }
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  // fallback kalau container belum ada
-  if (!document.getElementById('notifContainer')) {
-    const el = document.createElement('div');
-    el.id = 'notifContainer';
-    document.body.prepend(el);
-  }
+    const db = getFirestore();
 
-  let firstSnapshot = true;
-  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt","desc"), limit(1));
-
-  onSnapshot(qNotifs, (snapshot) => {
-    if (firstSnapshot) {
-      firstSnapshot = false;
-      return; // lewati data historical saat pertama attach
+    // fallback kalau container belum ada
+    if (!document.getElementById('notifContainer')) {
+      const el = document.createElement('div');
+      el.id = 'notifContainer';
+      document.body.prepend(el);
     }
-    snapshot.docChanges().forEach((chg) => {
-      if (chg.type === "added") {
-        const d = chg.doc.data();
-        showWinNotif(String(d?.nickname || "Player"), Number(d?.amount || 0));
-        // hapus dokumen setelah 10 detik supaya notif hanya sekali lewat
-        setTimeout(() => { deleteDoc(chg.doc.ref).catch(()=>{}); }, 10000);
+
+    let firstSnapshot = true;
+    const qNotifs = query(collection(db, "notifs"), orderBy("createdAt","desc"), limit(1));
+
+    onSnapshot(qNotifs, (snapshot) => {
+      if (firstSnapshot) {
+        firstSnapshot = false;
+        return; // lewati data historical saat pertama attach
       }
+      snapshot.docChanges().forEach((chg) => {
+        if (chg.type === "added") {
+          const d = chg.doc.data();
+          showWinNotif(String(d?.nickname || "Player"), Number(d?.amount || 0));
+          // hapus dokumen setelah 10 detik supaya notif hanya sekali lewat
+          setTimeout(() => { deleteDoc(chg.doc.ref).catch(()=>{}); }, 10000);
+        }
+      });
     });
-  });
-</script>
+  </script>
 </body>
 </html>
