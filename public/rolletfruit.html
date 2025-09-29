@@ -218,7 +218,11 @@
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { 
+    getFirestore, doc, onSnapshot, updateDoc, getDoc,
+    /* ⬇️ Tambahan untuk notifikasi global sekali lewat */
+    collection, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   import { initOnlineStatus } from "./online.js";
 
   const firebaseConfig = {
@@ -250,6 +254,7 @@
 
   let userId=null;
   let saldo=0;
+  let nickname="Player"; // ⬅️ Ambil nickname dari Firestore, sama seperti rank.html
   const saldoBox=document.getElementById("saldoBox");
   function updateSaldo(){ saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID"); }
   async function setSaldo(newSaldo){
@@ -271,7 +276,12 @@
       userId=user.uid;
       const userRef=doc(db,"users",userId);
       onSnapshot(userRef,(snap)=>{
-        if(snap.exists()){ saldo=snap.data().saldo||0; updateSaldo(); }
+        if(snap.exists()){ 
+          const data = snap.data();
+          saldo = data.saldo||0; 
+          nickname = data.username || data.name || "Player"; // ✅ nickname mengikuti rank.html
+          updateSaldo(); 
+        }
       });
     } else { window.location.href="index.html"; }
   });
@@ -486,10 +496,23 @@
         if(betsActive[symbol]){
           win=betsActive[symbol]*multiplier;
           setSaldo(saldo+win);
-          // 🔔 Tambahan baru
-if (win > 0) {
-  showWinNotif(auth.currentUser?.displayName || "Player", win);
-}
+
+          // 🔔 Notifikasi lokal + tulis ke Firestore agar semua user melihat
+          if (win > 0) {
+            // tampilkan di klien sendiri (elemen akan terhapus otomatis oleh CSS/JS)
+            window.showWinNotif(nickname, win);
+
+            // simpan event untuk klien lain, lalu hapus otomatis agar "sekali lewat"
+            addDoc(collection(db, "notifs"), {
+              nickname: nickname,
+              amount: win,
+              createdAt: serverTimestamp()
+            })
+            .then(ref => {
+              setTimeout(() => { deleteDoc(ref).catch(()=>{}); }, 7000); // hapus setelah animasi lewat
+            })
+            .catch(()=>{ /* abaikan error penulisan */ });
+          }
         }
         addHistory(symbol,multiplier);
         showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0 ? "\nMenang Rp. "+win.toLocaleString("id-ID") : "\nKalah"));
@@ -513,6 +536,27 @@ if (win > 0) {
   spinBtn.addEventListener("click",spin);
 
   initOnlineStatus();
+
+  /* 👇 Listener global: SEMUA user lihat notif baru, lalu dokumen notif dihapus (sekali lewat) */
+  const notifStartAt = Date.now();              // hanya notif BARU setelah halaman dibuka
+  const shownNotifIds = new Set();              // cegah duplikat
+  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(5));
+  onSnapshot(qNotifs, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === "added") {
+        const data = change.doc.data();
+        const ts = data?.createdAt?.toMillis?.() || 0;
+        if (ts < notifStartAt - 500) return;       // skip notif lama saat reload
+        if (shownNotifIds.has(change.doc.id)) return;
+        shownNotifIds.add(change.doc.id);
+
+        window.showWinNotif(String(data.nickname || "Player"), Number(data.amount || 0));
+
+        // hapus doc setelah lewat animasi di klien ini juga (jaga2 kalau pembuatnya tidak menghapus)
+        setTimeout(() => { deleteDoc(change.doc.ref).catch(()=>{}); }, 7000);
+      }
+    });
+  });
   </script>
 
   <!-- Chat container -->
@@ -526,8 +570,8 @@ if (win > 0) {
       });
   </script>
   <script type="module">
-  import { showWinNotif } from "./notif.js";
-  window.showWinNotif = showWinNotif; // biar bisa dipanggil global
-</script>
+    import { showWinNotif } from "./notif.js";
+    window.showWinNotif = showWinNotif; // biar bisa dipanggil global
+  </script>
 </body>
 </html>
