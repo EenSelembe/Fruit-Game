@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home - Fruit Game</title>
+  <!-- ⬇️ Tambahan: css notif -->
+  <link rel="stylesheet" href="notif.css">
   <style>
     body {
       margin: 0;
@@ -105,6 +107,9 @@
   </style>
 </head>
 <body>
+  <!-- ⬇️ Tambahan: container notif -->
+  <div id="notifContainer"></div>
+
   <h1>FRUIT GAME</h1>
 
   <div class="profile-box">
@@ -281,9 +286,50 @@
       import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
     });
 </script>
-  <script type="module">
+<script type="module">
   import { initDM } from "./dm.js";
   initDM();
-  </script>
+</script>
+
+<!-- ⬇️ Tambahan: listener notifikasi global agar terlihat di Home -->
+<script type="module">
+  import { showWinNotif } from "./notif.js";
+  import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc } 
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const db = getFirestore(); // gunakan default app yang sudah di-init di script sebelumnya
+
+  // Pastikan container ada (fallback kalau elemen belum ada)
+  if (!document.getElementById('notifContainer')) {
+    const el = document.createElement('div');
+    el.id = 'notifContainer';
+    document.body.prepend(el);
+  }
+
+  // Skip histori saat halaman baru dibuka, tampilkan hanya notifikasi yang benar-benar baru
+  let firstSnapshot = true;
+  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+
+  onSnapshot(qNotifs, (snapshot) => {
+    if (firstSnapshot) {
+      firstSnapshot = false;
+      return; // lewati snapshot awal (riwayat)
+    }
+
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === "added") {
+        const d = change.doc.data();
+        const name = String(d?.nickname || "Player");
+        const amount = Number(d?.amount || 0);
+
+        // tampilkan notif berjalan di Home
+        showWinNotif(name, amount);
+
+        // hapus dokumen setelah 10 detik agar "sekali lewat"
+        setTimeout(() => { deleteDoc(change.doc.ref).catch(()=>{}); }, 10000);
+      }
+    });
+  });
+</script>
 </body>
 </html>
