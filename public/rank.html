@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>🏆 Peringkat Saldo</title>
+  <!-- ⬇️ TAMBAHAN: CSS notifikasi berjalan -->
+  <link rel="stylesheet" href="notif.css">
   <style>
     :root {
       --bg: #0c0f14;
@@ -97,6 +99,9 @@
   </style>
 </head>
 <body>
+  <!-- ⬇️ TAMBAHAN: container untuk notif global -->
+  <div id="notifContainer"></div>
+
   <div class="wrap">
     <header class="head">
       <div class="title">
@@ -361,6 +366,46 @@
       document.getElementById("chatContainer").innerHTML = html;
       import("./chat.js").then(mod => mod.initChat());
     });
+</script>
+
+<!-- ⬇️ TAMBAHAN: expose fungsi notif ke global (optional, kalau mau panggil manual) -->
+<script type="module">
+  import { showWinNotif } from "./notif.js";
+  window.showWinNotif = showWinNotif;
+</script>
+
+<!-- ⬇️ TAMBAHAN: listener notifikasi global agar semua user melihat -->
+<script type="module">
+  import { showWinNotif } from "./notif.js";
+  import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc }
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const db = getFirestore();
+
+  // fallback kalau container belum ada
+  if (!document.getElementById('notifContainer')) {
+    const el = document.createElement('div');
+    el.id = 'notifContainer';
+    document.body.prepend(el);
+  }
+
+  let firstSnapshot = true;
+  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt","desc"), limit(1));
+
+  onSnapshot(qNotifs, (snapshot) => {
+    if (firstSnapshot) {
+      firstSnapshot = false;
+      return; // lewati data historical saat pertama attach
+    }
+    snapshot.docChanges().forEach((chg) => {
+      if (chg.type === "added") {
+        const d = chg.doc.data();
+        showWinNotif(String(d?.nickname || "Player"), Number(d?.amount || 0));
+        // hapus dokumen setelah 10 detik supaya notif hanya sekali lewat
+        setTimeout(() => { deleteDoc(chg.doc.ref).catch(()=>{}); }, 10000);
+      }
+    });
+  });
 </script>
 </body>
 </html>
