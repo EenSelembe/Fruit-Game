@@ -486,6 +486,10 @@
         if(betsActive[symbol]){
           win=betsActive[symbol]*multiplier;
           setSaldo(saldo+win);
+          // 🔔 Tambahan baru
+if (win > 0) {
+  showWinNotif(auth.currentUser?.displayName || "Player", win);
+}
         }
         addHistory(symbol,multiplier);
         showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0 ? "\nMenang Rp. "+win.toLocaleString("id-ID") : "\nKalah"));
@@ -521,5 +525,9 @@
         import("./chat.js").then(mod => mod.initChat());
       });
   </script>
+  <script type="module">
+  import { showWinNotif } from "./notif.js";
+  window.showWinNotif = showWinNotif; // biar bisa dipanggil global
+</script>
 </body>
 </html>
