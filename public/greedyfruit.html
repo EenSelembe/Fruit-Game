@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Greedy Fruit</title>
+  <!-- ⬇️ Tambahan: CSS notif -->
+  <link rel="stylesheet" href="notif.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -128,6 +130,8 @@
 </head>
   
 <body>
+  <!-- ⬇️ Tambahan: container notif -->
+  <div id="notifContainer"></div>
 
   <!-- AUDIO -->
   <audio id="backsound" loop autoplay>
@@ -208,7 +212,11 @@
     import { increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, updateDoc, onSnapshot, collection, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { 
+      getFirestore, doc, updateDoc, onSnapshot, collection, query, where, getCountFromServer,
+      /* ⬇️ Tambahan impor Firestore yang dibutuhkan notif */
+      addDoc, serverTimestamp, orderBy, limit, deleteDoc
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initOnlineStatus } from "./online.js";
 
     const firebaseConfig = {
@@ -237,14 +245,14 @@
       { icon: "🍏", multi: 5,  weight: 192, type: "fruit" },
 
       // FOODS
-      { icon: "🌭", multi: 10, weight: 80, type: "food" }, // Hotdog 11.8%
-      { icon: "🍔", multi: 15, weight: 60,  type: "food" }, // Burger 8.8%
-      { icon: "🍖", multi: 25, weight: 50,  type: "food" }, // 6%
-      { icon: "🥩", multi: 45, weight: 30,  type: "food" }, // 3.5%
+      { icon: "🌭", multi: 10, weight: 80, type: "food" },
+      { icon: "🍔", multi: 15, weight: 60,  type: "food" },
+      { icon: "🍖", multi: 25, weight: 50,  type: "food" },
+      { icon: "🥩", multi: 45, weight: 30,  type: "food" },
 
       // JACKPOTS
-      { icon: "🥗", multi: 0,  weight: 7,  type: "jackpot-fruit" }, // 1%
-      { icon: "🍲", multi: 0,  weight: 5,   type: "jackpot-food" }   // 0.5%
+      { icon: "🥗", multi: 0,  weight: 7,  type: "jackpot-fruit" },
+      { icon: "🍲", multi: 0,  weight: 5,  type: "jackpot-food" }
     ];
 
     const reel = document.getElementById("reel");
@@ -266,6 +274,10 @@
     let betTextRefs = [];
     let globalBet = 500, saldo = 0, spinning = false;
     let canBet = true, userDocRef = null;
+
+    // ⬇️ Tambahan: simpan nickname saat ini dari dokumen user
+    let currentNick = "Player";
+
     updateBetDisplay();
     
     // === Firebase sync saldo ===
@@ -274,7 +286,9 @@
         userDocRef = doc(db, "users", user.uid);
         onSnapshot(userDocRef, (snap) => {
           if (snap.exists()) {
-            saldo = snap.data().saldo || 0;
+            const data = snap.data();
+            saldo = data.saldo || 0;
+            currentNick = data.name || data.username || (auth.currentUser?.displayName) || "Player";
             updateSaldo();
           }
         });
@@ -313,25 +327,24 @@
       div.appendChild(betText); betTextRefs[index] = betText;
 
       // Taruhan per cell
-      
-div.addEventListener("click", async ()=>{
-  if (!canBet) return;
-  if (saldo >= globalBet){
-    saldo -= globalBet; 
-    bets[index] += globalBet;
-    betText.innerHTML = `<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
-    updateSaldo(); 
-    updateTotalBet();
+      div.addEventListener("click", async ()=>{
+        if (!canBet) return;
+        if (saldo >= globalBet){
+          saldo -= globalBet; 
+          bets[index] += globalBet;
+          betText.innerHTML = `<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
+          updateSaldo(); 
+          updateTotalBet();
 
-    // 🔥 update saldo & konsumsi
-    await updateDoc(userDocRef, {
-      saldo: saldo,
-      consumedSaldo: increment(globalBet)  // << ini yang nambah konsumsi
-    });
-  } else {
-    alert("Saldo tidak cukup!");
-  }
-});
+          // 🔥 update saldo & konsumsi
+          await updateDoc(userDocRef, {
+            saldo: saldo,
+            consumedSaldo: increment(globalBet)  // << ini yang nambah konsumsi
+          });
+        } else {
+          alert("Saldo tidak cukup!");
+        }
+      });
     });
 
     function rollSymbol(){
@@ -410,6 +423,26 @@ div.addEventListener("click", async ()=>{
           updateSaldo(); 
           showWin(totalWin);
           await saveBalance();
+
+          // ⬇️ Tambahan: notif lokal + broadcast ke Firestore 'notifs' (sekali lewat)
+          try {
+            // tampilkan langsung di klien sendiri
+            window.showWinNotif(currentNick, totalWin);
+
+            // tulis dokumen notifikasi ke Firestore agar semua klien lain juga melihat
+            addDoc(collection(db, "notifs"), {
+              nickname: currentNick,
+              amount: totalWin,
+              createdAt: serverTimestamp()
+            })
+            .then(ref => {
+              // hapus setelah 10 detik supaya sekali lewat
+              setTimeout(() => { deleteDoc(ref).catch(()=>{}); }, 10000);
+            })
+            .catch(()=>{});
+          } catch (e) {
+            // abaikan error notif
+          }
         }
 
         // clear bets setelah 2 detik
@@ -457,16 +490,57 @@ div.addEventListener("click", async ()=>{
 
     // mulai pertama
     startCountdown();
-     initOnlineStatus();
+    initOnlineStatus();
   </script>
-<div id="chatContainer"></div>
-<script type="module">
-  fetch("chat.html")
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById("chatContainer").innerHTML = html;
-      import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
+
+  <div id="chatContainer"></div>
+  <script type="module">
+    fetch("chat.html")
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById("chatContainer").innerHTML = html;
+        import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
+      });
+  </script>
+
+  <!-- ⬇️ Tambahan: expose showWinNotif ke global window -->
+  <script type="module">
+    import { showWinNotif } from "./notif.js";
+    window.showWinNotif = showWinNotif;
+  </script>
+
+  <!-- ⬇️ Tambahan: listener global notifs agar semua user melihat -->
+  <script type="module">
+    import { showWinNotif } from "./notif.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    const db = getFirestore();
+
+    // fallback kalau container belum ada
+    if (!document.getElementById('notifContainer')) {
+      const el = document.createElement('div');
+      el.id = 'notifContainer';
+      document.body.prepend(el);
+    }
+
+    let firstSnapshot = true;
+    const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+
+    onSnapshot(qNotifs, (snapshot) => {
+      if (firstSnapshot) {
+        firstSnapshot = false;
+        return; // lewati riwayat awal
+      }
+
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const d = change.doc.data();
+          showWinNotif(String(d?.nickname || "Player"), Number(d?.amount || 0));
+          setTimeout(() => { deleteDoc(change.doc.ref).catch(()=>{}); }, 10000);
+        }
+      });
     });
-</script>
+  </script>
 </body>
 </html>
