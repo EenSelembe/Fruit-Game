@@ -247,7 +247,6 @@
         }
 
         // 2) Ambil top user biasa (ambil lebih dari 10, skip admin, render maksimal 10)
-        //    Ambil 20 untuk jaga-jaga kalau admin ikut di top saldo.
         const qTop = query(usersRef, orderBy('saldo', 'desc'), limit(20));
         const snap = await getDocs(qTop);
 
@@ -404,13 +403,14 @@
     window.showWinNotif = showWinNotif;
   </script>
 
-  <!-- ⬇️ TAMBAHAN: listener notifikasi global agar semua user melihat -->
+  <!-- ⬇️ NOTIFIKASI HEMAT: polling 60 detik, tanpa hapus dokumen, hanya > 1 jt, gunakan expire -->
   <script type="module">
     import { showWinNotif } from "./notif.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc }
-      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import {
+      getFirestore, collection, query, orderBy, limit, getDocs
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const db = getFirestore();
+    const db = getFirestore(); // default app sudah di-init di atas
 
     // fallback kalau container belum ada
     if (!document.getElementById('notifContainer')) {
@@ -419,22 +419,79 @@
       document.body.prepend(el);
     }
 
-    let firstSnapshot = true;
-    const qNotifs = query(collection(db, "notifs"), orderBy("createdAt","desc"), limit(1));
+    const LS_KEY = "notif:lastId";
+    let lastId = localStorage.getItem(LS_KEY) || null;
+    let firstRunDone = false;
+    const INTERVAL_MS = 60000;     // 60 detik
+    const TTL_FALLBACK_MS = 5 * 60 * 1000; // 5 menit jika tidak ada expiredAt
 
-    onSnapshot(qNotifs, (snapshot) => {
-      if (firstSnapshot) {
-        firstSnapshot = false;
-        return; // lewati data historical saat pertama attach
+    function isExpired(d) {
+      const now = Date.now();
+      // Prioritas: expiredAt (Timestamp)
+      if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') {
+        return d.expiredAt.toMillis() <= now;
       }
-      snapshot.docChanges().forEach((chg) => {
-        if (chg.type === "added") {
-          const d = chg.doc.data();
-          showWinNotif(String(d?.nickname || "Player"), Number(d?.amount || 0));
-          // hapus dokumen setelah 10 detik supaya notif hanya sekali lewat
-          setTimeout(() => { deleteDoc(chg.doc.ref).catch(()=>{}); }, 10000);
+      // Fallback: createdAt lebih dari TTL_FALLBACK_MS yang lalu
+      if (d?.createdAt && typeof d.createdAt.toMillis === 'function') {
+        return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
+      }
+      return false;
+    }
+
+    async function pollNotif() {
+      // Hemat: jangan query kalau tab tidak terlihat
+      if (document.hidden) return;
+
+      try {
+        const q = query(
+          collection(db, "notifs"),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+
+        const snap = await getDocs(q);
+        if (snap.empty) return;
+
+        const docu = snap.docs[0];
+        const d = docu.data();
+
+        // Skip historis saat pertama load halaman
+        if (!firstRunDone) {
+          firstRunDone = true;
+          lastId = docu.id;
+          localStorage.setItem(LS_KEY, lastId);
+          return;
         }
-      });
+
+        // Hanya notif baru
+        if (docu.id === lastId) return;
+
+        // Validasi expire & threshold > 1.000.000
+        const name = String(d?.nickname || "Player");
+        const amount = Number(d?.amount || 0);
+
+        if (!isExpired(d) && amount > 1000000) {
+          showWinNotif(name, amount);
+        }
+
+        // Simpan lastId apapun hasilnya agar tidak spam
+        lastId = docu.id;
+        localStorage.setItem(LS_KEY, lastId);
+      } catch (e) {
+        // Diamkan agar tidak ganggu UX saat quota/jaringan bermasalah
+        // console.warn("Notif poll error:", e);
+      }
+    }
+
+    // Jalan pertama kali
+    pollNotif();
+
+    // Polling interval
+    setInterval(pollNotif, INTERVAL_MS);
+
+    // Saat tab kembali terlihat, cek sekali
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) pollNotif();
     });
   </script>
 </body>
