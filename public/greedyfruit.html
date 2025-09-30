@@ -10,7 +10,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100vw; height: 100vh;
-      background: url("public/image/wallpaper-07.jpg")no-repeat center center fixed; 
+      background: url("public/image/wallpaper-07.jpg") no-repeat center center fixed; 
       font-family: Arial, sans-serif; 
       color: #fff;
       display: flex; flex-direction: column; align-items: center;
@@ -215,7 +215,7 @@
     import { 
       getFirestore, doc, updateDoc, onSnapshot, collection, query, where, getCountFromServer,
       /* ⬇️ Tambahan impor Firestore yang dibutuhkan notif */
-      addDoc, serverTimestamp, orderBy, limit, deleteDoc
+      addDoc, serverTimestamp, orderBy, limit
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initOnlineStatus } from "./online.js";
 
@@ -234,9 +234,6 @@
     const db = getFirestore(app);
 
     // ====== SYMBOLS & PROBABILITAS (TOTAL 1000) ======
-    // Buah rata (dengan penyesuaian terakhir): 171,171,171,172
-    // Hotdog -2, Burger -1 → poin masuk ke buah agar rata naik
-    // Jackpot: 🥗 1% (10), 🍲 0.5% (5)
     const SYMBOLS = [
       // FRUITS
       { icon: "🍒", multi: 5,  weight: 192, type: "fruit" },
@@ -303,13 +300,12 @@
 
     // Weighted random berdasarkan weight
     function getWeightedRandomSymbol() {
-      const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0); // 1000
+      const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
       let rand = Math.random() * totalWeight;
       for (let i = 0; i < SYMBOLS.length; i++) {
         if (rand < SYMBOLS[i].weight) return { index: i, symbol: SYMBOLS[i] };
         rand -= SYMBOLS[i].weight;
       }
-      // fallback
       return { index: SYMBOLS.length-1, symbol: SYMBOLS[SYMBOLS.length-1] };
     }
 
@@ -339,7 +335,7 @@
           // 🔥 update saldo & konsumsi
           await updateDoc(userDocRef, {
             saldo: saldo,
-            consumedSaldo: increment(globalBet)  // << ini yang nambah konsumsi
+            consumedSaldo: increment(globalBet)
           });
         } else {
           alert("Saldo tidak cukup!");
@@ -393,7 +389,7 @@
         const resultType = result.type;
 
         if (resultType === "jackpot-fruit") {
-          // Semua taruhan di FRUIT menang (sesuai multiplier masing-masing)
+          // Semua taruhan di FRUIT menang
           bets.forEach((bet, idx) => {
             if (bet > 0 && SYMBOLS[idx].type === "fruit") {
               totalWin += bet * SYMBOLS[idx].multi;
@@ -424,22 +420,21 @@
           showWin(totalWin);
           await saveBalance();
 
-          // ⬇️ Tambahan: notif lokal + broadcast ke Firestore 'notifs' (sekali lewat)
+          // ⬇️ NOTIF HEMAT: tampil & broadcast hanya jika ≥ 1.000.000, tanpa deleteDoc
           try {
-            // tampilkan langsung di klien sendiri
-            window.showWinNotif(currentNick, totalWin);
+            if (totalWin >= 1000000) {
+              // tampilkan di klien sendiri
+              window.showWinNotif(currentNick, totalWin);
 
-            // tulis dokumen notifikasi ke Firestore agar semua klien lain juga melihat
-            addDoc(collection(db, "notifs"), {
-              nickname: currentNick,
-              amount: totalWin,
-              createdAt: serverTimestamp()
-            })
-            .then(ref => {
-              // hapus setelah 10 detik supaya sekali lewat
-              setTimeout(() => { deleteDoc(ref).catch(()=>{}); }, 10000);
-            })
-            .catch(()=>{});
+              // tulis dokumen notifikasi ke Firestore agar klien lain melihat (TTL bisa via aturan Firestore)
+              await addDoc(collection(db, "notifs"), {
+                nickname: currentNick,
+                amount: totalWin,
+                createdAt: serverTimestamp()
+                // optional: tambahkan expiredAt bila TTL diaktifkan pada koleksi
+                // expiredAt: Timestamp.fromDate(new Date(Date.now() + 5*60*1000))
+              });
+            }
           } catch (e) {
             // abaikan error notif
           }
@@ -509,11 +504,12 @@
     window.showWinNotif = showWinNotif;
   </script>
 
-  <!-- ⬇️ Tambahan: listener global notifs agar semua user melihat -->
+  <!-- ⬇️ NOTIF HEMAT: listener global pakai POLLING 60s, tanpa deleteDoc, hanya amount > 1 jt -->
   <script type="module">
     import { showWinNotif } from "./notif.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc } 
-      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import {
+      getFirestore, collection, query, orderBy, limit, getDocs
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const db = getFirestore();
 
@@ -524,22 +520,72 @@
       document.body.prepend(el);
     }
 
-    let firstSnapshot = true;
-    const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+    // Simpel anti-duplikat
+    const LS_KEY = "notif:lastId";
+    let lastId = localStorage.getItem(LS_KEY) || null;
+    let first = true;
+    const INTERVAL_MS = 60000; // 60 detik
+    const TTL_FALLBACK_MS = 5 * 60 * 1000; // 5 menit
 
-    onSnapshot(qNotifs, (snapshot) => {
-      if (firstSnapshot) {
-        firstSnapshot = false;
-        return; // lewati riwayat awal
+    function isExpired(d) {
+      const now = Date.now();
+      if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') {
+        return d.expiredAt.toMillis() <= now;
       }
+      if (d?.createdAt && typeof d.createdAt.toMillis === 'function') {
+        return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
+      }
+      return false;
+    }
 
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const d = change.doc.data();
-          showWinNotif(String(d?.nickname || "Player"), Number(d?.amount || 0));
-          setTimeout(() => { deleteDoc(change.doc.ref).catch(()=>{}); }, 10000);
+    async function pollNotif() {
+      // hemat: skip kalau tab sedang tidak aktif
+      if (document.hidden) return;
+
+      try {
+        const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+        const snap = await getDocs(qNotifs);
+        if (snap.empty) return;
+
+        const docu = snap.docs[0];
+        const data = docu.data();
+
+        // Lewati histori pada load awal
+        if (first) {
+          first = false;
+          lastId = docu.id;
+          localStorage.setItem(LS_KEY, lastId);
+          return;
         }
-      });
+
+        // Hanya kalau ada dok baru
+        if (docu.id === lastId) return;
+
+        const amount = Number(data?.amount || 0);
+        const name = String(data?.nickname || "Player");
+
+        // Hanya tampil jika amount > 1 jt dan belum expired
+        if (amount > 1000000 && !isExpired(data)) {
+          showWinNotif(name, amount);
+        }
+
+        // simpan last id agar tidak mengulang
+        lastId = docu.id;
+        localStorage.setItem(LS_KEY, lastId);
+      } catch (e) {
+        // diamkan agar UX tidak terganggu
+      }
+    }
+
+    // jalan awal
+    pollNotif();
+
+    // interval polling
+    setInterval(pollNotif, INTERVAL_MS);
+
+    // kalau tab kembali aktif, cek sekali
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) pollNotif();
     });
   </script>
 </body>
