@@ -136,13 +136,13 @@
     </div>
     <div class="game-card">
       <h2>Greedy Fruit</h2>
-      <img src="https://api.imghippo.com/files/Ik3628oqo.png">
+      <img src="https://api.imghippo.com/files/Ik3628oqo.png" alt="Greedy Fruit">
       <br>
       <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>
     </div>
     <div class="game-card">
       <h2>Rollet Fruit</h2>
-      <img src="https://api.imghippo.com/files/QA7164oVg.png">
+      <img src="https://api.imghippo.com/files/QA7164oVg.png" alt="Rollet Fruit">
       <br>
       <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>
     </div>
@@ -183,13 +183,11 @@
   function calcLevel(consumedSaldo) {
     let level = 0;
     let nextNeed = 100000; // Level 1 butuh 100rb
-
     while (consumedSaldo >= nextNeed) {
-      consumedSaldo -= nextNeed;   // kurangi saldo konsumsi dengan kebutuhan saat ini
-      level++;                     // naik level
-      nextNeed += 100000;          // level berikutnya makin mahal
+      consumedSaldo -= nextNeed;
+      level++;
+      nextNeed += 100000;
     }
-
     return level;
   }
 
@@ -293,10 +291,10 @@
   initDM();
 </script>
 
-<!-- ⬇️ Tambahan: listener notifikasi global agar terlihat di Home -->
+<!-- ⬇️ NOTIF GLOBAL: versi hemat (polling 60s, tanpa deleteDoc, hanya amount ≥ 1jt) -->
 <script type="module">
   import { showWinNotif } from "./notif.js";
-  import { getFirestore, collection, query, orderBy, limit, onSnapshot, deleteDoc } 
+  import { getFirestore, collection, query, orderBy, limit, getDocs }
     from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const db = getFirestore(); // gunakan default app yang sudah di-init di script sebelumnya
@@ -308,29 +306,64 @@
     document.body.prepend(el);
   }
 
-  // Skip histori saat halaman baru dibuka, tampilkan hanya notifikasi yang benar-benar baru
-  let firstSnapshot = true;
-  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+  const LS_KEY = "notif:lastId";
+  let lastId = localStorage.getItem(LS_KEY) || null;
+  let firstPoll = true;
+  const INTERVAL_MS = 60000;           // 60 detik (hemat)
+  const TTL_FALLBACK_MS = 5 * 60 * 1000; // 5 menit (jaga-jaga kalau belum set expiredAt)
 
-  onSnapshot(qNotifs, (snapshot) => {
-    if (firstSnapshot) {
-      firstSnapshot = false;
-      return; // lewati snapshot awal (riwayat)
+  function isExpired(d) {
+    const now = Date.now();
+    if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') {
+      return d.expiredAt.toMillis() <= now;
     }
+    if (d?.createdAt && typeof d.createdAt.toMillis === 'function') {
+      return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
+    }
+    return false;
+  }
 
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === "added") {
-        const d = change.doc.data();
-        const name = String(d?.nickname || "Player");
-        const amount = Number(d?.amount || 0);
+  async function pollNotifs() {
+    if (document.hidden) return; // skip saat tab tidak aktif (hemat)
+    try {
+      const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+      const snap = await getDocs(qNotifs);
+      if (snap.empty) return;
 
-        // tampilkan notif berjalan di Home
-        showWinNotif(name, amount);
+      const docu = snap.docs[0];
+      const data = docu.data();
 
-        // hapus dokumen setelah 10 detik agar "sekali lewat"
-        setTimeout(() => { deleteDoc(change.doc.ref).catch(()=>{}); }, 10000);
+      // Lewati histori pada load awal
+      if (firstPoll) {
+        firstPoll = false;
+        lastId = docu.id;
+        localStorage.setItem(LS_KEY, lastId);
+        return;
       }
-    });
+
+      // Sudah ditampilkan
+      if (docu.id === lastId) return;
+
+      const name = String(data?.nickname || "Player");
+      const amount = Number(data?.amount || 0);
+
+      // Tampilkan hanya jika ≥ 1jt dan belum expired
+      if (amount >= 1000000 && !isExpired(data)) {
+        showWinNotif(name, amount);
+      }
+
+      lastId = docu.id;
+      localStorage.setItem(LS_KEY, lastId);
+    } catch (e) {
+      // diamkan agar UX tidak terganggu
+    }
+  }
+
+  // jalan pertama + interval
+  pollNotifs();
+  setInterval(pollNotifs, INTERVAL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) pollNotifs();
   });
 </script>
 </body>
