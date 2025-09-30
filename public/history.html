@@ -58,8 +58,13 @@
       background: orange;
     }
   </style>
+  <!-- Notif CSS opsional kalau dipakai global -->
+  <link rel="stylesheet" href="notif.css">
 </head>
 <body>
+  <!-- Container notif global -->
+  <div id="notifContainer"></div>
+
   <h1>History Transfer</h1>
   <div class="container">
     <table>
@@ -81,61 +86,41 @@
   <a href="home.html" class="btn">🏠 Home</a>
   <a href="transfer.html" class="btn">⬅️ Kembali</a>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK + History (HEMAT: polling) -->
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import {
-    getFirestore, collection, onSnapshot, query, where
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import {
+      getFirestore, collection, query, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { initOnlineStatus } from "./online.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    initOnlineStatus();
 
-  const tbody = document.getElementById("historyTable");
+    const tbody = document.getElementById("historyTable");
 
-  onAuthStateChanged(auth, (user) => {
-    if (!user) { 
-      window.location.href = "index.html"; 
-      return; 
-    }
-
-    const email = user.email?.toLowerCase();
-    const col = collection(db, "transfers");
-
-    const qFrom = query(col, where("from", "==", email));
-    const qTo   = query(col, where("to", "==", email));
-
-    let dataFrom = [];
-    let dataTo   = [];
-
-    const render = () => {
-      const all = [...dataFrom, ...dataTo];
-
-      if (!all.length) {
+    function renderRows(rows) {
+      if (!rows.length) {
         tbody.innerHTML = "<tr><td colspan='4'>Belum ada history transfer</td></tr>";
         return;
       }
-
-      // urutkan desc berdasarkan timestamp
-      all.sort((a, b) => b.ts - a.ts);
-
-      tbody.innerHTML = all.map(row => {
+      tbody.innerHTML = rows.map(row => {
         const nominal = row.nominal || 0;
         const dateStr = new Date(row.ts).toLocaleString("id-ID");
         const kelas = row.keterangan === "Transfer" ? "status-transfer" : "status-terima";
-
         return `
           <tr>
             <td>${row.emailLawannya}</td>
@@ -145,46 +130,163 @@
           </tr>
         `;
       }).join("");
-    };
+    }
 
-    onSnapshot(qFrom, (snap) => {
-      dataFrom = snap.docs.map(d => {
-        const x = d.data();
-        const ts = x.date?.seconds ? x.date.seconds * 1000 : Date.now();
-        return {
-          nominal: x.nominal || 0,
-          ts,
-          emailLawannya: x.to,
-          keterangan: "Transfer"
-        };
-      });
-      render();
-    });
+    async function fetchHistory(email) {
+      try {
+        const col = collection(db, "transfers");
+        const qFrom = query(col, where("from", "==", email));
+        const qTo   = query(col, where("to", "==", email));
 
-    onSnapshot(qTo, (snap) => {
-      dataTo = snap.docs.map(d => {
-        const x = d.data();
-        const ts = x.date?.seconds ? x.date.seconds * 1000 : Date.now();
-        return {
-          nominal: x.nominal || 0,
-          ts,
-          emailLawannya: x.from,
-          keterangan: "Terima"
-        };
+        const [fromSnap, toSnap] = await Promise.all([getDocs(qFrom), getDocs(qTo)]);
+
+        const dataFrom = fromSnap.docs.map(d => {
+          const x = d.data();
+          const ts = x.date?.seconds ? x.date.seconds * 1000 : Date.now();
+          return {
+            nominal: x.nominal || 0,
+            ts,
+            emailLawannya: x.to,
+            keterangan: "Transfer"
+          };
+        });
+
+        const dataTo = toSnap.docs.map(d => {
+          const x = d.data();
+          const ts = x.date?.seconds ? x.date.seconds * 1000 : Date.now();
+          return {
+            nominal: x.nominal || 0,
+            ts,
+            emailLawannya: x.from,
+            keterangan: "Terima"
+          };
+        });
+
+        const all = [...dataFrom, ...dataTo].sort((a, b) => b.ts - a.ts);
+        renderRows(all);
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4">Gagal memuat data.</td></tr>`;
+      }
+    }
+
+    let POLL_ID = null;
+    const INTERVAL_MS = 60000; // 60 detik
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      const email = (user.email || "").toLowerCase();
+
+      // load awal
+      fetchHistory(email);
+
+      // polling hemat
+      if (POLL_ID) clearInterval(POLL_ID);
+      POLL_ID = setInterval(() => {
+        // hemat: skip ketika tab tidak aktif
+        if (!document.hidden) fetchHistory(email);
+      }, INTERVAL_MS);
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) fetchHistory(email);
       });
-      render();
     });
-  });
-    import { initOnlineStatus } from "./online.js"; initOnlineStatus();
   </script>
-<div id="chatContainer"></div>
-<script type="module">
-  fetch("chat.html")
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById("chatContainer").innerHTML = html;
-      import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
+
+  <!-- Chat embed -->
+  <div id="chatContainer"></div>
+  <script type="module">
+    fetch("chat.html")
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById("chatContainer").innerHTML = html;
+        import("./chat.js").then(mod => mod.initChat());
+      });
+  </script>
+
+  <!-- Expose showWinNotif (jika dipakai di halaman ini) -->
+  <script type="module">
+    import { showWinNotif } from "./notif.js";
+    window.showWinNotif = showWinNotif;
+  </script>
+
+  <!-- NOTIF HEMAT: polling 60s, tanpa deleteDoc, hanya amount > 1 jt -->
+  <script type="module">
+    import { showWinNotif } from "./notif.js";
+    import {
+      getFirestore, collection, query, orderBy, limit, getDocs
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    const db = getFirestore();
+
+    // fallback container
+    if (!document.getElementById('notifContainer')) {
+      const el = document.createElement('div');
+      el.id = 'notifContainer';
+      document.body.prepend(el);
+    }
+
+    const LS_KEY = "notif:lastId";
+    let lastId = localStorage.getItem(LS_KEY) || null;
+    let first = true;
+    const INTERVAL_MS = 60000;       // 60 detik
+    const TTL_FALLBACK_MS = 5 * 60 * 1000; // 5 menit
+
+    function isExpired(d) {
+      const now = Date.now();
+      if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') {
+        return d.expiredAt.toMillis() <= now;
+      }
+      if (d?.createdAt && typeof d.createdAt.toMillis === 'function') {
+        return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
+      }
+      return false;
+    }
+
+    async function pollNotif() {
+      if (document.hidden) return; // hemat
+
+      try {
+        const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+        const snap = await getDocs(qNotifs);
+        if (snap.empty) return;
+
+        const docu = snap.docs[0];
+        const data = docu.data();
+
+        // lewati histori saat load awal
+        if (first) {
+          first = false;
+          lastId = docu.id;
+          localStorage.setItem(LS_KEY, lastId);
+          return;
+        }
+
+        if (docu.id === lastId) return;
+
+        const amount = Number(data?.amount || 0);
+        const name = String(data?.nickname || "Player");
+
+        if (amount >= 1000000 && !isExpired(data)) {
+          showWinNotif(name, amount);
+        }
+
+        lastId = docu.id;
+        localStorage.setItem(LS_KEY, lastId);
+      } catch (e) {
+        // diamkan agar UX tidak terganggu
+      }
+    }
+
+    // jalan awal & interval
+    pollNotif();
+    setInterval(pollNotif, INTERVAL_MS);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) pollNotif();
     });
-</script>
+  </script>
 </body>
 </html>
+```0
