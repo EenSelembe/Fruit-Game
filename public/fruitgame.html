@@ -180,6 +180,21 @@
     .overlay-win{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffd700;font-size:2rem;font-weight:bold;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.6s ease;text-align:center;}
     .overlay-win.show{opacity:1;pointer-events:auto;}
     .overlay-win .amount{font-size:3rem;margin-top:10px;text-shadow:0 0 10px gold,0 0 20px orange;}
+
+    /* 🔥 Mini Rank Game (hemat) */
+    .rank-game-box{
+      margin:10px auto;
+      padding:10px;
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      width:100%;
+      max-width:320px;
+      font-size:13px;
+    }
+    .rank-game-box h3{margin:0 0 8px; text-align:center;}
+    .rank-game-box ol{margin:0; padding-left:18px;}
+    .rank-game-box li{margin:3px 0;}
   </style>
 </head>
 <body>
@@ -257,6 +272,12 @@
     <button id="confirmNo">Tidak</button>
   </div>
 </div>
+
+  <!-- 🔥 Mini Rank Game: Top 5 pemenang terbanyak (hemat) -->
+  <div id="rankGameBox" class="rank-game-box">
+    <h3>🏆 Top 5 Pemenang (Game Ini)</h3>
+    <ol id="rankGameList"><li>Memuat...</li></ol>
+  </div>
 
   <!-- BAGIAN JS -->
   
@@ -400,7 +421,7 @@ autoMinus.addEventListener("click",()=>{
     function getRandomFruit(colIndex){ if(inScatterMode){ if(colIndex===2) return "⭐"; const pool=FRUITS.filter(v=>v!=="⭐"); return pool[Math.floor(Math.random()*pool.length)]; } return FRUITS[Math.floor(Math.random()*FRUITS.length)]; }
     function makeTile(fruit){ const tile=document.createElement("div"); tile.className="tile"; const value=valOf(fruit); if(value==="⭐") tile.classList.add("wild"); if(value==="🔔") tile.classList.add("scatter"); tile.textContent=value; return tile; }
 
-    for(let c=0;c<COLS;c++){ const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c; const container=document.createElement("div"); container.className="symbols"; for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); } reel.appendChild(container); board.appendChild(reel); }
+    for(let c=0;c<COLS;c++){ const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c; const container=document.createElement("div"); container.className="symbols"; for(let r=0;r<ROWS;r'){ container.appendChild(makeTile(getRandomFruit(c))); } reel.appendChild(container); board.appendChild(reel); }
 
 // ====== AUDIO SYSTEM ======
 const sounds = {
@@ -708,6 +729,11 @@ if (inScatterMode) {
     publishWinNotifIfNeeded(win);
   }
 
+  // 🔥 Catat kemenangan untuk Rank Game (buffer → akan di-flush saat keluar halaman)
+  if (typeof noteWinForThisGame === "function") {
+    noteWinForThisGame(win);
+  }
+
   if (inScatterMode) {
     updateBanner();
     // paksa wild di reel 2 & 4 saat free spin berjalan
@@ -851,7 +877,10 @@ window.addEventListener("DOMContentLoaded", () => {
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
   import { getFirestore, doc, updateDoc, onSnapshot, getDoc,
            // === NOTIF ADD: import untuk publish notifs
-           collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+           collection, addDoc, serverTimestamp,
+           // 🔥 Rank & Hemat: ambil Top 5, increment buffered
+           query, orderBy, limit, getDocs, increment
+         } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   import { initOnlineStatus } from "./online.js";
 
   initOnlineStatus();
@@ -870,9 +899,15 @@ window.addEventListener("DOMContentLoaded", () => {
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
+
   let userDocRef = null;
   // === NOTIF ADD: cache data user utk ambil nickname
   let meData = null;
+
+  // 🔥 Buffer kemenangan (hemat: flush saat keluar halaman)
+  let sessionWinsCountSlots = 0;    // berapa kali menang di game ini (slot)
+  let sessionWinsAmountSlots = 0;   // total Rp menang di game ini (opsional)
 
   // Realtime listener saldo
   onAuthStateChanged(auth, (user) => {
@@ -885,6 +920,8 @@ window.addEventListener("DOMContentLoaded", () => {
           updateStats();
         }
       });
+      // Load rank saat masuk halaman
+      loadGameTop5();
     } else {
       window.location.href = "index.html";
     }
@@ -952,6 +989,66 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   // expose ke global agar bisa dipanggil dari script non-module
   window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
+
+  // 🔥 Rank Game: catat kemenangan (buffer, hemat)
+  function noteWinForThisGame(amount) {
+    if (amount > 0) {
+      sessionWinsCountSlots += 1;
+      sessionWinsAmountSlots += Math.floor(amount || 0);
+    }
+  }
+  window.noteWinForThisGame = noteWinForThisGame;
+
+  // 🔥 Flush buffer ke Firestore saat keluar/menutup/tab disembunyikan
+  async function flushWinsToFirestore() {
+    if (!userDocRef) return;
+    if (sessionWinsCountSlots <= 0 && sessionWinsAmountSlots <= 0) return;
+
+    const payload = {};
+    if (sessionWinsCountSlots > 0) payload.winCountSlots = increment(sessionWinsCountSlots);
+    if (sessionWinsAmountSlots > 0) payload.totalWinSlots = increment(sessionWinsAmountSlots);
+
+    try { await updateDoc(userDocRef, payload); }
+    catch(e) { /* diamkan */ }
+
+    sessionWinsCountSlots = 0;
+    sessionWinsAmountSlots = 0;
+
+    // refresh rank setelah flush agar terlihat naik (hemat: fetch sekali)
+    loadGameTop5();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) flushWinsToFirestore();
+    else loadGameTop5(); // saat kembali aktif, refresh tampilan
+  });
+  window.addEventListener("pagehide", flushWinsToFirestore);
+
+  // 🔥 Ambil Top 5 berdasar winCountSlots (hemat: one-shot fetch, tanpa realtime)
+  const rankListEl = document.getElementById("rankGameList");
+  async function loadGameTop5() {
+    if (!rankListEl) return;
+    try {
+      rankListEl.innerHTML = "<li>Memuat...</li>";
+      const qTop = query(collection(db, "users"), orderBy("winCountSlots", "desc"), limit(8));
+      const snap = await getDocs(qTop);
+      let html = "";
+      let shown = 0;
+      snap.forEach(docu => {
+        if (docu.id === ADMIN_UID) return; // skip admin
+        if (shown >= 5) return;
+        const d = docu.data();
+        const name = d.name || d.username || "Player";
+        const count = d.winCountSlots || 0;
+        html += `<li>${name} — ${count}× menang</li>`;
+        shown++;
+      });
+      if (!shown) html = "<li>Belum ada pemenang</li>";
+      rankListEl.innerHTML = html;
+    } catch (e) {
+      rankListEl.innerHTML = "<li>Gagal memuat</li>";
+    }
+  }
 </script>
 
 <!-- === NOTIF ADD: listener HEMAT → polling 60 detik, tanpa hapus dok, hanya > 1 jt, pakai expire -->
