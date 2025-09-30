@@ -12,7 +12,7 @@
     padding:0;
     width:100%;
     height:100%;
-    background: url("public/image/wallpaper-01.jpg")no-repeat center center fixed;;
+    background: url("public/image/wallpaper-01.jpg") no-repeat center center fixed;
     overflow:hidden;
     font-family: Arial, sans-serif;
     color:#fff;
@@ -218,10 +218,9 @@
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { 
-    getFirestore, doc, onSnapshot, updateDoc, getDoc,
-    /* ⬇️ Tambahan untuk notifikasi global sekali lewat */
-    collection, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc
+  import {
+    getFirestore, doc, onSnapshot, updateDoc,
+    collection, addDoc, serverTimestamp, query, orderBy, limit, increment
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   import { initOnlineStatus } from "./online.js";
 
@@ -252,18 +251,24 @@
     audio.currentTime = 0;
   }
 
+  // ====== KONFIG NOTIF HEMAT ======
+  const NOTIF_THRESHOLD = 1_000_000; // hanya notif >= 1 juta
+
   let userId=null;
   let saldo=0;
-  let nickname="Player"; // ⬅️ Ambil nickname dari Firestore, sama seperti rank.html
+  let nickname="Player";
   const saldoBox=document.getElementById("saldoBox");
   function updateSaldo(){ saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID"); }
+
+  // ✅ Hemat read: pakai increment() untuk consumedSaldo saat saldo berkurang
   async function setSaldo(newSaldo){
     if(!userId) return;
     const userRef = doc(db,"users",userId);
-    if (newSaldo < saldo) {
+    const diff = saldo - newSaldo; // jika positif = konsumsi
+    if (diff > 0) {
       await updateDoc(userRef, {
         saldo: newSaldo,
-        consumedSaldo: (saldo - newSaldo) + ( (await (await getDoc(userRef)).data()?.consumedSaldo) || 0 )
+        consumedSaldo: increment(diff)
       });
     } else {
       await updateDoc(userRef, { saldo: newSaldo });
@@ -271,16 +276,17 @@
     saldo = newSaldo;
     updateSaldo();
   }
+
   onAuthStateChanged(auth,(user)=>{
     if(user){
       userId=user.uid;
       const userRef=doc(db,"users",userId);
       onSnapshot(userRef,(snap)=>{
-        if(snap.exists()){ 
+        if(snap.exists()){
           const data = snap.data();
-          saldo = data.saldo||0; 
-          nickname = data.username || data.name || "Player"; // ✅ nickname mengikuti rank.html
-          updateSaldo(); 
+          saldo = data.saldo||0;
+          nickname = data.username || data.name || "Player";
+          updateSaldo();
         }
       });
     } else { window.location.href="index.html"; }
@@ -363,11 +369,11 @@
     for(let i=0;i<N;i++){
       const a0=startOffset+i*(2*Math.PI/N);
       const a1=a0+(2*Math.PI/N);
-      ctx.beginPath(); 
-      ctx.moveTo(cx,cy); 
-      ctx.arc(cx,cy,R,a0,a1); 
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,R,a0,a1);
       ctx.closePath();
-      ctx.fillStyle=colors[i]; 
+      ctx.fillStyle=colors[i];
       ctx.fill();
 
       ctx.lineWidth = 2;
@@ -439,10 +445,9 @@
   }
 
   function easeOutCubic(t){return 1-Math.pow(1-t,3);}
-  // ⬇️ Tambahan: ekor pendek agar tidak "menggantung"
   function easeShortTail(t){
     const e = easeOutCubic(t);
-    return 0.45 * t + 0.55 * e; // campur linear + easeOut
+    return 0.45 * t + 0.55 * e;
   }
 
   function spinMultiplier(callback){
@@ -480,25 +485,20 @@
     }
   }
 
-  // ⬇️ Diperbaiki: ekor pendek + anti-stall
   function spinWheel(multiplier){
-    const duration=8000, rotations=15; // lebih singkat dari 10000
+    const duration=8000, rotations=15;
     const startIndex=Math.floor(Math.random()*N);
     const finalIndex=Math.floor(Math.random()*N);
     let startTime=null;
-    let prevStep = -1; // untuk anti-stall
+    let prevStep = -1;
 
     function animate(ts){
       if(!startTime) startTime=ts;
       const progress=Math.min(1,(ts-startTime)/duration);
-
-      // gunakan kurva baru
       const eased = easeShortTail(progress);
-
       const stepsTotal=rotations*N+((finalIndex-startIndex+N)%N);
       let currentStep=Math.floor(eased*stepsTotal);
 
-      // Anti-stall: kalau sisa langkah <= 3 dan step tidak bertambah, paksa maju 1
       if (currentStep === prevStep && (stepsTotal - currentStep) <= 3) {
         currentStep = Math.min(prevStep + 1, stepsTotal);
       }
@@ -519,26 +519,21 @@
           win=betsActive[symbol]*multiplier;
           setSaldo(saldo+win);
 
-          // 🔔 Notifikasi lokal + tulis ke Firestore agar semua user melihat
-          if (win > 0) {
+          // 🔔 Notif tampil & broadcast HANYA jika ≥ threshold (hemat)
+          if (win >= NOTIF_THRESHOLD) {
             window.showWinNotif(nickname, win);
-
             addDoc(collection(db, "notifs"), {
               nickname: nickname,
               amount: win,
               createdAt: serverTimestamp()
-            })
-            .then(ref => {
-              setTimeout(() => { deleteDoc(ref).catch(()=>{}); }, 7000);
-            })
-            .catch(()=>{});
+            }).catch(()=>{});
           }
         }
         addHistory(symbol,multiplier);
         showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0 ? "\nMenang Rp. "+win.toLocaleString("id-ID") : "\nKalah"));
-        betsActive={}; 
-        updateBetsList(); 
-        drawWheel(); // 🔴 reset titik merah setelah spin selesai
+        betsActive={};
+        updateBetsList();
+        drawWheel();
         spinning=false;
       }
     }
@@ -557,23 +552,23 @@
 
   initOnlineStatus();
 
-  /* 👇 Listener global: SEMUA user lihat notif baru, lalu dokumen notif dihapus (sekali lewat) */
-  const notifStartAt = Date.now();              // hanya notif BARU setelah halaman dibuka
-  const shownNotifIds = new Set();              // cegah duplikat
-  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(5));
+  /* 👇 Listener global hemat:
+     - limit(1)
+     - skip snapshot awal (hindari replay)
+     - TIDAK deleteDoc (biarkan dokumen tetap; biaya rendah)
+     - hanya tampilkan jika amount ≥ NOTIF_THRESHOLD
+  */
+  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
+  let firstSnapshot = true;
   onSnapshot(qNotifs, (snapshot) => {
+    if (firstSnapshot) { firstSnapshot = false; return; }
     snapshot.docChanges().forEach((change) => {
       if (change.type === "added") {
-        const data = change.doc.data();
-        const ts = data?.createdAt?.toMillis?.() || 0;
-        if (ts < notifStartAt - 500) return;       // skip notif lama saat reload
-        if (shownNotifIds.has(change.doc.id)) return;
-        shownNotifIds.add(change.doc.id);
-
-        window.showWinNotif(String(data.nickname || "Player"), Number(data.amount || 0));
-
-        // hapus doc setelah lewat animasi di klien ini juga (jaga2 kalau pembuatnya tidak menghapus)
-        setTimeout(() => { deleteDoc(change.doc.ref).catch(()=>{}); }, 7000);
+        const d = change.doc.data();
+        const amount = Number(d?.amount || 0);
+        if (amount >= NOTIF_THRESHOLD) {
+          window.showWinNotif(String(d?.nickname || "Player"), amount);
+        }
       }
     });
   });
