@@ -1064,9 +1064,11 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
     font-weight: 700;
     line-height: 1.25rem;
     text-shadow: 0 0 6px rgba(0,0,0,.45);
+    margin-bottom: 4px;
   }
   /* kelas gaya seperti di rank.html agar border/gradient ikut */
   .nickname { display:inline-block; border-radius:6px; padding:2px 6px; }
+  .winsCount { font-size:.75rem; font-weight:500; color:#ffd54f; opacity:.9; }
   .levelTag { margin-left:6px; font-size:11px; font-weight:bold; color:#ffd54f; }
   .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
   .online { background:#00ff00; }
@@ -1081,11 +1083,11 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
 <div id="rankPanel" class="rank-panel">
   <h3>🏆RANK🏆</h3>
   <ol id="rankList">
-    <li>username</li>
-    <li>username</li>
-    <li>username</li>
-    <li>username</li>
-    <li>username</li>
+    <li>username<br><span class="winsCount">0x Menang</span></li>
+    <li>username<br><span class="winsCount">0x Menang</span></li>
+    <li>username<br><span class="winsCount">0x Menang</span></li>
+    <li>username<br><span class="winsCount">0x Menang</span></li>
+    <li>username<br><span class="winsCount">0x Menang</span></li>
   </ol>
 </div>
 
@@ -1130,9 +1132,12 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
     listEl.innerHTML = '';
     users.slice(0,5).forEach(u => {
       const li = document.createElement('li');
-      li.innerHTML = `<span class="nickname" style="${styleFromUser(u)}">
-        ${u.name || u.username || '—'}
-      </span>`;
+      li.innerHTML = `
+        <span class="nickname" style="${styleFromUser(u)}">
+          ${u.name || u.username || '—'}
+        </span><br>
+        <span class="winsCount">${(u.winsCount || 0)}x Menang</span>
+      `;
       listEl.appendChild(li);
     });
   }
