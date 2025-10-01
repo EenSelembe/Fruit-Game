@@ -3,221 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fruit Slots – 5x4 1024 Cara (Fix Payout + Hemat Notif + Top 5)</title>
+  <title>Fruit Slots – 5x4 1024 Cara</title>
 
-  <!-- Notif CSS (tetap pakai file kamu) -->
+  <!-- NOTIF CSS -->
   <link rel="stylesheet" href="notif.css">
 
   <style>
-    :root{--bg:#1b5e20;--gold:#f7c33e;--gap-size:12px;--rows:4;}
-
-    *{box-sizing:border-box}
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: url("public/image/wallpaper-03.jpg") no-repeat center center fixed;
-      background-size: cover;
-      color: #fff;
-      overflow: hidden;   /* cegah scroll */
-      touch-action: none; /* cegah swipe layar sentuh */
-      font-family: Arial, sans-serif;
-      max-width: 100%;
-      max-height: 100%;
-      position: fixed;
-      top: 0;
-      left: 0;
+    .popup {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 2000;
     }
+    .popup-box {
+      background: #fff; color: #000; padding: 20px;
+      border-radius: 8px; text-align: center; max-width: 300px;
+    }
+    .popup-box button {
+      margin: 8px; padding: 8px 16px; border: none; border-radius: 6px;
+      cursor: pointer; font-weight: bold;
+    }
+    #confirmYes { background: green; color: #fff; }
+    #confirmNo { background: red; color: #fff; }
 
-    /* ====== HUD / UI ====== */
-    .top { padding-top: 6px; }
-    .ways-container {width:100%;max-width:600px;overflow:hidden;position:relative;margin:0 auto;}
-    .ways {display:inline-block;white-space:nowrap;font-weight:bold;animation:marquee 8s linear infinite, colorChange 3s linear infinite;}
-    @keyframes marquee {0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
-    @keyframes colorChange {0%{color:red;}25%{color:yellow;}50%{color:lime;}75%{color:cyan;}100%{color:red;}}
+    .buy-container { margin-top: 12px; text-align: center; }
+    .spin-container {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%); text-align: center; z-index: 1000;
+    }
+    #buyBtn {
+      background: blue; color: red; border: none; border-radius: 8px;
+      padding: 5px 10px; cursor: pointer; font-weight: bold; font-size: 1rem;
+      width: 150px; margin: 0 auto; display: block;
+    }
+    #buyBtn span { display: block; font-size: 0.85rem; margin-top: 5px; }
+    #buyBtn:disabled { opacity: .5; cursor: not-allowed; }
 
+    :root{--bg:#1b5e20;--gold:#f7c33e;--gap-size:12px;--rows:4;}
+    body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: url("public/image/wallpaper-03.jpg") no-repeat center center fixed;
+      background-size: cover; color: #fff; overflow: hidden;
+      touch-action: none; font-family: Arial, sans-serif;
+      max-width: 100%; max-height: 100%; position: fixed; top: 0; left: 0;
+    }
+    body.scatter-mode {
+      background: url("https://e0.pxfuel.com/wallpapers/597/442/desktop-wallpaper-gold-coins-gold-bullion.jpg") no-repeat center center fixed;
+      background-size: cover;
+    }
     .hud {
-      position: fixed;
-      top: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 1000;
+      position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 1000;
     }
     .pill{display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.7);border:1px solid #fff3;padding:6px 12px;border-radius:12px;min-width:100px;}
     .label{font-size:0.85rem;opacity:0.8;}
     #balance{font-size:1rem;font-weight:bold;color:#ffd700;}
     #win{font-size:1rem;font-weight:bold;color:#00ffcc;}
-    .turbo-btn{background:#ff4444;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:bold;box-shadow:0 3px 0 #aa2222;transition:background 0.3s ease;}
+    .turbo-btn{background:#ff4444;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:bold;box-shadow:0 3px 0 #aa2222;transition:background .3s;}
     .turbo-btn.active{background:#00c851;box-shadow:0 3px 0 #007e33;}
-
     .multis {
-      position: fixed;
-      top: 95px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 14px;
-      justify-content: center;
-      padding: 10px;
-      width: auto;
-      background: linear-gradient(180deg,#9c6b3d 0%, #7a4c26 100%);
-      border-radius: 8px;
-      z-index: 999;
+      position: fixed; top: 95px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 14px; justify-content: center; padding: 10px; width: auto;
+      background: linear-gradient(180deg,#9c6b3d 0%, #7a4c26 100%); border-radius: 8px; z-index: 999;
     }
     .multi{min-width:56px;text-align:center;font-weight:900;color:#ffd77a;background:linear-gradient(180deg,#7a4c26,#5b3317);padding:6px 10px;border-radius:10px}
     .multi.active{background:linear-gradient(180deg,#f7b733,#e09f1a);color:#fff}
-
     .wrap{width:100%;max-width:860px;margin:115px auto 10px;padding:16px;box-sizing:border-box}
-    .board{
-      border-radius:16px;padding:14px;background:linear-gradient(180deg,#111 0%, #000 50%, #111 100%);
-      display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap-size);
-      width:100%;max-width:420px;aspect-ratio:5/4;box-sizing:border-box;overflow:hidden;
-      border:3px solid var(--gold);box-shadow:0 0 12px #f7c33e80 inset,0 0 16px #f7c33e80;
-      margin: 0 auto;
-    }
+    .board{border-radius:16px;padding:14px;background:linear-gradient(180deg,#111 0%, #000 50%, #111 100%);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap-size);width:100%;max-width:420px;aspect-ratio:5/4;box-sizing:border-box;overflow:hidden;border:3px solid var(--gold);box-shadow:0 0 12px #f7c33e80 inset,0 0 16px #f7c33e80;}
     .reel{display:flex;flex-direction:column;overflow:hidden;border-radius:10px;}
     .symbols{display:flex;flex-direction:column;gap:var(--gap-size)}
     .tile{flex:none;width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:2.4rem;background:none}
     .tile.wild{text-shadow:0 0 8px #0ff,0 0 16px #0ff}
     .tile.scatter{text-shadow:0 0 8px #ff0,0 0 16px #ff0}
-    .highlight{animation:glowWin 0.8s ease-in-out infinite alternate}
     @keyframes glowWin{from{transform:scale(1);filter:drop-shadow(0 0 6px gold)}to{transform:scale(1.2);filter:drop-shadow(0 0 12px gold)}}
-    .explode{animation:explodeAnim 0.6s forwards}
-    @keyframes explodeAnim{0%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:0.8}100%{transform:scale(0);opacity:0}}
-    .fall{transform:translateY(-150%);animation:fallAnim 0.4s ease forwards}
+    .explode{animation:explodeAnim .6s forwards}
+    @keyframes explodeAnim{0%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.8}100%{transform:scale(0);opacity:0}}
+    .fall{transform:translateY(-150%);animation:fallAnim .4s ease forwards}
     @keyframes fallAnim{to{transform:translateY(0)}}
     .spinning{animation:scrollLoop 1s linear infinite}
     @keyframes scrollLoop{0%{transform:translateY(-100%)}100%{transform:translateY(0)}}
-
-    .banner{
-      text-align:center;font-weight:bold;margin:5px auto 12px auto;width:90%;max-width:720px;
-      background:linear-gradient(180deg,gold,#00ccff);padding:10px;border-radius:12px;color:#ffe7a1
-    }
-
+    @keyframes shake{0%{transform:rotate(0);}25%{transform:rotate(15deg);}50%{transform:rotate(-15deg);}75%{transform:rotate(10deg);}100%{transform:rotate(0);}}
+    .shake{animation:shake .5s infinite;}
+    .banner{text-align:center;font-weight:bold;margin:5px auto 12px auto;width:90%;max-width:720px;background:linear-gradient(180deg,gold,#00ccff);padding:10px;border-radius:12px;color:#ffe7a1}
     .controls{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:5px;width:100%;max-width:860px}
     .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 40px;width:100%;max-width:860px;justify-content:center;}
     .stats-col{display:flex;flex-direction:column;gap:8px;}
     .bet-control {display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 10px;min-width:80px;}
     .bet-control .row {display:flex;align-items:center;justify-content:center;gap:8px;}
-    .bet-control .row .label {font-size:0.9rem;font-weight:bold;}
+    .bet-control .row .label {font-size:.9rem;font-weight:bold;}
     .bet-control .value {font-size:1rem;font-weight:bold;text-align:center;}
-    .bet-control button {padding:2px 8px;font-size:0.9rem;}
-
-    .btn-spin {
-      cursor:pointer;width:80px;height:80px;border-radius:50%;font-size:1.5rem;font-weight:bold;color:#fff;
-      background:radial-gradient(circle at 30% 30%, red 0%, blue 70%);
-      box-shadow:0 8px 0 red,0 0 20px rgba(0,0,0,0.4);
-      border:none;transition:transform 0.2s ease;
-    }
-    .btn-spin:active {transform:scale(0.95);}
-
-    .buy-container { margin-top: 12px; text-align: center; }
-    .spin-container {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      text-align: center; z-index: 1000;
-    }
-    #buyBtn {
-      background: blue; color: red; border: none; border-radius: 8px; padding: 5px 10px;
-      cursor: pointer; font-weight: bold; font-size: 1rem; width: 150px; margin: 0 auto; display: block;
-    }
-    #buyBtn span { display: block; font-size: 0.85rem; font-weight: normal; margin-top: 5px; }
-    #buyBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .overlay-win{
-      position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffd700;
-      font-size:2rem;font-weight:bold;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.6s ease;text-align:center;
-    }
+    .bet-control button {padding:2px 8px;font-size:.9rem;}
+    .btn-spin {cursor:pointer;width:80px;height:80px;border-radius:50%;font-size:1.5rem;font-weight:bold;color:#fff;background:radial-gradient(circle at 30% 30%, red 0%, blue 70%);box-shadow:0 8px 0 red,0 0 20px rgba(0,0,0,.4);border:none;transition:transform .2s;}
+    .btn-spin:active {transform:scale(.95);}
+    .overlay-win{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffd700;font-size:2rem;font-weight:bold;z-index:999;opacity:0;pointer-events:none;transition:opacity .6s;text-align:center;}
     .overlay-win.show{opacity:1;pointer-events:auto;}
     .overlay-win .amount{font-size:3rem;margin-top:10px;text-shadow:0 0 10px gold,0 0 20px orange;}
-
-    /* Popup konfirmasi BUY FS */
-    .popup {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-      display: none; align-items: center; justify-content: center; z-index: 2000;
-    }
-    .popup-box {
-      background: #fff; color: #000; padding: 20px; border-radius: 8px; text-align: center; max-width: 300px;
-    }
-    .popup-box button {
-      margin: 8px; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;
-    }
-    #confirmYes { background: green; color: #fff; }
-    #confirmNo { background: red; color: #fff; }
-
-    /* ====== Overlay RANK Game: pojok kiri bawah ====== */
-    .game-rank {
-      position: fixed;
-      left: 10px;
-      bottom: 10px;
-      background: rgba(0,0,0,0.65);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 10px;
-      padding: 10px 12px;
-      z-index: 1200;
-      width: 180px;
-      backdrop-filter: blur(2px);
-      font-size: 13px;
-    }
-    .game-rank-title{
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      margin-bottom: 6px;
-      text-align: left;
-    }
-    .game-rank-list{
-      margin: 0; padding-left: 14px;
-    }
-    .game-rank-list li{
-      margin: 3px 0;
-      list-style: decimal;
-      text-align: left;
-    }
-
-    /* Scatter mode state */
-    body.scatter-mode {
-      background: url("https://e0.pxfuel.com/wallpapers/597/442/desktop-wallpaper-gold-coins-gold-bullion.jpg") no-repeat center center fixed;
-      background-size: cover;
-    }
-    body.scatter-mode .btn-spin {opacity: 0.4;pointer-events: none;}
   </style>
 </head>
 <body>
 
-  <!-- Container notif global -->
+  <!-- NOTIF CONTAINER -->
   <div id="notifContainer"></div>
 
-  <!-- Teks jalan -->
+  <!-- HEADER -->
   <div class="top">
-    <div class="ways-container">
-      <div class="ways">GAME INI HANYA UNTUK HIBURAN BUKAN UNTUK MENJADI SULTAN</div>
+    <div class="ways-container" style="width:100%;max-width:600px;overflow:hidden;position:relative;">
+      <div class="ways" style="display:inline-block;white-space:nowrap;font-weight:bold;animation:marquee 8s linear infinite, colorChange 3s linear infinite;">
+        GAME INI HANYA UNTUK HIBURAN BUKAN UNTUK MENJADI SULTAN
+      </div>
     </div>
   </div>
 
-  <!-- HUD -->
   <div class="hud">
     <div class="pill"><span class="label">Saldo</span><span id="balance">Rp. 0</span></div>
     <button id="turboBtn" class="turbo-btn">TURBO: OFF</button>
     <div class="pill"><span class="label">Menang</span><span id="win">Rp. 0</span></div>
   </div>
 
-  <!-- Multiplier display -->
   <div class="multis">
     <div class="multi active">x1</div><div class="multi">x2</div><div class="multi">x3</div><div class="multi">x5</div>
   </div>
 
-  <!-- Board -->
   <div class="wrap">
     <div class="board" id="board"></div>
     <div class="banner" id="banner">CARI 4 LONCENG UNTUK SCATTER</div>
-
     <div class="controls">
       <div class="stats">
         <div class="stats-col">
@@ -252,18 +162,18 @@
     </div>
   </div>
 
-  <!-- Tombol SPIN -->
+  <!-- SPIN BUTTON -->
   <div class="spin-container">
     <button class="btn-spin" id="spinBtn">SPIN</button>
   </div>
 
-  <!-- Overlay total win FS -->
+  <!-- OVERLAY TOTAL SCATTER WIN -->
   <div class="overlay-win" id="overlayWin">
     <div>ANDA MEMENANGKAN</div>
     <div id="overlayAmount" class="amount"></div>
   </div>
 
-  <!-- Popup konfirmasi BUY -->
+  <!-- POPUP BUY CONFIRM -->
   <div id="confirmPopup" class="popup">
     <div class="popup-box">
       <p>Anda akan membeli scatter seharga <span id="popupPrice">Rp. 0</span>. Lanjutkan?</p>
@@ -272,89 +182,52 @@
     </div>
   </div>
 
-  <!-- ====== OVERLAY RANK GAME (pojok kiri bawah) ====== -->
-  <div class="game-rank" id="gameRank">
-    <div class="game-rank-title">Top 5</div>
-    <ol class="game-rank-list" id="gameRankList">
-      <li>—</li>
-      <li>—</li>
-      <li>—</li>
-      <li>—</li>
-      <li>—</li>
-    </ol>
-  </div>
-
-  <!-- ======= GAME LOGIC (non-module) ======= -->
+  <!-- SCRIPT GAME (non-module) -->
   <script>
-    // Konstanta grid
-    const COLS=5, ROWS=4;
-
-    // Pool simbol (pakai duplikasi sbg bobot kemunculan)
-    const FRUITS=[
-      "🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒",
-      "🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋",
-      "🦋","🦋","🦋","🦋","🦋","🦋",
-      "🍉","🍉","🍉","🍉",
-      "🍇","🍇","🍇","🍇",
-      "🍓","🍓","🍓","🍓",
-      "🍍","🍍","🍍","🍍",
-      "🧸","🧸","🧸","🧸",
-      "🍎","🍎","🍎",
-      "💐","💐",
-      "🍌","🍌",
-      "🥥","🥥",
-      "🍈","🍈",
-      "⭐","⭐",
-      "🔔","🔔"
+    // ======= STATE & CONSTANTS =======
+    const COLS = 5, ROWS = 4;
+    const FRUITS = [
+      "🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒",
+      "🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋",
+      "🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋",
+      "🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓",
+      "🍍","🍍","🍍","🍍","🧸","🧸","🧸","🧸","🍎","🍎","🍎","💐","💐",
+      "🍌","🍌","🥥","🥥","🍈","🍈","⭐","⭐","🔔","🔔"
     ];
-
-    // Tabel base payout
-    const PAYTABLE={
-      "🍒":0.1,"🍋":0.2,"🦋":0.3,"🍉":0.4,"🍇":0.5,
-      "🍓":0.6,"🍍":0.7,"🧸":0.8,"🍎":0.9,"💐":1,
-      "🍌":4,"🥥":4,"🍈":4,"⭐":5 // ⭐ dipakai sbg wild
+    const PAYTABLE = {
+      "🍒":0.1,"🍋":0.2,"🦋":0.3,"🍉":0.4,"🍇":0.5,"🍓":0.6,"🍍":0.7,"🥝":1.5,
+      "🧸":0.8,"🍎":0.9,"🍐":2.5,"💐":1,"🍌":4,"🍑":4,"🥥":4,"🍈":4,"💎":8,"⭐":5
     };
 
-    // ======== ECONOMI: SCALE WAYS ========
-    // Payout akhir = bet * base * mult * ways * PAY_SCALE
-    // Atur 0.02–0.10 sesuai ekonomi kamu. 0.05 = 5% faktor skala.
-    const PAY_SCALE = 0.05;
-
-    // State UI
-    let balance=0, bet=500, win=0, spinning=false;
-    const betStep=500, betMin=500, betMax=100000;
-    let cascadeCount=0, currentMulti=1;
-    let freeSpins=0, inScatterMode=false, scatterWinTotal=0;
-    let autoSpinValue=0, autoSpinCount=0;
-    let turbo=false;
+    let balance = 0, bet = 500, win = 0, spinning = false;
+    const betStep = 500, betMin = 500, betMax = 100000;
+    let cascadeCount = 0, currentMulti = 1;
+    let freeSpins = 0, inScatterMode = false, scatterWinTotal = 0;
+    let autoSpinValue = 0, autoSpinCount = 0;
+    let turbo = false;
+    let currentSpinWin = 0;
     let autoSpinInfinite = false;
     let autoRunning = false;
 
-    // Tracking kinerja session (untuk rank per game)
-    let sessionWins = 0;           // jumlah SPIN menang pada sesi halaman ini
-    let sessionWinAmount = 0;      // total amount menang sesi ini
-
-    // Elemen
-    const rows = document.getElementById('rows');
-    const balEl=document.getElementById("balance"),
-          winEl=document.getElementById("win"),
-          betEl=document.getElementById("bet"),
-          banner=document.getElementById("banner"),
-          overlay=document.getElementById("overlayWin"),
-          overlayAmount=document.getElementById("overlayAmount"),
-          spinBtn=document.getElementById("spinBtn"),
-          betMinus=document.getElementById("betMinus"),
-          betPlus=document.getElementById("betPlus"),
-          autoMinus=document.getElementById("autoMinus"),
-          autoPlus=document.getElementById("autoPlus"),
-          autoCount=document.getElementById("autoCount"),
-          autoControl=document.getElementById("autoControl"),
-          board=document.getElementById("board"),
-          turboBtn=document.getElementById("turboBtn"),
+    // ======= ELEMENTS =======
+    const balEl = document.getElementById("balance"),
+          winEl = document.getElementById("win"),
+          betEl = document.getElementById("bet"),
+          banner = document.getElementById("banner"),
+          overlay = document.getElementById("overlayWin"),
+          overlayAmount = document.getElementById("overlayAmount"),
+          spinBtn = document.getElementById("spinBtn"),
+          betMinus = document.getElementById("betMinus"),
+          betPlus = document.getElementById("betPlus"),
+          autoMinus = document.getElementById("autoMinus"),
+          autoPlus = document.getElementById("autoPlus"),
+          autoCount = document.getElementById("autoCount"),
+          board = document.getElementById("board"),
+          turboBtn = document.getElementById("turboBtn"),
           buyBtn = document.getElementById("buyBtn"),
           buyPrice = document.getElementById("buyPrice");
 
-    // ====== AUDIO ======
+    // ===== AUDIO =====
     const sounds = {
       spin: new Audio("sonds/spin.mp3"),
       roll: new Audio("sonds/roll.mp3"),
@@ -372,74 +245,21 @@
     sounds.backsoundScatter.loop = true;
     sounds.backsoundScatter.volume = 0.5;
 
-    function playSound(name) {
-      if (sounds[name]) {
-        sounds[name].currentTime = 0;
-        sounds[name].play().catch(()=>{});
-      }
-    }
-    function stopSound(name) {
-      if (sounds[name]) {
-        sounds[name].pause();
-        sounds[name].currentTime = 0;
-      }
-    }
-    function playBacksoundScatter() {
-      stopSound("backsound");
-      if (sounds.backsoundScatter.paused) {
-        sounds.backsoundScatter.currentTime = 0;
-        sounds.backsoundScatter.play().catch(()=>{});
-      }
-    }
-    function playBacksoundNormal() {
-      stopSound("backsoundScatter");
-      if (sounds.backsound.paused) {
-        sounds.backsound.currentTime = 0;
-        sounds.backsound.play().catch(()=>{});
-      }
-    }
-    function playBell() {
-      const a = new Audio(sounds.lonceng.src);
-      a.volume = sounds.lonceng.volume ?? 1;
-      a.play().catch(()=>{});
-    }
+    function playSound(name){ if(sounds[name]){ sounds[name].currentTime = 0; sounds[name].play().catch(()=>{}); } }
+    function stopSound(name){ if(sounds[name]){ sounds[name].pause(); sounds[name].currentTime = 0; } }
+    function playBacksoundScatter(){ stopSound("backsound"); if (sounds.backsoundScatter.paused){ sounds.backsoundScatter.currentTime=0; sounds.backsoundScatter.play().catch(()=>{});} }
+    function playBacksoundNormal(){ stopSound("backsoundScatter"); if (sounds.backsound.paused){ sounds.backsound.currentTime=0; sounds.backsound.play().catch(()=>{});} }
+    function playBell(){ const a = new Audio(sounds.lonceng.src); a.volume = sounds.lonceng.volume ?? 1; a.play().catch(()=>{}); }
 
-    // ====== INIT BOARD ======
-    function valOf(cell){ return (typeof cell==="object") ? (cell.val || cell) : cell; }
-    function getRandomFruit(colIndex){
-      if (inScatterMode) {
-        if (colIndex===2) return "⭐"; // wild reel 3 saat scatter
-        const pool=FRUITS.filter(v=>v!=="⭐");
-        return pool[Math.floor(Math.random()*pool.length)];
-      }
-      return FRUITS[Math.floor(Math.random()*FRUITS.length)];
-    }
-    function makeTile(fruit){
-      const tile=document.createElement("div");
-      tile.className="tile";
-      const value=valOf(fruit);
-      if(value==="⭐") tile.classList.add("wild");
-      if(value==="🔔") tile.classList.add("scatter");
-      tile.textContent=value;
-      return tile;
-    }
-
-    for(let c=0;c<COLS;c++){
-      const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c;
-      const container=document.createElement("div"); container.className="symbols";
-      for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); }
-      reel.appendChild(container); board.appendChild(reel);
-    }
-
-    // ====== UI helpers ======
-    function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(Math.floor(num)); }
-    function updateBuyPrice() {
+    // ===== UI HELPERS =====
+    function formatRupiah(num){ return new Intl.NumberFormat("id-ID").format(num); }
+    function updateBuyPrice(){
       const cost = bet * 100;
       if (buyPrice) buyPrice.textContent = "Harga: Rp. " + formatRupiah(cost);
       const popupPrice = document.getElementById("popupPrice");
       if (popupPrice) popupPrice.textContent = formatRupiah(cost);
     }
-    function updateStats() {
+    function updateStats(){
       balEl.textContent = "Rp. " + formatRupiah(balance);
       winEl.textContent = "Rp. " + formatRupiah(win);
       betEl.textContent = "Rp. " + formatRupiah(bet);
@@ -447,82 +267,102 @@
     }
     function updateBanner(){
       if(inScatterMode){
-        banner.textContent=`FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`;
+        banner.textContent = `FREE SPIN TERSISA: ${freeSpins} (Menang: Rp. ${formatRupiah(scatterWinTotal)})`;
         document.body.classList.add("scatter-mode");
         buyBtn.disabled = true;
       } else {
-        banner.textContent="CARI 4 LONCENG UNTUK SCATTER";
+        banner.textContent = "CARI 4 LONCENG UNTUK SCATTER";
         document.body.classList.remove("scatter-mode");
         buyBtn.disabled = false;
       }
     }
-    function lockControls(){ betMinus.disabled=true; betPlus.disabled=true; autoMinus.disabled=true; autoPlus.disabled=true; }
-    function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=false; betPlus.disabled=false; autoMinus.disabled=false; autoPlus.disabled=false; }
+    function lockControls(){ betMinus.disabled = betPlus.disabled = autoMinus.disabled = autoPlus.disabled = true; }
+    function unlockControls(){ spinBtn.disabled=false; betMinus.disabled=betPlus.disabled=autoMinus.disabled=autoPlus.disabled=false; }
     function updateAutoLabel(){
       if (autoSpinInfinite) autoCount.textContent = "∞";
       else if (autoRunning && autoSpinCount > 0) autoCount.textContent = autoSpinCount;
       else autoCount.textContent = autoSpinValue;
     }
 
+    // ===== REELS INIT =====
+    function valOf(cell){ return (typeof cell==="object") ? (cell.val || cell) : cell; }
+    function getRandomFruit(colIndex){
+      if(inScatterMode){
+        if (colIndex === 2) return "⭐";
+        const pool = FRUITS.filter(v=>v!=="⭐");
+        return pool[Math.floor(Math.random()*pool.length)];
+      }
+      return FRUITS[Math.floor(Math.random()*FRUITS.length)];
+    }
+    function makeTile(fruit){
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      const value = valOf(fruit);
+      if (value==="⭐") tile.classList.add("wild");
+      if (value==="🔔") tile.classList.add("scatter");
+      tile.textContent = value;
+      return tile;
+    }
+    for(let c=0;c<COLS;c++){
+      const reel=document.createElement("div"); reel.className="reel"; reel.id="reel"+c;
+      const container=document.createElement("div"); container.className="symbols";
+      for(let r=0;r<ROWS;r++){ container.appendChild(makeTile(getRandomFruit(c))); }
+      reel.appendChild(container); board.appendChild(reel);
+    }
+
+    // ===== BET/AUTO HANDLERS =====
     betMinus.addEventListener("click",()=>{ if(bet>betMin){ bet-=betStep; updateStats(); }});
     betPlus.addEventListener("click",()=>{ if(bet<betMax){ bet+=betStep; updateStats(); }});
     autoPlus.addEventListener("click",()=>{
-      if (autoSpinInfinite) { autoSpinInfinite=false; autoSpinValue=0; }
-      else {
-        autoSpinValue += 10;
-        if (autoSpinValue > 100) autoSpinInfinite = true;
-      }
+      if (autoSpinInfinite){ autoSpinInfinite=false; autoSpinValue=0; }
+      else { autoSpinValue += 10; if (autoSpinValue > 100) autoSpinInfinite = true; }
       updateAutoLabel();
     });
     autoMinus.addEventListener("click",()=>{
-      if (autoSpinInfinite) { autoSpinInfinite=false; autoSpinValue=100; }
-      else {
-        if (autoSpinValue > 10) autoSpinValue -= 10;
-        else autoSpinInfinite = true;
-      }
+      if (autoSpinInfinite){ autoSpinInfinite=false; autoSpinValue=100; }
+      else { if (autoSpinValue > 10) autoSpinValue -= 10; else autoSpinInfinite = true; }
       updateAutoLabel();
     });
 
-    // ====== PENGHITUNGAN MENANG (FIX: 1024 WAYS) ======
-    // gunakan simbol unik (tanpa wild & scatter) agar tidak double count
-    const UNIQUE_FRUITS = [...new Set(FRUITS)].filter(s => s !== "⭐" && s !== "🔔");
-
+    // ===== SPIN CORE =====
+    async function stopReel(c){
+      return new Promise(resolve=>{
+        const container = document.getElementById("reel"+c).querySelector(".symbols");
+        container.classList.remove("spinning");
+        let final=[]; container.innerHTML="";
+        for(let i=0;i<ROWS;i++){
+          const fruit = { val: getRandomFruit(c), _new: true };
+          const tile = makeTile(fruit); tile.classList.add("fall");
+          setTimeout(()=>tile.classList.remove("fall"),400);
+          container.appendChild(tile); final.push(fruit);
+          if (fruit.val==="🔔" && fruit._new){ playBell(); delete fruit._new; }
+        }
+        resolve(final);
+      });
+    }
     function calculateWin(matrix){
       let totalWin=0, highlights=[], scatterCount=0;
-
-      for(const fruit of UNIQUE_FRUITS){
-        const reelsMatched=[];
+      for(const fruit of FRUITS){
+        let count=0, reelsMatched=[];
         for(let c=0;c<COLS;c++){
-          const matches=[];
-          for(let r=0;r<ROWS;r++){
-            const v=valOf(matrix[c][r]);
-            if (v===fruit || v==="⭐") matches.push({c,r});
-          }
-          if (matches.length===0) break;
-          reelsMatched.push(matches);
+          let matches=[];
+          matrix[c].forEach((f,r)=>{
+            const v=valOf(f);
+            if(v===fruit || v==="⭐"){ matches.push({c,r}); }
+          });
+          if(matches.length>0){ count++; reelsMatched.push(matches); }
+          else break;
         }
-
-        const reelsCount = reelsMatched.length;
-        if (reelsCount >= 3){
-          const base = PAYTABLE[fruit] ?? 1;
-          const mult = (reelsCount===3) ? 1 : (reelsCount===4 ? 2 : 5);
-
-          // jumlah cara/ways = perkalian jumlah match per reel
-          const ways = reelsMatched.reduce((acc, arr) => acc * arr.length, 1);
-
-          // payout AKHIR (proporsional bet & ways)
-          const pay = bet * base * mult * ways * PAY_SCALE;
-          totalWin += pay;
-
-          // highlight
+        if(fruit!=="🔔" && count>=3){
+          const base=PAYTABLE[fruit]||1;
+          const mult=(count===3?1:(count===4?2:5));
+          totalWin += (bet*base*mult)/10;
           reelsMatched.flat().forEach(pos=>highlights.push(pos));
         }
       }
-
       scatterCount = matrix.flat().filter(f=>valOf(f)==="🔔").length;
       return { totalWin, highlights, scatterCount };
     }
-
     function updateMultiplierDisplay(){
       const items=document.querySelectorAll(".multi");
       items.forEach(el=>el.classList.remove("active"));
@@ -532,44 +372,18 @@
       else { currentMulti=1; items[0].classList.add("active"); }
     }
 
-    function stopReel(c){
-      return new Promise(resolve=>{
-        const container = document.getElementById("reel"+c).querySelector(".symbols");
-        container.classList.remove("spinning");
-        let final=[];
-        container.innerHTML="";
-
-        for(let i=0;i<ROWS;i++){
-          const fruit={ val:getRandomFruit(c), _new:true };
-          const tile = makeTile(fruit);
-          tile.classList.add("fall");
-          setTimeout(()=>tile.classList.remove("fall"), 400);
-          container.appendChild(tile);
-          final.push(fruit);
-
-          if (fruit.val==="🔔" && fruit._new){ playBell(); delete fruit._new; }
-        }
-        resolve(final);
-      });
-    }
-
     async function cascade(matrix){
       while(true){
         const result = calculateWin(matrix);
-
         if (result.highlights && result.highlights.length>0){
-          cascadeCount++;
-          updateMultiplierDisplay();
-
+          cascadeCount++; updateMultiplierDisplay();
           const winNow = result.totalWin * currentMulti;
           win += winNow;
 
-          if (inScatterMode) {
-            scatterWinTotal += winNow;
-            updateBanner(); updateStats();
+          if (inScatterMode){
+            scatterWinTotal += winNow; updateBanner(); updateStats();
           } else {
-            balance += winNow;
-            updateStats();
+            balance += winNow; updateStats();
             if (typeof saveBalance === "function") saveBalance();
           }
 
@@ -579,35 +393,26 @@
             const tile = reel.querySelectorAll(".tile")[pos.r];
             if (tile) tile.classList.add("explode");
           });
-
           await new Promise(r=>setTimeout(r,600));
 
-          // hilangkan yang menang
-          for(const pos of result.highlights){ matrix[pos.c][pos.r] = null; }
+          for (const pos of result.highlights) matrix[pos.c][pos.r] = null;
 
-          // jatuhkan & isi ulang
-          for(let c=0;c<COLS;c++){
+          for (let c=0;c<COLS;c++){
             let col=matrix[c], newCol=[], shift=0;
             for(let r=ROWS-1;r>=0;r--){
-              if (col[r]!==null){
+              if(col[r]!==null){
                 let obj={ val: valOf(col[r]) };
                 if (shift>0) obj._fall=true;
                 newCol.unshift(obj);
               } else shift++;
             }
-            for(let i=0;i<shift;i++){
-              newCol.unshift({ val: getRandomFruit(c), _fall:true, _new:true });
-            }
+            for(let i=0;i<shift;i++) newCol.unshift({ val:getRandomFruit(c), _fall:true, _new:true });
             matrix[c]=newCol;
           }
 
-          // wild reel 3 saat scatter
-          if (inScatterMode){
-            for (let r=0;r<ROWS;r++){ matrix[2][r] = "⭐"; }
-          }
+          if (inScatterMode){ for(let r=0;r<ROWS;r++){ matrix[2][r]="⭐"; } }
 
-          // render ulang
-          for(let c=0;c<COLS;c++){
+          for (let c=0;c<COLS;c++){
             const container=document.getElementById("reel"+c).querySelector(".symbols");
             container.innerHTML="";
             for(let r=0;r<ROWS;r++){
@@ -622,11 +427,9 @@
               if (valOf(fruit)==="🔔" && fruit._new){ playBell(); delete fruit._new; }
             }
           }
-
           await new Promise(r=>setTimeout(r,500));
-
         } else {
-          // SCATTER check
+          // Scatter check (4+ bells)
           if (result.scatterCount >= 4){
             playSound("scatter");
             lockControls();
@@ -636,10 +439,8 @@
             stopSound("scatter");
 
             if (!inScatterMode && freeSpins===0){
-              inScatterMode = true;
-              freeSpins = 15;
-              document.body.classList.add("scatter-mode");
-              playBacksoundScatter();
+              inScatterMode = true; freeSpins = 15;
+              document.body.classList.add("scatter-mode"); playBacksoundScatter();
             } else if (inScatterMode){
               freeSpins += 10;
               banner.textContent = `+10 FREE SPIN (Sisa: ${freeSpins})`;
@@ -654,125 +455,122 @@
     async function finishSpin(matrix){
       await cascade(matrix);
 
-      // === KUMPUL STAT MENANG SESI (per SPIN) ===
-      if (win > 0) {
-        sessionWins++;
-        sessionWinAmount += win;
-      }
-
-      // === Notif hemat hanya jika >= 1 jt (publish) ===
-      if (typeof publishWinNotifIfNeeded === "function") {
+      // NOTIF HEMAT: publish hanya jika >= 1jt
+      if (typeof publishWinNotifIfNeeded === "function"){
         publishWinNotifIfNeeded(win);
       }
 
-      if (inScatterMode) {
+      if (inScatterMode){
         updateBanner();
         for (let r=0;r<ROWS;r++){ matrix[2][r] = "⭐"; }
 
-        freeSpins--;
-        updateBanner();
+        freeSpins--; updateBanner();
 
-        turbo = false; turboBtn.classList.remove("active"); turboBtn.disabled = true;
+        turbo=false; turboBtn.classList.remove("active"); turboBtn.disabled=true;
 
-        if (freeSpins<=0){
-          inScatterMode=false;
+        if (freeSpins <= 0){
+          inScatterMode = false;
           overlayAmount.textContent = "RP. " + formatRupiah(scatterWinTotal);
           overlay.classList.add("show");
-          playSound("totalWin");
+          playSound("totalWin"); // <— diperbaiki case-nya
+
           stopSound("backsoundScatter");
 
           setTimeout(()=>{
             overlay.classList.remove("show");
             balance += scatterWinTotal; updateStats();
             if (typeof saveBalance === "function") saveBalance();
-            scatterWinTotal = 0; document.body.classList.remove("scatter-mode");
-            turboBtn.disabled = false;
+
+            scatterWinTotal = 0;
+            document.body.classList.remove("scatter-mode");
+            turboBtn.disabled=false;
             playBacksoundNormal();
 
-            if (autoSpinCount > 0) {
+            if (autoSpinCount > 0){
               autoSpinCount--; updateAutoLabel();
               if (autoSpinCount > 0) setTimeout(spin, 800);
               else unlockControls();
-            } else unlockControls();
+            } else {
+              unlockControls();
+            }
           }, 4000);
         } else {
           setTimeout(spin, 1200);
         }
       } else {
         if (autoRunning){
-          if (autoSpinInfinite) {
-            setTimeout(spin, 800);
-          } else if (autoSpinCount>0){
+          if (autoSpinInfinite){ setTimeout(spin, 800); }
+          else if (autoSpinCount > 0){
             autoSpinCount--; updateAutoLabel();
-            if (autoSpinCount>0) setTimeout(spin, 800);
+            if (autoSpinCount > 0) setTimeout(spin, 800);
             else { unlockControls(); spinBtn.textContent="SPIN"; }
           }
         } else {
           unlockControls(); spinBtn.textContent="SPIN"; updateAutoLabel();
         }
       }
-      spinning=false;
+      spinning = false;
     }
 
     async function spin(){
       if (balance < bet && !inScatterMode){
         banner.textContent = "Saldo tidak cukup! Atur Bet dulu.";
-        unlockControls(); spinBtn.disabled=false; return;
+        unlockControls();
+        spinBtn.disabled = false;
+        return;
       }
       if (spinning) return;
 
-      if (!inScatterMode && balance < bet){
-        alert("Saldo tidak cukup!");
-        autoSpinCount = 0; updateAutoLabel(); return;
-      }
+      lockControls();
+      spinning = true;
 
-      lockControls(); spinning = true;
       if (inScatterMode) playSound("rollScatter"); else playSound("roll");
 
-      // reset
-      win = 0; updateStats();
+      // reset win ui
+      win = 0; currentSpinWin = 0; updateStats();
 
-      // potong saldo jika bukan FS
+      // potong saldo jika bukan scatter
       if (!inScatterMode){
         const prevSaldo = balance;
         balance = Math.max(balance - bet, 0);
-        updateStats();
         if (typeof saveBalance === "function") saveBalance(prevSaldo);
       }
 
       cascadeCount = 0; currentMulti = 1; updateBanner();
 
-      // animasi jalan
+      // animasi reel jalan
       let matrix=[];
-      for(let c=0;c<COLS;c++){
+      for (let c=0;c<COLS;c++){
         const container=document.getElementById("reel"+c).querySelector(".symbols");
         container.innerHTML="";
         for(let i=0;i<80;i++){ container.appendChild(makeTile(getRandomFruit(c))); }
         container.classList.add("spinning");
       }
 
-      // berhenti satu2
+      // stop reel satu-per-satu
       if (turbo){
         await new Promise(r=>setTimeout(r,600));
-        for(let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); }
+        for (let c=0;c<COLS;c++){ matrix.push(await stopReel(c)); }
       } else {
-        for(let c=0;c<COLS;c++){
+        for (let c=0;c<COLS;c++){
           await new Promise(r=>setTimeout(r,600));
           matrix.push(await stopReel(c));
         }
       }
-      if (inScatterMode) stopSound("rollScatter"); else stopSound("roll");
 
+      if (inScatterMode) stopSound("rollScatter"); else stopSound("roll");
       finishSpin(matrix);
     }
+    // Jadikan global supaya tombol & buy FS bisa memanggil
+    window.spin = spin;
 
-    // BUY FS popup
+    // ===== BUY FS =====
     buyBtn.addEventListener("click", ()=>{
       updateBuyPrice();
-      document.getElementById("confirmPopup").style.display="flex";
+      document.getElementById("confirmPopup").style.display = "flex";
     });
     document.getElementById("confirmYes").addEventListener("click", ()=>{
-      document.getElementById("confirmPopup").style.display="none";
+      document.getElementById("confirmPopup").style.display = "none";
       const cost = bet * 100;
       if (balance >= cost){
         const prevSaldo = balance;
@@ -780,25 +578,20 @@
         if (typeof saveBalance === "function") saveBalance(prevSaldo);
 
         inScatterMode = true; freeSpins = 15; scatterWinTotal = 0;
-        document.body.classList.add("scatter-mode"); playBacksoundScatter(); updateBanner();
+        document.body.classList.add("scatter-mode");
+        playBacksoundScatter(); updateBanner();
+
         setTimeout(spin, 500);
       } else {
         banner.textContent = "Saldo tidak cukup untuk Buy Free Spin!";
       }
     });
     document.getElementById("confirmNo").addEventListener("click", ()=>{
-      document.getElementById("confirmPopup").style.display="none";
+      document.getElementById("confirmPopup").style.display = "none";
     });
 
-    // TURBO
-    turboBtn.addEventListener("click",()=>{
-      turbo=!turbo;
-      if(turbo){ turboBtn.textContent="TURBO: ON"; turboBtn.classList.add("active"); }
-      else { turboBtn.textContent="TURBO: OFF"; turboBtn.classList.remove("active"); }
-    });
-
-    // SPIN BTN
-    spinBtn.addEventListener("click",()=>{
+    // ===== SPIN BUTTON =====
+    spinBtn.addEventListener("click", ()=>{
       if (sounds.backsound.paused && !inScatterMode) playBacksoundNormal();
       playSound("spin");
       if (!document.fullscreenElement){
@@ -806,17 +599,24 @@
       }
 
       if (autoRunning){
-        autoRunning=false; autoSpinInfinite=false; autoSpinCount=0; updateAutoLabel();
-        spinBtn.textContent="SPIN"; unlockControls(); return;
+        autoRunning=false; autoSpinInfinite=false; autoSpinCount=0;
+        updateAutoLabel(); spinBtn.textContent="SPIN"; unlockControls();
+        return;
       }
       if (autoSpinInfinite){
         autoRunning=true; spinBtn.textContent="STOP"; spin();
-      } else if (autoSpinValue>0){
-        autoRunning=true; autoSpinCount=autoSpinValue; spinBtn.textContent="STOP"; spin();
+      } else if (autoSpinValue > 0){
+        autoRunning=true; autoSpinCount = autoSpinValue; spinBtn.textContent="STOP"; spin();
       } else {
         spin();
       }
       updateAutoLabel();
+    });
+
+    turboBtn.addEventListener("click", ()=>{
+      turbo = !turbo;
+      if (turbo){ turboBtn.textContent="TURBO: ON"; turboBtn.classList.add("active"); }
+      else { turboBtn.textContent="TURBO: OFF"; turboBtn.classList.remove("active"); }
     });
 
     window.addEventListener("DOMContentLoaded", ()=>{
@@ -824,13 +624,13 @@
     });
   </script>
 
-  <!-- ======= FIREBASE (module): saldo + notif publish + flush stats sesi + overlay Top 5 ======= -->
+  <!-- FIREBASE (module) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import {
-      getFirestore, doc, updateDoc, onSnapshot, getDoc, increment,
-      collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs
+      getFirestore, doc, updateDoc, onSnapshot, getDoc,
+      collection, addDoc, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initOnlineStatus } from "./online.js";
 
@@ -850,23 +650,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const GAME_KEY = "slots";                 // kunci game ini
-    const WINS_FIELD = `wins_${GAME_KEY}`;    // contoh: wins_slots
-    const AMT_FIELD  = `wins_${GAME_KEY}_amt`;
-
     let userDocRef = null;
     let meData = null;
 
-    // ====== SYNC SALDO REALTIME ======
-    onAuthStateChanged(auth, (user)=>{
-      if (user){
+    // Sync saldo realtime
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
         userDocRef = doc(db, "users", user.uid);
-        onSnapshot(userDocRef, (snap)=>{
-          if (snap.exists()){
-            // Ambil saldo realtime
+        onSnapshot(userDocRef, (snap) => {
+          if (snap.exists()) {
+            // akses variabel global di window
             window.balance = snap.data().saldo || 0;
             meData = snap.data();
-            if (typeof updateStats === "function") updateStats();
+            window.updateStats && window.updateStats();
           }
         });
       } else {
@@ -874,148 +670,117 @@
       }
     });
 
-    // ====== SIMPAN SALDO + KONSUMSI (dipanggil dari game) ======
-    async function saveBalance(prevSaldo){
+    // Simpan saldo + konsumsi
+    async function saveBalance(prevSaldo) {
       if (!userDocRef) return;
       const diff = (prevSaldo ?? window.balance) - window.balance;
-      const updates = { saldo: window.balance };
-      if (diff > 0){
+      let updates = { saldo: window.balance };
+
+      if (diff > 0) {
         const snap = await getDoc(userDocRef);
         const prevConsumed = snap.exists() ? (snap.data().consumedSaldo || 0) : 0;
-        updates.consumedSaldo = prevConsumed + diff;
+        const totalConsumed = prevConsumed + diff;
+        updates.consumedSaldo = totalConsumed;
       }
       await updateDoc(userDocRef, updates);
     }
     window.saveBalance = saveBalance;
 
-    // Expose helper (tidak dipakai langsung di script ini, hanya tetap disediakan)
-    window.deductBet = function(amount){
+    // helper saldo optional
+    function deductBet(amount){
       const prevSaldo = window.balance;
       window.balance = Math.max(window.balance - amount, 0);
-      if (typeof updateStats === "function") updateStats();
+      window.updateStats && window.updateStats();
       saveBalance(prevSaldo);
-    };
-    window.addWin = function(amount){
+    }
+    function addWin(amount){
       window.balance += amount;
-      if (typeof updateStats === "function") updateStats();
+      window.updateStats && window.updateStats();
       saveBalance();
-    };
+    }
+    window.deductBet = deductBet;
+    window.addWin = addWin;
 
-    // ====== NOTIF: publish hanya jika >= 1 jt (HEMAT) ======
-    async function publishWinNotifIfNeeded(spinTotalWin){
-      try{
-        const THRESHOLD = 1000000; // 1 jt
+    // Publish notif jika menang >= 1jt (hemat)
+    async function publishWinNotifIfNeeded(spinTotalWin) {
+      try {
+        const THRESHOLD = 1000000;
         if (!userDocRef || !meData) return;
         if (spinTotalWin < THRESHOLD) return;
+
         const nickname = meData.name || meData.username || "Player";
         await addDoc(collection(db, "notifs"), {
           nickname,
           amount: spinTotalWin,
           createdAt: serverTimestamp()
+          // jika TTL index sudah diaktifkan, boleh tambahkan expiredAt
+          // expiredAt: Timestamp.fromDate(new Date(Date.now() + 5*60*1000))
         });
-      }catch(e){/* diam */}
+      } catch {}
     }
     window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
-
-    // ====== FLUSH STAT MENANG SAAT KELUAR HALAMAN ======
-    let flushed = false;
-    async function flushGameStats(){
-      if (flushed) return;
-      flushed = true;
-      if (!userDocRef) return;
-
-      const wins = window.sessionWins || 0;
-      const amt  = Math.floor(window.sessionWinAmount || 0);
-      if (wins<=0 && amt<=0) return;
-
-      const payload = {};
-      payload[WINS_FIELD] = increment(wins);
-      payload[AMT_FIELD]  = increment(amt);
-      try{ await updateDoc(userDocRef, payload); } catch(e){}
-    }
-
-    // flush saat tab disembunyikan / pindah
-    document.addEventListener("visibilitychange", ()=>{
-      if (document.hidden) flushGameStats();
-    });
-    window.addEventListener("pagehide", flushGameStats);
-    window.addEventListener("beforeunload", flushGameStats);
-
-    // ====== OVERLAY TOP 5 (hemat: polling 60s & saat aktif tab) ======
-    const gameRankList = document.getElementById("gameRankList");
-    function esc(s){ return (s||"").toString().replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
-
-    async function loadTop5(){
-      if (document.hidden) return; // hemat
-      try{
-        const qTop = query(collection(db,"users"), orderBy(WINS_FIELD,"desc"), limit(5));
-        const snap = await getDocs(qTop);
-        if (snap.empty){
-          gameRankList.innerHTML = "<li>—</li><li>—</li><li>—</li><li>—</li><li>—</li>";
-          return;
-        }
-        const items = [];
-        snap.forEach(d=>{
-          const u = d.data();
-          const name = u.name || u.username || "Player";
-          items.push(`<li>${esc(name)}</li>`);
-        });
-        // jika kurang dari 5, isi sisa
-        while(items.length<5) items.push("<li>—</li>");
-        gameRankList.innerHTML = items.join("");
-      }catch(e){
-        // fallback
-      }
-    }
-    loadTop5();
-    setInterval(loadTop5, 60000);
-    document.addEventListener("visibilitychange", ()=>{ if (!document.hidden) loadTop5(); });
   </script>
 
-  <!-- ======= NOTIF LISTENER (HEMAT polling 60d/ttl fallback) ======= -->
+  <!-- NOTIF HEMAT: polling 60 detik; threshold > 1jt; tanpa hapus paksa -->
   <script type="module">
     import { showWinNotif } from "./notif.js";
-    window.showWinNotif = showWinNotif;
+    import { getFirestore, collection, query, orderBy, limit, getDocs }
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     const db = getFirestore();
 
-    if (!document.getElementById('notifContainer')){
-      const el = document.createElement('div'); el.id='notifContainer'; document.body.prepend(el);
+    if (!document.getElementById('notifContainer')) {
+      const el = document.createElement('div');
+      el.id = 'notifContainer';
+      document.body.prepend(el);
     }
 
     const LS_KEY = "notif:lastId";
     let lastId = localStorage.getItem(LS_KEY) || null;
     let first = true;
-    const INTERVAL_MS = 60000;         // 60 detik
-    const TTL_FALLBACK_MS = 5*60*1000; // 5 menit
+    const INTERVAL_MS = 60000; // 60 detik
+    const TTL_FALLBACK_MS = 5 * 60 * 1000; // 5 menit
 
-    function isExpired(d){
+    function isExpired(d) {
       const now = Date.now();
-      if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') return d.expiredAt.toMillis() <= now;
-      if (d?.createdAt && typeof d.createdAt.toMillis === 'function') return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
+      if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') {
+        return d.expiredAt.toMillis() <= now;
+      }
+      if (d?.createdAt && typeof d.createdAt.toMillis === 'function') {
+        return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
+      }
       return false;
     }
 
-    async function pollNotif(){
-      if (document.hidden) return;
-      try{
-        const q = query(collection(db,"notifs"), orderBy("createdAt","desc"), limit(1));
+    async function pollNotif() {
+      if (document.hidden) return; // hemat
+
+      try {
+        const q = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
         const snap = await getDocs(q);
         if (snap.empty) return;
+
         const docu = snap.docs[0];
         const d = docu.data();
 
-        if (first){ first=false; lastId=docu.id; localStorage.setItem(LS_KEY,lastId); return; }
-        if (docu.id===lastId) return;
+        if (first) {
+          first = false;
+          lastId = docu.id;
+          localStorage.setItem(LS_KEY, lastId);
+          return;
+        }
 
-        const amount = Number(d?.amount||0);
+        if (docu.id === lastId) return;
+
+        const amount = Number(d?.amount || 0);
         const name = String(d?.nickname || "Player");
-        if (!isExpired(d) && amount > 1000000){
+        if (!isExpired(d) && amount > 1000000) {
           showWinNotif(name, amount);
         }
-        lastId = docu.id; localStorage.setItem(LS_KEY,lastId);
-      }catch(e){}
+
+        lastId = docu.id;
+        localStorage.setItem(LS_KEY, lastId);
+      } catch {}
     }
 
     pollNotif();
@@ -1023,7 +788,7 @@
     document.addEventListener("visibilitychange", ()=>{ if (!document.hidden) pollNotif(); });
   </script>
 
-  <!-- Chat embed (opsional, tetap seperti sebelumnya) -->
+  <!-- Chat (opsional) -->
   <div id="chatContainer"></div>
   <script type="module">
     fetch("chat.html")
