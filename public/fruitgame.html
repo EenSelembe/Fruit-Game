@@ -229,8 +229,7 @@
     <button id="confirmYes">Ya</button>  
     <button id="confirmNo">Tidak</button>  
   </div>  
-</div>  
-    <!-- BAGIAN JS -->    <script>  
+</div>    <!-- BAGIAN JS -->    <script>  
     // atur persen peluang menang  
     const COLS=5, ROWS=4;  
     const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🧸","🧸","🧸","🧸","🍎","🍎","🍎","💐","💐","🍌","🍌","🥥","🥥","🍈","🍈","⭐","⭐","🔔","🔔"]  
@@ -672,6 +671,11 @@ if (inScatterMode) {
       
     async function finishSpin(matrix){  
   await cascade(matrix);  
+
+  /* ===== Tambah: catat kemenangan untuk ranking berdasarkan banyaknya menang ===== */
+  if (win > 0 && typeof recordWin === "function") {
+    recordWin(win); // winsCount += 1, winsAmount += win
+  }
   
   // === NOTIF ADD: publish notif kalau total menang ≥ 1.000.000 (hemat)  
   if (typeof publishWinNotifIfNeeded === "function") {  
@@ -819,7 +823,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { getFirestore, doc, updateDoc, onSnapshot, getDoc,
 // === NOTIF ADD: import untuk publish notifs
-collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+collection, addDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { initOnlineStatus } from "./online.js";
 
 initOnlineStatus();
@@ -899,6 +903,18 @@ saveBalance();
 // Biar bisa dipanggil dari script utama
 window.deductBet = deductBet;
 window.addWin = addWin;
+
+/* ===== Tambah: fungsi pencatat kemenangan ===== */
+async function recordWin(amount){
+  if (!userDocRef) return;
+  try {
+    await updateDoc(userDocRef, {
+      winsCount: increment(1),                         // banyaknya menang
+      winsAmount: increment(Math.floor(amount || 0))   // total nominal menang (opsional)
+    });
+  } catch (e) { /* diamkan agar tidak ganggu gameplay */ }
+}
+window.recordWin = recordWin;
 
 // === NOTIF ADD: publish notif saat total menang ≥ 1.000.000
 async function publishWinNotifIfNeeded(spinTotalWin) {
@@ -1017,7 +1033,7 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
     });  
 </script>
 
-<!-- ====== RANK PANEL (POJOK KIRI BAWAH) — tambahan saja, tidak mengubah skrip lain ====== -->
+<!-- ====== RANK PANEL (POJOK KIRI BAWAH) — berbasis banyaknya menang (winsCount) ====== -->
 <style>
   .rank-panel{
     position: fixed;
@@ -1049,7 +1065,7 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
     line-height: 1.25rem;
     text-shadow: 0 0 6px rgba(0,0,0,.45);
   }
-  /* kelas dari rank.html agar efek border/gradient ikut */
+  /* kelas gaya seperti di rank.html agar border/gradient ikut */
   .nickname { display:inline-block; border-radius:6px; padding:2px 6px; }
   .levelTag { margin-left:6px; font-size:11px; font-weight:bold; color:#ffd54f; }
   .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
@@ -1073,97 +1089,71 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
   </ol>
 </div>
 
-<script>
-/* ====== Ambil 5 teratas dari rank.html dengan innerHTML (ikut warna/border), refresh tiap 1 menit ====== */
-(function(){
-  const CACHE_KEY = "rank:cache:v2";
-  const LIST_ID = "rankList";
+<!-- Top 5 berdasarkan banyaknya menang (winsCount), refresh tiap 60 detik) -->
+<script type="module">
+  import {
+    getFirestore, collection, query, orderBy, limit, getDocs
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  function render(items){
-    const list = document.getElementById(LIST_ID);
-    if (!list) return;
-    list.innerHTML = "";
-    (items && items.length ? items : ["username","username","username","username","username"])
-      .slice(0,5)
-      .forEach(html => {
-        const li = document.createElement("li");
-        li.innerHTML = html;           // pakai innerHTML agar style ikut
-        list.appendChild(li);
-      });
+  const db = getFirestore(); // pakai default app yang sudah di-init di atas
+  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // samakan dengan rank.html
+  const listEl = document.getElementById("rankList");
+
+  function styleFromUser(u){
+    let bg = u.bgColor || 'transparent';
+    let extraAnim = '';
+    if (u.bgGradient) {
+      bg = u.bgGradient;
+      extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
+    }
+    let border = `1px solid ${u.borderColor || '#000'}`;
+    let extraBorder = '';
+    if (u.borderGradient) {
+      const baseBg = u.bgColor || 'transparent';
+      border = '3px solid transparent';
+      extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};
+                     background-origin: border-box;
+                     background-clip: padding-box, border-box;`;
+    }
+    return `
+      color:${u.color || '#fff'};
+      background:${bg};
+      ${extraAnim}
+      border:${border};
+      border-radius:6px;
+      padding:2px 6px;
+      ${extraBorder}
+    `;
   }
 
-  function saveCache(items){
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), items }));
+  function renderTop(users){
+    listEl.innerHTML = '';
+    users.slice(0,5).forEach(u => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="nickname" style="${styleFromUser(u)}">
+        ${u.name || u.username || '—'}
+      </span>`;
+      listEl.appendChild(li);
+    });
   }
 
-  async function refreshFromRank(){
+  async function loadTopWins(){
     try{
-      const res = await fetch("rank.html", { cache: "no-store" });
-      const html = await res.text();
-      const doc = new DOMParser().parseFromString(html, "text/html");
-
-      let items = [];
-
-      // Prioritas struktur rank.html kamu: tbody#rows > tr
-      const rows = doc.querySelectorAll("#rows tr");
-      if (rows.length) {
-        for (const tr of rows) {
-          // skip baris admin (rank cell berisi 👑)
-          const rankCell = tr.querySelector(".rank");
-          if (rankCell && rankCell.textContent && rankCell.textContent.includes("👑")) continue;
-
-          const nameCell = tr.querySelector(".name");
-          if (nameCell) {
-            const nickEl = nameCell.querySelector(".nickname");
-            if (nickEl) {
-              items.push(nickEl.outerHTML); // bawa style & gradient inline
-            } else {
-              items.push((nameCell.innerHTML || "").trim());
-            }
-          }
-          if (items.length >= 5) break;
-        }
-      }
-
-      // Fallback: ol#rankList li (kalau suatu saat rank.html berubah)
-      if (items.length < 5) {
-        const lis = doc.querySelectorAll("#rankList li");
-        lis.forEach(li => {
-          if (items.length >= 5) return;
-          items.push((li.innerHTML || "").trim());
-        });
-      }
-
-      // Fallback tambahan: elemen .username / [data-username]
-      if (items.length < 5) {
-        const cands = doc.querySelectorAll(".username,[data-username]");
-        cands.forEach(el => {
-          if (items.length >= 5) return;
-          items.push((el.innerHTML || el.textContent || "").trim());
-        });
-      }
-
-      if (items.length) {
-        saveCache(items);
-        render(items);
-      } else {
-        const cached = JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
-        if (cached?.items?.length) render(cached.items);
-      }
+      const qTop = query(collection(db, 'users'), orderBy('winsCount', 'desc'), limit(10));
+      const snap = await getDocs(qTop);
+      const list = [];
+      snap.forEach(docu => {
+        if (docu.id === ADMIN_UID) return; // skip admin
+        list.push(docu.data());
+      });
+      if (list.length) renderTop(list);
     } catch(e){
-      const cached = JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
-      if (cached?.items?.length) render(cached.items);
+      // diamkan agar tidak ganggu gameplay
     }
   }
 
-  // Tampilkan cache (kalau ada) biar instan, lalu fetch terbaru
-  const cached = JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
-  if (cached?.items?.length) render(cached.items);
-
-  refreshFromRank();
-  // Update tiap 1 menit
-  setInterval(refreshFromRank, 60 * 1000);
-})();
+  loadTopWins();
+  setInterval(loadTopWins, 60 * 1000); // 1 menit
 </script>
 <!-- ====== /RANK PANEL ====== -->
 
