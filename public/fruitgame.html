@@ -229,7 +229,8 @@
     <button id="confirmYes">Ya</button>  
     <button id="confirmNo">Tidak</button>  
   </div>  
-</div>    <!-- BAGIAN JS -->    <script>  
+</div>  
+    <!-- BAGIAN JS -->    <script>  
     // atur persen peluang menang  
     const COLS=5, ROWS=4;  
     const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🧸","🧸","🧸","🧸","🍎","🍎","🍎","💐","💐","🍌","🍌","🥥","🥥","🍈","🍈","⭐","⭐","🔔","🔔"]  
@@ -1016,20 +1017,20 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
     });  
 </script>
 
-<!-- ====== RANK PANEL (pojok kiri, transparan) ====== -->
+<!-- ====== RANK PANEL (POJOK KIRI BAWAH) — tambahan saja, tidak mengubah skrip lain ====== -->
 <style>
   .rank-panel{
     position: fixed;
-    top: 10px; left: 10px;
-    z-index: 2500;
+    bottom: 10px; left: 10px;
+    z-index: 2500; /* di atas HUD/popup */
     background: rgba(0,0,0,.58);
     backdrop-filter: blur(2px);
     color: #fff;
     padding: 10px 12px;
     border-radius: 10px;
-    width: max-content;
+    width: max-content; /* lebar mengikuti teks */
     box-shadow: 0 2px 10px rgba(0,0,0,.25);
-    pointer-events: none;
+    pointer-events: none; /* supaya tidak ganggu klik elemen lain */
     font-family: inherit;
   }
   .rank-panel h3{
@@ -1048,10 +1049,21 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
     line-height: 1.25rem;
     text-shadow: 0 0 6px rgba(0,0,0,.45);
   }
+  /* kelas dari rank.html agar efek border/gradient ikut */
+  .nickname { display:inline-block; border-radius:6px; padding:2px 6px; }
+  .levelTag { margin-left:6px; font-size:11px; font-weight:bold; color:#ffd54f; }
+  .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .online { background:#00ff00; }
+  .offline { background:#ff0000; }
+  @keyframes neonAnim {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 </style>
 
 <div id="rankPanel" class="rank-panel">
-  <h3>🏆PERINGKAT🏆</h3>
+  <h3>Peringkat</h3>
   <ol id="rankList">
     <li>username</li>
     <li>username</li>
@@ -1062,78 +1074,26 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
 </div>
 
 <script>
-/* ====== Ambil 5 nama teratas dari rank.html, update 1x sehari ====== */
+/* ====== Ambil 5 teratas dari rank.html dengan innerHTML (ikut warna/border), refresh tiap 1 menit ====== */
 (function(){
-  const CACHE_KEY = "rank:cache:v1";
+  const CACHE_KEY = "rank:cache:v2";
   const LIST_ID = "rankList";
-  const TODAY = new Date().toISOString().slice(0,10);
 
-  const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
-
-  function render(names){
+  function render(items){
     const list = document.getElementById(LIST_ID);
     if (!list) return;
     list.innerHTML = "";
-    (names && names.length ? names : ["username","username","username","username","username"])
+    (items && items.length ? items : ["username","username","username","username","username"])
       .slice(0,5)
-      .forEach(n => {
+      .forEach(html => {
         const li = document.createElement("li");
-        li.textContent = n;
+        li.innerHTML = html;           // pakai innerHTML agar style ikut
         list.appendChild(li);
       });
   }
 
-  // Coba beberapa pola umum di rank.html
-  function pickUsernames(doc){
-    const out = [];
-
-    // 1) <ol id="rankList"><li>Nama</li>...</ol>
-    const ol = doc.querySelector("#rankList");
-    if (ol){
-      ol.querySelectorAll("li").forEach(li => {
-        const t = (li.textContent || "").trim();
-        if (t) out.push(t);
-      });
-    }
-
-    // 2) <table id="rankTable"><tbody><tr><td>1</td><td class="username">Nama</td>...</tr>
-    if (out.length < 5){
-      const rows = doc.querySelectorAll("#rankTable tbody tr, #rankTable tr");
-      rows.forEach(tr => {
-        if (out.length >= 5) return;
-        let name =
-          (tr.querySelector(".username") && tr.querySelector(".username").textContent) ||
-          (tr.querySelector("td:nth-child(2)") && tr.querySelector("td:nth-child(2)").textContent) ||
-          (tr.querySelector("td:nth-child(1)") && tr.querySelector("td:nth-child(1)").textContent);
-        name = (name || "").trim();
-        if (name && !/^\d+$/.test(name)) out.push(name);
-      });
-    }
-
-    // 3) elemen dengan atribut data-username
-    if (out.length < 5){
-      doc.querySelectorAll("[data-username]").forEach(el => {
-        if (out.length >= 5) return;
-        const t = (el.getAttribute("data-username") || el.textContent || "").trim();
-        if (t) out.push(t);
-      });
-    }
-
-    // 4) fallback: elemen yang class-nya mengandung 'name' atau 'user'
-    if (out.length < 5){
-      const cands = doc.querySelectorAll('[class*="name"],[class*="user"]');
-      cands.forEach(el => {
-        if (out.length >= 5) return;
-        const t = (el.textContent || "").trim();
-        if (t && t.length <= 30 && !/\s{2,}/.test(t)) out.push(t);
-      });
-    }
-
-    return out.slice(0,5);
-  }
-
-  function saveCache(names){
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ date: TODAY, names }));
+  function saveCache(items){
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), items }));
   }
 
   async function refreshFromRank(){
@@ -1141,37 +1101,70 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
       const res = await fetch("rank.html", { cache: "no-store" });
       const html = await res.text();
       const doc = new DOMParser().parseFromString(html, "text/html");
-      const names = pickUsernames(doc);
-      if (names && names.length){
-        saveCache(names);
-        render(names);
-      } else {
-        if (cached && cached.date === TODAY) render(cached.names);
+
+      let items = [];
+
+      // Prioritas struktur rank.html kamu: tbody#rows > tr
+      const rows = doc.querySelectorAll("#rows tr");
+      if (rows.length) {
+        for (const tr of rows) {
+          // skip baris admin (rank cell berisi 👑)
+          const rankCell = tr.querySelector(".rank");
+          if (rankCell && rankCell.textContent && rankCell.textContent.includes("👑")) continue;
+
+          const nameCell = tr.querySelector(".name");
+          if (nameCell) {
+            const nickEl = nameCell.querySelector(".nickname");
+            if (nickEl) {
+              items.push(nickEl.outerHTML); // bawa style & gradient inline
+            } else {
+              items.push((nameCell.innerHTML || "").trim());
+            }
+          }
+          if (items.length >= 5) break;
+        }
       }
-    }catch(e){
-      if (cached && cached.date === TODAY) render(cached.names);
+
+      // Fallback: ol#rankList li (kalau suatu saat rank.html berubah)
+      if (items.length < 5) {
+        const lis = doc.querySelectorAll("#rankList li");
+        lis.forEach(li => {
+          if (items.length >= 5) return;
+          items.push((li.innerHTML || "").trim());
+        });
+      }
+
+      // Fallback tambahan: elemen .username / [data-username]
+      if (items.length < 5) {
+        const cands = doc.querySelectorAll(".username,[data-username]");
+        cands.forEach(el => {
+          if (items.length >= 5) return;
+          items.push((el.innerHTML || el.textContent || "").trim());
+        });
+      }
+
+      if (items.length) {
+        saveCache(items);
+        render(items);
+      } else {
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
+        if (cached?.items?.length) render(cached.items);
+      }
+    } catch(e){
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
+      if (cached?.items?.length) render(cached.items);
     }
   }
 
-  if (cached && cached.date === TODAY){
-    render(cached.names);
-  } else {
-    refreshFromRank();
-  }
+  // Tampilkan cache (kalau ada) biar instan, lalu fetch terbaru
+  const cached = JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
+  if (cached?.items?.length) render(cached.items);
 
-  setInterval(refreshFromRank, 24 * 60 * 60 * 1000);
+  refreshFromRank();
+  // Update tiap 1 menit
+  setInterval(refreshFromRank, 60 * 1000);
 })();
 </script>
-
-<!-- Override posisi: pojok kiri bawah -->
-<style>
-  .rank-panel{
-    top: auto !important;
-    bottom: 10px !important;
-    left: 10px !important;
-    right: auto !important;
-  }
-</style>
 <!-- ====== /RANK PANEL ====== -->
 
 </body>  
