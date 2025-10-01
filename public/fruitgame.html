@@ -540,7 +540,7 @@
     async function recordWin(amount){
       if(!userDocRef)return;
       try{
-        await updateDoc(userDocRef,{winsCount:increment(1),winsAmount_slots:increment(Math.floor(amount||0))});
+        await updateDoc(userDocRef,{winsAmount_slots54:increment(Math.floor(amount||0))});
       }catch(e){}
     }
     window.recordWin=recordWin;
@@ -650,13 +650,13 @@
       listEl.innerHTML='';
       users.slice(0,3).forEach(u=>{
         const li=document.createElement('li');
-        li.innerHTML=`<span class="nickname" style="${styleFromUser(u)}">${u.name||u.username||'—'}</span><br><span class="winAmount">${fmtRp(u.winsAmount_slots)}</span>`;
+        li.innerHTML=`<span class="nickname" style="${styleFromUser(u)}">${u.name||u.username||'—'}</span><br><span class="winAmount">${fmtRp(u.winsAmount_slots54)}</span>`;
         listEl.appendChild(li);
       });
     }
     async function loadTopWins(){
       try{
-        const qTop=query(collection(db,'users'),orderBy('winsAmount_slots','desc'),limit(3));
+        const qTop=query(collection(db,'users'),orderBy('winsAmount_slots54','desc'),limit(3));
         const snap=await getDocs(qTop);
         const list=[];
         snap.forEach(docu=>{if(docu.id===ADMIN_UID)return;list.push(docu.data())});
