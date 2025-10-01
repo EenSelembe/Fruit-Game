@@ -8,7 +8,7 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{width:100vw;height:100vh;background:url("public/image/wallpaper-07.jpg") no-repeat center center fixed;font-family:Arial,sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;padding-top:10px}
-    h1{font-size:26px;font-weight:bold;margin-bottom:15px;text-transform:uppercase;animation:glow 3s linear infinite}
+    h1{font-size:26px;font-weight:bold;margin-bottom:6px;text-transform:uppercase;animation:glow 3s linear infinite}
     @keyframes glow{0%{color:#fffb00;text-shadow:0 0 10px #ff7300,0 0 20px #fffb00}25%{color:#48ff00;text-shadow:0 0 10px #00ffd5,0 0 20px #002bff}50%{color:#ff00ab;text-shadow:0 0 10px #ff00ab,0 0 20px #ff0000}75%{color:#00ffd5;text-shadow:0 0 10px #48ff00,0 0 20px #002bff}100%{color:#fffb00;text-shadow:0 0 10px #ff7300,0 0 20px #fffb00}}
     .saldo-section{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:15px}
     .saldo-label{font-size:16px;font-weight:bold;color:#ffd700}
@@ -42,7 +42,7 @@
     .win-title{font-size:28px;font-weight:bold;margin-bottom:10px}
     .win-amount{font-size:22px;font-weight:bold;color:#ffd700}
     @keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
-    .rank-panel{position:fixed;top:10px;left:10px;z-index:2500;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:10px 12px;border-radius:10px;width:max-content;box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;font-family:inherit}
+    .rank-panel{align-self:flex-start;margin-left:10px;margin-top:6px;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:10px 12px;border-radius:10px;width:max-content;box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;font-family:inherit}
     .rank-panel h3{margin:0 0 6px 0;font-size:.95rem;font-weight:800;letter-spacing:.3px}
     .rank-panel ol{margin:0;padding-left:18px}
     .rank-panel li{font-size:.9rem;font-weight:700;line-height:1.25rem;margin-bottom:4px;text-shadow:0 0 6px rgba(0,0,0,.45)}
@@ -53,18 +53,19 @@
 </head>
 <body>
   <div id="notifContainer"></div>
-
-  <audio id="backsound" loop autoplay>
-    <source src="sonds/greedyfruit.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="rollSound">
-    <source src="sonds/rollscatter.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="countdownSound">
-    <source src="sonds/tik.mp3" type="audio/mpeg">
-  </audio>
-
+  <audio id="backsound" loop autoplay><source src="sonds/greedyfruit.mp3" type="audio/mpeg"></audio>
+  <audio id="rollSound"><source src="sonds/rollscatter.mp3" type="audio/mpeg"></audio>
+  <audio id="countdownSound"><source src="sonds/tik.mp3" type="audio/mpeg"></audio>
   <h1>GREEDY FRUIT</h1>
+
+  <div id="rankPanel" class="rank-panel">
+    <h3>🏆RANK TOP 3</h3>
+    <ol id="rankList">
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+    </ol>
+  </div>
 
   <div class="saldo-section">
     <div class="saldo-label">Saldo</div>
@@ -83,9 +84,7 @@
 
   <div class="grid-container">
     <div class="grid" id="grid"></div>
-    <div class="grid-overlay" id="gridOverlay">
-      <span style="color:#fff;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">Tunggu Spin...</span>
-    </div>
+    <div class="grid-overlay" id="gridOverlay"><span style="color:#fff;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">Tunggu Spin...</span></div>
   </div>
 
   <div class="history"><div class="history-list" id="historyList"></div></div>
@@ -200,7 +199,7 @@
       betText.className="bet-text";
       if(index<4)betText.classList.add("bet-top");else betText.classList.add("bet-bottom");
       div.appendChild(betText);betTextRefs[index]=betText;
-      div.addEventListener("click",async()=>{
+      div.addEventListener("click",async ()=>{
         if(!canBet)return;
         if(saldo>=globalBet){
           saldo-=globalBet;
@@ -225,20 +224,12 @@
       for(let i=0;i<20;i++){SYMBOLS.forEach(s=>sequence.push(s.icon))}
       const {index:resultIndex,symbol:result}=getWeightedRandomSymbol();
       sequence.push(result.icon);
-      sequence.forEach(sym=>{
-        const div=document.createElement("div");
-        div.className="symbol";
-        div.style.height=boxH+'px';
-        div.style.fontSize=Math.round(boxH*0.5)+'px';
-        div.textContent=sym;
-        reel.appendChild(div);
-      });
+      sequence.forEach(sym=>{const div=document.createElement("div");div.className="symbol";div.style.height=boxH+'px';div.style.fontSize=Math.round(boxH*0.5)+'px';div.textContent=sym;reel.appendChild(div)});
       const finalOffset=-(boxH*(sequence.length-1));
       requestAnimationFrame(()=>{reel.style.transition="transform 5000ms linear";reel.style.transform=`translateY(${finalOffset}px)`});
-      reel.addEventListener("transitionend",async()=>{
+      reel.addEventListener('transitionend',async ()=>{
         rollSound.pause();rollSound.currentTime=0;
-        reel.style.transition="none";
-        reel.style.transform=`translateY(${finalOffset}px)`;
+        reel.style.transition="none";reel.style.transform=`translateY(${finalOffset}px)`;
         addHistory(result.icon);
         let totalWin=0;
         const resultType=result.type;
@@ -258,9 +249,7 @@
           showWin(totalWin);
           await saveBalance();
           try{
-            await updateDoc(userDocRef,{winsCount:increment(1),winsAmount:increment(Math.floor(totalWin))});
-          }catch(e){}
-          try{
+            await updateDoc(userDocRef,{winsAmount_greedy:increment(Math.floor(totalWin))});
             if(totalWin>=1000000){
               window.showWinNotif(currentNick,totalWin);
               await addDoc(collection(db,"notifs"),{nickname:currentNick,amount:totalWin,createdAt:serverTimestamp()});
@@ -293,11 +282,7 @@
       },1000);
     }
 
-    function addHistory(icon){
-      const item=document.createElement("div");item.className="history-item";item.textContent=icon;
-      historyList.prepend(item);
-      if(historyList.children.length>MAX_HISTORY){historyList.removeChild(historyList.lastChild)}
-    }
+    function addHistory(icon){const item=document.createElement("div");item.className="history-item";item.textContent=icon;historyList.prepend(item);if(historyList.children.length>MAX_HISTORY){historyList.removeChild(historyList.lastChild)}}
     function clearBets(){bets=Array(SYMBOLS.length).fill(0);betTextRefs.forEach(el=>{el.textContent=""});updateTotalBet()}
     function updateBetDisplay(){betDisplay.textContent="Rp. "+globalBet.toLocaleString("id-ID")}
     plusBtn.addEventListener("click",()=>{globalBet+=500;updateBetDisplay()});
@@ -330,41 +315,28 @@
     let first=true;
     const INTERVAL_MS=60000;
     const TTL_FALLBACK_MS=5*60*1000;
-    function isExpired(d){
-      const now=Date.now();
-      if(d?.expiredAt&&typeof d.expiredAt.toMillis==='function'){return d.expiredAt.toMillis()<=now}
-      if(d?.createdAt&&typeof d.createdAt.toMillis==='function'){return(now-d.createdAt.toMillis())>TTL_FALLBACK_MS}
-      return false;
-    }
+    function isExpired(d){const now=Date.now();if(d?.expiredAt&&typeof d.expiredAt.toMillis==='function'){return d.expiredAt.toMillis()<=now}if(d?.createdAt&&typeof d.createdAt.toMillis==='function'){return(now-d.createdAt.toMillis())>TTL_FALLBACK_MS}return false}
     async function pollNotif(){
       if(document.hidden)return;
       try{
-        const q=query(collection(db,"notifs"),orderBy("createdAt","desc"),limit(1));
-        const snap=await getDocs(q);
+        const qNotifs=query(collection(db,"notifs"),orderBy("createdAt","desc"),limit(1));
+        const snap=await getDocs(qNotifs);
         if(snap.empty)return;
         const docu=snap.docs[0];
-        const d=docu.data();
+        const data=docu.data();
         if(first){first=false;lastId=docu.id;localStorage.setItem(LS_KEY,lastId);return}
         if(docu.id===lastId)return;
-        const amount=Number(d?.amount||0);
-        const name=String(d?.nickname||"Player");
-        if(!isExpired(d)&&amount>1000000){showWinNotif(name,amount)}
-        lastId=docu.id;localStorage.setItem(LS_KEY,lastId);
+        const amount=Number(data?.amount||0);
+        const name=String(data?.nickname||"Player");
+        if(amount>1000000&&!isExpired(data)){showWinNotif(name,amount)}
+        lastId=docu.id;
+        localStorage.setItem(LS_KEY,lastId);
       }catch(e){}
     }
     pollNotif();
     setInterval(pollNotif,INTERVAL_MS);
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollNotif()});
   </script>
-
-  <div id="rankPanel" class="rank-panel">
-    <h3>🏆 TOP 3</h3>
-    <ol id="rankList">
-      <li>username<br><span class="winAmount">Rp. 0</span></li>
-      <li>username<br><span class="winAmount">Rp. 0</span></li>
-      <li>username<br><span class="winAmount">Rp. 0</span></li>
-    </ol>
-  </div>
 
   <script type="module">
     import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -389,13 +361,13 @@
       listEl.innerHTML='';
       users.slice(0,3).forEach(u=>{
         const li=document.createElement('li');
-        li.innerHTML=`<span class="nickname" style="${styleFromUser(u)}">${u.name||u.username||'—'}</span><br><span class="winAmount">${fmtRp(u.winsAmount)}</span>`;
+        li.innerHTML=`<span class="nickname" style="${styleFromUser(u)}">${u.name||u.username||'—'}</span><br><span class="winAmount">${fmtRp(u.winsAmount_greedy)}</span>`;
         listEl.appendChild(li);
       });
     }
     async function loadTopWins(){
       try{
-        const qTop=query(collection(db,'users'),orderBy('winsAmount','desc'),limit(3));
+        const qTop=query(collection(db,'users'),orderBy('winsAmount_greedy','desc'),limit(3));
         const snap=await getDocs(qTop);
         const list=[];
         snap.forEach(docu=>{if(docu.id===ADMIN_UID)return;list.push(docu.data())});
