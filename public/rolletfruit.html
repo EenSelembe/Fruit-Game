@@ -1,179 +1,47 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rolet Buah Fullscreen + Sound</title>
 <link rel="stylesheet" href="notif.css">
 <style>
-  html, body {
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    background: url("public/image/wallpaper-01.jpg") no-repeat center center fixed;
-    overflow:hidden;
-    font-family: Arial, sans-serif;
-    color:#fff;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-  #history {
-    display:flex;
-    flex-direction:row;
-    gap:8px;
-    margin-top:8px;
-    margin-bottom:12px;
-    overflow:hidden;
-    width:95%;
-    justify-content:flex-end;
-  }
-  .hist-item {
-    padding:5px 10px;
-    border-radius:8px;
-    font-size:16px;
-    font-weight:bold;
-    color:white;
-    -webkit-text-stroke:0.5px white;
-    text-shadow:1px 1px 2px #000;
-    background:rgba(0,0,0,0.6);
-    display:inline-block;
-  }
-  #saldoBox,
-  #betValue,
-  #totalBet,
-  #betsList {
-    font-weight:bold;
-    -webkit-text-stroke:0.8px white;
-    color:white;
-    text-shadow:1px 1px 2px #000;
-    background:rgba(0,0,0,0.5);
-    padding:6px 12px;
-    border-radius:8px;
-    display:inline-block;
-  }
-  #multiplierBox {
-    position:relative;
-    width:100px;
-    height:50px;
-    border:2px solid #fff;
-    border-radius:8px;
-    margin:12px 0;
-    overflow:hidden;
-    background:#111;
-  }
-  #multiplierRoll {
-    position:absolute;
-    top:0; left:0; right:0;
-  }
-  .mult-item {
-    font-size:28px;
-    font-weight:bold;
-    height:50px;
-    line-height:50px;
-    text-align:center;
-    color:#fff;
-  }
-  .mult-gold { color:gold; }
-  .main {
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-  }
-  .wrap {
-    position:relative;
-    width:min(90vw, 340px);
-    height:min(90vw, 340px);
-    margin-bottom:10px;
-  }
-  canvas {
-    width:100%; height:100%;
-    border:6px solid #fff;
-    border-radius:50%;
-    box-shadow:0 0 15px rgba(0,0,0,.7);
-    background:#111;
-    cursor:pointer;
-  }
-  #spinBtn {
-    position:absolute;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:90px; height:90px;
-    border-radius:50%;
-    border:none;
-    background:linear-gradient(orange, gold);
-    font-size:18px;
-    font-weight:bold;
-    cursor:pointer;
-    box-shadow:0 0 12px rgba(0,0,0,.6);
-    color:#000;
-    z-index:20;
-  }
-  #betBox {
-    display:flex;
-    align-items:center;
-    gap:15px;
-    margin:8px 0;
-  }
-  #betBox button {
-    width:40px; height:40px;
-    border-radius:50%;
-    border:none;
-    background:linear-gradient(#555, #333);
-    color:#fff;
-    font-size:20px;
-    cursor:pointer;
-    box-shadow:0 0 6px rgba(0,0,0,.6);
-  }
-  #betsList {
-    margin-top:18px;
-    font-size:18px;
-    display:grid;
-    grid-template-rows: repeat(5, auto);
-    grid-auto-flow: column;
-    gap:6px 20px;
-    text-align:left;
-  }
-  #overlayWin {
-    position:fixed;
-    top:0; left:0; right:0; bottom:0;
-    background:rgba(0,0,0,0.7);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:100;
-    opacity:0;
-    pointer-events:none;
-    transition:opacity 0.4s ease;
-  }
-  #overlayWin.show {
-    opacity:1;
-    pointer-events:auto;
-  }
-  #overlayContent {
-    background:#fff;
-    color:#000;
-    padding:30px 40px;
-    border-radius:15px;
-    font-size:24px;
-    font-weight:bold;
-    text-align:center;
-    box-shadow:0 0 20px rgba(255,255,255,0.8);
-    white-space:pre-line;
-  }
-  canvas, button {
-    outline: none;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
+  html, body {margin:0;padding:0;width:100%;height:100%;background:url("public/image/wallpaper-01.jpg") no-repeat center center fixed;overflow:hidden;font-family:Arial,sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center}
+  #history {display:flex;flex-direction:row;gap:8px;margin-top:8px;margin-bottom:12px;overflow:hidden;width:95%;justify-content:flex-end}
+  .hist-item {padding:5px 10px;border-radius:8px;font-size:16px;font-weight:bold;color:white;-webkit-text-stroke:0.5px white;text-shadow:1px 1px 2px #000;background:rgba(0,0,0,0.6);display:inline-block}
+  #saldoBox,#betValue,#totalBet,#betsList {font-weight:bold;-webkit-text-stroke:0.8px white;color:white;text-shadow:1px 1px 2px #000;background:rgba(0,0,0,0.5);padding:6px 12px;border-radius:8px;display:inline-block}
+  #multiplierBox {position:relative;width:100px;height:50px;border:2px solid #fff;border-radius:8px;margin:12px 0;overflow:hidden;background:#111}
+  #multiplierRoll {position:absolute;top:0;left:0;right:0}
+  .mult-item {font-size:28px;font-weight:bold;height:50px;line-height:50px;text-align:center;color:#fff}
+  .mult-gold {color:gold}
+  .main {flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+  .wrap {position:relative;width:min(90vw,340px);height:min(90vw,340px);margin-bottom:10px}
+  canvas {width:100%;height:100%;border:6px solid #fff;border-radius:50%;box-shadow:0 0 15px rgba(0,0,0,.7);background:#111;cursor:pointer}
+  #spinBtn {position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:90px;height:90px;border-radius:50%;border:none;background:linear-gradient(orange,gold);font-size:18px;font-weight:bold;cursor:pointer;box-shadow:0 0 12px rgba(0,0,0,.6);color:#000;z-index:20}
+  #betBox {display:flex;align-items:center;gap:15px;margin:8px 0}
+  #betBox button {width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(#555,#333);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 0 6px rgba(0,0,0,.6)}
+  #betsList {margin-top:18px;font-size:18px;display:grid;grid-template-rows:repeat(5,auto);grid-auto-flow:column;gap:6px 20px;text-align:left}
+  #overlayWin {position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .4s ease}
+  #overlayWin.show {opacity:1;pointer-events:auto}
+  #overlayContent {background:#fff;color:#000;padding:30px 40px;border-radius:15px;font-size:24px;font-weight:bold;text-align:center;box-shadow:0 0 20px rgba(255,255,255,0.8);white-space:pre-line}
+  canvas,button {outline:none;-webkit-tap-highlight-color:transparent;user-select:none}
+  .rank-panel{position:fixed;top:10px;left:10px;z-index:2500;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:8px 10px;border-radius:8px;font-family:inherit;pointer-events:none}
+  .rank-panel h3{margin:0 0 4px 0;font-size:.8rem;font-weight:bold}
+  .rank-panel ol{margin:0;padding-left:18px}
+  .rank-panel li{font-size:.75rem;font-weight:600;line-height:1.1rem;margin-bottom:3px}
+  .winAmount{font-size:.50rem;font-weight:500;color:#ffd54f}
 </style>
 </head>
 <body>
   <div id="notifContainer"></div>
+  <div id="rankPanel" class="rank-panel">
+    <h3>🏆RANK🏆</h3>
+    <ol id="rankList">
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+    </ol>
+  </div>
   <div id="history"></div>
   <div class="main">
     <div id="saldoBox">Saldo: Rp. 0</div>
@@ -192,7 +60,6 @@
   </div>
   <div id="overlayWin"><div id="overlayContent"></div></div>
 
-  <!-- 🔊 Audio -->
   <audio id="backsound" loop autoplay>
     <source src="sonds/rolletfruit.mp3" type="audio/mpeg">
   </audio>
@@ -203,78 +70,42 @@
     <source src="sonds/spinnerrolet.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- Script untuk backsound -->
   <script>
-    const backsound = document.getElementById("backsound");
-    backsound.volume = 0.5;
-    document.addEventListener("click", () => {
-      if (backsound.paused) {
-        backsound.play().catch(()=>{});
-      }
-    }, { once: true });
+    const backsound=document.getElementById("backsound");backsound.volume=0.5;document.addEventListener("click",()=>{if(backsound.paused){backsound.play().catch(()=>{});}},{once:true});
   </script>
 
-  <!-- Script utama rolet -->
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import {
-    getFirestore, doc, onSnapshot, updateDoc,
-    collection, addDoc, serverTimestamp, query, orderBy, limit, increment
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp, query, orderBy, limit, increment, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   import { initOnlineStatus } from "./online.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
-  };
+  const firebaseConfig={apiKey:"AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",authDomain:"fruit-game-5e4a8.firebaseapp.com",projectId:"fruit-game-5e4a8",storageBucket:"fruit-game-5e4a8.appspot.com",messagingSenderId:"936228678997",appId:"1:936228678997:web:9dab2fa0d9a019161bd3dc",measurementId:"G-EPTSQQPM4D"};
+  const app=initializeApp(firebaseConfig);
+  const auth=getAuth(app);
+  const db=getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+  const soundMultiplier=document.getElementById("soundMultiplier");
+  const soundRolet=document.getElementById("soundRolet");
 
-  const soundMultiplier = document.getElementById("soundMultiplier");
-  const soundRolet = document.getElementById("soundRolet");
+  function playLoop(audio){audio.loop=true;audio.currentTime=0;audio.play().catch(()=>{});}
+  function stopAudio(audio){audio.pause();audio.currentTime=0;}
 
-  function playLoop(audio) {
-    audio.loop = true;
-    audio.currentTime = 0;
-    audio.play().catch(()=>{});
-  }
-  function stopAudio(audio) {
-    audio.pause();
-    audio.currentTime = 0;
-  }
-
-  // ====== KONFIG NOTIF HEMAT ======
-  const NOTIF_THRESHOLD = 1_000_000; // hanya notif >= 1 juta
+  const NOTIF_THRESHOLD=1000000;
 
   let userId=null;
   let saldo=0;
   let nickname="Player";
   const saldoBox=document.getElementById("saldoBox");
-  function updateSaldo(){ saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID"); }
+  function updateSaldo(){saldoBox.textContent="Saldo: Rp. "+saldo.toLocaleString("id-ID");}
 
-  // ✅ Hemat read: pakai increment() untuk consumedSaldo saat saldo berkurang
   async function setSaldo(newSaldo){
     if(!userId) return;
-    const userRef = doc(db,"users",userId);
-    const diff = saldo - newSaldo; // jika positif = konsumsi
-    if (diff > 0) {
-      await updateDoc(userRef, {
-        saldo: newSaldo,
-        consumedSaldo: increment(diff)
-      });
-    } else {
-      await updateDoc(userRef, { saldo: newSaldo });
-    }
-    saldo = newSaldo;
-    updateSaldo();
+    const userRef=doc(db,"users",userId);
+    const diff=saldo-newSaldo;
+    if(diff>0){await updateDoc(userRef,{saldo:newSaldo,consumedSaldo:increment(diff)});}
+    else{await updateDoc(userRef,{saldo:newSaldo});}
+    saldo=newSaldo;updateSaldo();
   }
 
   onAuthStateChanged(auth,(user)=>{
@@ -283,20 +114,18 @@
       const userRef=doc(db,"users",userId);
       onSnapshot(userRef,(snap)=>{
         if(snap.exists()){
-          const data = snap.data();
-          saldo = data.saldo||0;
-          nickname = data.username || data.name || "Player";
+          const data=snap.data();
+          saldo=data.saldo||0;
+          nickname=data.username||data.name||"Player";
           updateSaldo();
         }
       });
-    } else { window.location.href="index.html"; }
+    }else{window.location.href="index.html";}
   });
 
-  // === logika rolet ===
   const canvas=document.getElementById("wheel");
   const ctx=canvas.getContext("2d");
-  const size=340;
-  canvas.width=size; canvas.height=size;
+  const size=340;canvas.width=size;canvas.height=size;
 
   const spinBtn=document.getElementById("spinBtn");
   const historyDiv=document.getElementById("history");
@@ -305,34 +134,23 @@
   const overlayWin=document.getElementById("overlayWin");
   const overlayContent=document.getElementById("overlayContent");
 
-  function showOverlay(msg){
-    overlayContent.textContent=msg;
-    overlayWin.classList.add("show");
-    setTimeout(()=>overlayWin.classList.remove("show"),3000);
-  }
+  function showOverlay(msg){overlayContent.textContent=msg;overlayWin.classList.add("show");setTimeout(()=>overlayWin.classList.remove("show"),3000);}
 
-  // bet
-  let bet=500;
-  const betValue=document.getElementById("betValue");
-  function updateBet(){ betValue.textContent="Rp. "+bet.toLocaleString("id-ID"); }
+  let bet=500;const betValue=document.getElementById("betValue");
+  function updateBet(){betValue.textContent="Rp. "+bet.toLocaleString("id-ID");}
   document.getElementById("minusBet").addEventListener("click",()=>{if(bet>500){bet-=500;updateBet();}});
-  document.getElementById("plusBet").addEventListener("click",()=>{ bet+=500; updateBet(); });
+  document.getElementById("plusBet").addEventListener("click",()=>{bet+=500;updateBet();});
   updateBet();
 
-  // simbol
   const segments=["🍎","🍌","🍇","🍉","🍒","🍍","🍋","🥭","🥝","🍑"];
   const colors=["#e74c3c","#3498db","#2ecc71","#f1c40f","#9b59b6","#e67e22","#1abc9c","#ff6f61","#16a085","#d35400"];
   const N=segments.length;
-  const R=size/2; const cx=size/2,cy=size/2;
+  const R=size/2;const cx=size/2,cy=size/2;
 
   let betsActive={};
   function updateBetsList(){
-    if(Object.keys(betsActive).length===0){
-      betsList.textContent="Belum ada taruhan";
-      totalBetBox.textContent="Total Taruhan: Rp. 0";
-      return;
-    }
-    betsList.innerHTML=""; let total=0;
+    if(Object.keys(betsActive).length===0){betsList.textContent="Belum ada taruhan";totalBetBox.textContent="Total Taruhan: Rp. 0";return;}
+    betsList.innerHTML="";let total=0;
     for(const [sym,val] of Object.entries(betsActive)){
       const div=document.createElement("div");
       div.textContent=sym+" = Rp. "+val.toLocaleString("id-ID");
@@ -347,7 +165,7 @@
     if(spinning) return;
     if(saldo<bet){alert("Saldo tidak cukup!");return;}
     const rect=canvas.getBoundingClientRect();
-    const x=e.clientX-rect.left; const y=e.clientY-rect.top;
+    const x=e.clientX-rect.left;const y=e.clientY-rect.top;
     const dx=x-cx,dy=y-cy;
     let angle=Math.atan2(dy,dx);
     let norm=(angle+2*Math.PI)%(2*Math.PI);
@@ -357,59 +175,34 @@
     setSaldo(saldo-bet);
     betsActive[symbol]=(betsActive[symbol]||0)+bet;
     updateBetsList();
-    drawWheel(); // titik merah langsung muncul
+    drawWheel();
   });
 
-  // draw wheel + highlight
-  let persistentHighlight = null;
+  let persistentHighlight=null;
   function drawWheel(highlightIndex=null){
     ctx.clearRect(0,0,size,size);
     const startOffset=-Math.PI/2;
-
     for(let i=0;i<N;i++){
       const a0=startOffset+i*(2*Math.PI/N);
       const a1=a0+(2*Math.PI/N);
-      ctx.beginPath();
-      ctx.moveTo(cx,cy);
-      ctx.arc(cx,cy,R,a0,a1);
-      ctx.closePath();
-      ctx.fillStyle=colors[i];
-      ctx.fill();
-
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#111";
-      ctx.stroke();
-
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a0,a1);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle="#111";ctx.stroke();
       const mid=(a0+a1)/2;
-      ctx.font="38px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff";
-      ctx.fillText(segments[i], cx+Math.cos(mid)*R*0.72, cy+Math.sin(mid)*R*0.72);
-
-      // Titik merah
-      if (betsActive[segments[i]]) {
+      ctx.font="38px Arial";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";
+      ctx.fillText(segments[i],cx+Math.cos(mid)*R*0.72,cy+Math.sin(mid)*R*0.72);
+      if(betsActive[segments[i]]){
         ctx.beginPath();
-        ctx.arc(
-          cx + Math.cos(mid) * R * 0.92,
-          cy + Math.sin(mid) * R * 0.92,
-          8, 0, Math.PI * 2
-        );
-        ctx.fillStyle = "#ff0000";
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "#000";
-        ctx.stroke();
+        ctx.arc(cx+Math.cos(mid)*R*0.92,cy+Math.sin(mid)*R*0.92,8,0,Math.PI*2);
+        ctx.fillStyle="#ff0000";ctx.fill();ctx.lineWidth=2;ctx.strokeStyle="#000";ctx.stroke();
       }
     }
-
-    if (highlightIndex !== null) {
-      persistentHighlight = highlightIndex;
-    }
-
-    if (persistentHighlight !== null){
+    if(highlightIndex!==null){persistentHighlight=highlightIndex;}
+    if(persistentHighlight!==null){
       ctx.save();
       const a0=-Math.PI/2+persistentHighlight*(2*Math.PI/N);
       const a1=a0+(2*Math.PI/N);
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
-      ctx.lineWidth=14; ctx.strokeStyle="yellow"; ctx.shadowBlur=30; ctx.shadowColor="yellow"; ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a0,a1);ctx.closePath();
+      ctx.lineWidth=14;ctx.strokeStyle="yellow";ctx.shadowBlur=30;ctx.shadowColor="yellow";ctx.stroke();
       ctx.restore();
     }
   }
@@ -417,100 +210,59 @@
 
   function addHistory(symbol,mult){
     const item=document.createElement("div");
-    item.className="hist-item"; item.textContent=symbol+" x"+mult;
+    item.className="hist-item";item.textContent=symbol+" x"+mult;
     historyDiv.appendChild(item);
-    if(historyDiv.children.length>6) historyDiv.removeChild(historyDiv.firstChild);
+    if(historyDiv.children.length>6)historyDiv.removeChild(historyDiv.firstChild);
   }
 
-  // multiplier
   const multiplierChances={5:40,6:20,7:10,8:8,9:6,10:5,30:4,50:4,99:3};
   function weightedRandom(chances){
     const total=Object.values(chances).reduce((a,b)=>a+b,0);
     let r=Math.random()*total;
-    for(const [value,weight] of Object.entries(chances)){
-      if(r<weight) return parseInt(value);
-      r-=weight;
-    }
+    for(const [value,weight] of Object.entries(chances)){if(r<weight)return parseInt(value);r-=weight;}
   }
   const multipliers=Object.keys(multiplierChances).map(n=>parseInt(n));
   const multiplierRoll=document.getElementById("multiplierRoll");
-
-  for(let k=0;k<30;k++){
-    multipliers.forEach(m=>{
-      const d=document.createElement("div");
-      d.className="mult-item"+(m>=50?" mult-gold":"");
-      d.textContent="x"+m;
-      multiplierRoll.appendChild(d);
-    });
-  }
+  for(let k=0;k<30;k++){multipliers.forEach(m=>{const d=document.createElement("div");d.className="mult-item"+(m>=50?" mult-gold":"");d.textContent="x"+m;multiplierRoll.appendChild(d);});}
 
   function easeOutCubic(t){return 1-Math.pow(1-t,3);}
-  function easeShortTail(t){
-    const e = easeOutCubic(t);
-    return 0.45 * t + 0.55 * e;
-  }
+  function easeShortTail(t){const e=easeOutCubic(t);return 0.45*t+0.55*e;}
 
   function spinMultiplier(callback){
-    const itemHeight = 50;
-    const chosen = weightedRandom(multiplierChances);
-    const chosenIndex = multipliers.indexOf(chosen);
-    const loops = 20;
-    const targetIndex = chosenIndex + multipliers.length * loops;
-    const targetY = -targetIndex * itemHeight;
-    const duration = 5000;
-
+    const itemHeight=50;
+    const chosen=weightedRandom(multiplierChances);
+    const chosenIndex=multipliers.indexOf(chosen);
+    const loops=20;
+    const targetIndex=chosenIndex+multipliers.length*loops;
+    const targetY=-targetIndex*itemHeight;
+    const duration=5000;
     playLoop(soundMultiplier);
-
-    multiplierRoll.style.transition = `transform ${duration/1000}s linear`;
-    multiplierRoll.style.transform = `translateY(${targetY}px)`;
-
-    setTimeout(() => {
-      stopAudio(soundMultiplier);
-      const finalY = -chosenIndex * itemHeight;
-      multiplierRoll.style.transition = "none";
-      multiplierRoll.style.transform = `translateY(${finalY}px)`;
-      callback(chosen);
-    }, duration);
+    multiplierRoll.style.transition=`transform ${duration/1000}s linear`;
+    multiplierRoll.style.transform=`translateY(${targetY}px)`;
+    setTimeout(()=>{stopAudio(soundMultiplier);const finalY=-chosenIndex*itemHeight;multiplierRoll.style.transition="none";multiplierRoll.style.transform=`translateY(${finalY}px)`;callback(chosen);},duration);
   }
 
-  // spin
-  let spinning=false;
-  let lastPlay=0;
-  function playStepSound(audio){
-    const now=Date.now();
-    if(now-lastPlay>0){
-      audio.currentTime=0;
-      audio.play().catch(()=>{});
-      lastPlay=now;
-    }
-  }
+  let spinning=false;let lastPlay=0;
+  function playStepSound(audio){const now=Date.now();if(now-lastPlay>0){audio.currentTime=0;audio.play().catch(()=>{});lastPlay=now;}}
 
   function spinWheel(multiplier){
-    const duration=8000, rotations=15;
+    const duration=8000,rotations=15;
     const startIndex=Math.floor(Math.random()*N);
     const finalIndex=Math.floor(Math.random()*N);
-    let startTime=null;
-    let prevStep = -1;
-
+    let startTime=null;let prevStep=-1;
     function animate(ts){
-      if(!startTime) startTime=ts;
+      if(!startTime)startTime=ts;
       const progress=Math.min(1,(ts-startTime)/duration);
-      const eased = easeShortTail(progress);
+      const eased=easeShortTail(progress);
       const stepsTotal=rotations*N+((finalIndex-startIndex+N)%N);
       let currentStep=Math.floor(eased*stepsTotal);
-
-      if (currentStep === prevStep && (stepsTotal - currentStep) <= 3) {
-        currentStep = Math.min(prevStep + 1, stepsTotal);
-      }
-      prevStep = currentStep;
-
+      if(currentStep===prevStep&&(stepsTotal-currentStep)<=3){currentStep=Math.min(prevStep+1,stepsTotal);}
+      prevStep=currentStep;
       const index=(startIndex+currentStep)%N;
       drawWheel(index);
       playStepSound(soundRolet);
-
-      if(progress<1){
-        requestAnimationFrame(animate);
-      } else {
+      if(progress<1){requestAnimationFrame(animate);}
+      else{
         drawWheel(finalIndex);
         stopAudio(soundRolet);
         const symbol=segments[finalIndex];
@@ -518,23 +270,15 @@
         if(betsActive[symbol]){
           win=betsActive[symbol]*multiplier;
           setSaldo(saldo+win);
-
-          // 🔔 Notif tampil & broadcast HANYA jika ≥ threshold (hemat)
-          if (win >= NOTIF_THRESHOLD) {
-            window.showWinNotif(nickname, win);
-            addDoc(collection(db, "notifs"), {
-              nickname: nickname,
-              amount: win,
-              createdAt: serverTimestamp()
-            }).catch(()=>{});
+          if(win>=NOTIF_THRESHOLD){
+            window.showWinNotif(nickname,win);
+            addDoc(collection(db,"notifs"),{nickname:nickname,amount:win,createdAt:serverTimestamp()}).catch(()=>{});
           }
+          recordWinRolet(win);
         }
         addHistory(symbol,multiplier);
-        showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0 ? "\nMenang Rp. "+win.toLocaleString("id-ID") : "\nKalah"));
-        betsActive={};
-        updateBetsList();
-        drawWheel();
-        spinning=false;
+        showOverlay("🎉 Hasil: "+symbol+" x"+multiplier+(win>0?"\nMenang Rp. "+win.toLocaleString("id-ID"):"\nKalah"));
+        betsActive={};updateBetsList();drawWheel();spinning=false;
       }
     }
     requestAnimationFrame(animate);
@@ -550,43 +294,53 @@
   }
   spinBtn.addEventListener("click",spin);
 
+  async function recordWinRolet(amount){
+    const user=auth.currentUser;if(!user) return;
+    const ref=doc(db,"users",user.uid);
+    try{await updateDoc(ref,{winsAmount_rolet:increment(Math.floor(amount||0))});}catch(e){}
+  }
+
+  const listEl=document.getElementById("rankList");
+  const fmtRp=n=>"Rp. "+Number(n||0).toLocaleString('id-ID');
+  async function loadTopWinsRolet(){
+    try{
+      const qTop=query(collection(db,"users"),orderBy("winsAmount_rolet","desc"),limit(3));
+      const snap=await getDocs(qTop);
+      const list=[];snap.forEach(d=>list.push(d.data()));
+      listEl.innerHTML="";
+      list.forEach(u=>{
+        const li=document.createElement("li");
+        li.innerHTML=`${u.username||u.name||"Player"}<br><span class="winAmount">${fmtRp(u.winsAmount_rolet)}</span>`;
+        listEl.appendChild(li);
+      });
+    }catch(e){}
+  }
+  loadTopWinsRolet();
+  setInterval(loadTopWinsRolet,60000);
+
   initOnlineStatus();
 
-  /* 👇 Listener global hemat:
-     - limit(1)
-     - skip snapshot awal (hindari replay)
-     - TIDAK deleteDoc (biarkan dokumen tetap; biaya rendah)
-     - hanya tampilkan jika amount ≥ NOTIF_THRESHOLD
-  */
-  const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
-  let firstSnapshot = true;
-  onSnapshot(qNotifs, (snapshot) => {
-    if (firstSnapshot) { firstSnapshot = false; return; }
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === "added") {
-        const d = change.doc.data();
-        const amount = Number(d?.amount || 0);
-        if (amount >= NOTIF_THRESHOLD) {
-          window.showWinNotif(String(d?.nickname || "Player"), amount);
-        }
+  const qNotifs=query(collection(db,"notifs"),orderBy("createdAt","desc"),limit(1));
+  let firstSnapshot=true;
+  onSnapshot(qNotifs,(snapshot)=>{
+    if(firstSnapshot){firstSnapshot=false;return;}
+    snapshot.docChanges().forEach((change)=>{
+      if(change.type==="added"){
+        const d=change.doc.data();
+        const amount=Number(d?.amount||0);
+        if(amount>=NOTIF_THRESHOLD){window.showWinNotif(String(d?.nickname||"Player"),amount);}
       }
     });
   });
   </script>
 
-  <!-- Chat container -->
   <div id="chatContainer"></div>
   <script type="module">
-    fetch("chat.html")
-      .then(r => r.text())
-      .then(html => {
-        document.getElementById("chatContainer").innerHTML = html;
-        import("./chat.js").then(mod => mod.initChat());
-      });
+    fetch("chat.html").then(r=>r.text()).then(html=>{document.getElementById("chatContainer").innerHTML=html;import("./chat.js").then(mod=>mod.initChat());});
   </script>
   <script type="module">
     import { showWinNotif } from "./notif.js";
-    window.showWinNotif = showWinNotif; // biar bisa dipanggil global
+    window.showWinNotif=showWinNotif;
   </script>
 </body>
 </html>
