@@ -4,136 +4,56 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Greedy Fruit</title>
-  <!-- ⬇️ Tambahan: CSS notif -->
   <link rel="stylesheet" href="notif.css">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      width: 100vw; height: 100vh;
-      background: url("public/image/wallpaper-07.jpg") no-repeat center center fixed; 
-      font-family: Arial, sans-serif; 
-      color: #fff;
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: flex-start; overflow: hidden; padding-top: 10px;
-    }
-
-    /* TEKS NEON */
-    h1 {
-      font-size: 26px; font-weight: bold; margin-bottom: 15px;
-      text-transform: uppercase;
-      animation: glow 3s linear infinite;
-    }
-    @keyframes glow {
-      0%   { color: #fffb00; text-shadow: 0 0 10px #ff7300, 0 0 20px #fffb00; }
-      25%  { color: #48ff00; text-shadow: 0 0 10px #00ffd5, 0 0 20px #002bff; }
-      50%  { color: #ff00ab; text-shadow: 0 0 10px #ff00ab, 0 0 20px #ff0000; }
-      75%  { color: #00ffd5; text-shadow: 0 0 10px #48ff00, 0 0 20px #002bff; }
-      100% { color: #fffb00; text-shadow: 0 0 10px #ff7300, 0 0 20px #fffb00; }
-    }
-
-    .saldo-section { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 15px; }
-    .saldo-label { font-size: 16px; font-weight: bold; color: #ffd700; }
-    .saldo-display {
-      min-width: 150px; height: 36px; background: #171c27;
-      border: 2px solid #2b3142; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: bold; color: white;
-    }
-
-    .big-box {
-      width: 40vw; height: 40vw; max-width: 200px; max-height: 200px;
-      background: #171c27; border: 3px solid #2b3142; border-radius: 16px;
-      margin-bottom: 12px; overflow: hidden; position: relative;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .reel { position: absolute; top: 0; left: 0; width: 100%; will-change: transform; }
-    .symbol { width: 100%; display: flex; align-items: center; justify-content: center; }
-
-    .countdown {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15vw; font-weight: bold; color: #ffd700;
-      background: rgba(0,0,0,0.7); border-radius: 16px;
-      visibility: hidden;
-    }
-
-    .total-bet-section { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 20px; }
-    .total-bet-label { font-size: 16px; font-weight: bold; color: #ffd700; }
-    .total-bet-display {
-      min-width: 150px; height: 36px; background: #171c27;
-      border: 2px solid #2b3142; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: bold; color: white;
-    }
-
-    .grid-container { position: relative; margin-bottom: 30px; }
-    .grid { display: grid; grid-template-columns: repeat(4, 20vw); gap: 8px; }
-    .cell {
-      height: 20vw; background: #171c27; border: 2px solid #2b3142;
-      border-radius: 10px; position: relative; display: flex;
-      flex-direction: column; align-items: center; justify-content: center;
-      font-size: 8vw; cursor: pointer;
-    }
-    .multiplier { font-size: 3vw; color: #ffd700; font-weight: bold; margin-top: 2px; }
-    .bet-text {
-      position: absolute; left: 50%; transform: translateX(-50%);
-      font-size: 3vw; font-weight: bold; color: #00ffea;
-      text-shadow: 0 0 4px #000;
-      display: flex; align-items: center; gap: 2px;
-    }
-    .bet-top { top: -20px; }
-    .bet-bottom { bottom: -20px; }
-
-    .grid-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); border-radius: 10px; display: none;
-    }
-
-    .history {
-      width: 406px; max-width: 90vw; height: 56px; background: #171c27;
-      border: 2px solid #2b3142; border-radius: 10px; padding: 6px;
-      display: flex; align-items: center; justify-content: flex-end;
-      margin-bottom: 16px; overflow: hidden;
-    }
-    .history-list { display: flex; flex-direction: row-reverse; gap: 6px; width: 100%; }
-    .history-item {
-      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-      font-size: 24px; background: #222836; border-radius: 6px; flex-shrink: 0;
-    }
-
-    .bet-section { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-    .bet-label { font-size: 16px; font-weight: bold; }
-    .bet-control { display: flex; align-items: center; gap: 8px; }
-    .bet-display {
-      width: 150px; height: 40px; background: #171c27; border: 2px solid #2b3142;
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: bold; color: #00ffea;
-    }
-    .bet-btn { width: 40px; height: 40px; border: none; border-radius: 8px;
-      background: #2a6bf3; color: #fff; font-size: 20px; font-weight: bold; cursor: pointer; }
-
-    .overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
-      opacity: 0; visibility: hidden; transition: opacity 0.5s ease; z-index: 999;
-    }
-    .overlay.show { opacity: 1; visibility: visible; }
-    .win-box {
-      background: linear-gradient(145deg,#2a6bf3,#00ffea); padding: 20px 40px;
-      border-radius: 16px; text-align: center; color: #fff;
-      box-shadow: 0 0 30px rgba(0,255,234,0.6); animation: pop 0.5s ease;
-    }
-    .win-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
-    .win-amount { font-size: 22px; font-weight: bold; color: #ffd700; }
-    @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100vw;height:100vh;background:url("public/image/wallpaper-07.jpg") no-repeat center center fixed;font-family:Arial,sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;padding-top:10px}
+    h1{font-size:26px;font-weight:bold;margin-bottom:15px;text-transform:uppercase;animation:glow 3s linear infinite}
+    @keyframes glow{0%{color:#fffb00;text-shadow:0 0 10px #ff7300,0 0 20px #fffb00}25%{color:#48ff00;text-shadow:0 0 10px #00ffd5,0 0 20px #002bff}50%{color:#ff00ab;text-shadow:0 0 10px #ff00ab,0 0 20px #ff0000}75%{color:#00ffd5;text-shadow:0 0 10px #48ff00,0 0 20px #002bff}100%{color:#fffb00;text-shadow:0 0 10px #ff7300,0 0 20px #fffb00}}
+    .saldo-section{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:15px}
+    .saldo-label{font-size:16px;font-weight:bold;color:#ffd700}
+    .saldo-display{min-width:150px;height:36px;background:#171c27;border:2px solid #2b3142;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#fff}
+    .big-box{width:40vw;height:40vw;max-width:200px;max-height:200px;background:#171c27;border:3px solid #2b3142;border-radius:16px;margin-bottom:12px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+    .reel{position:absolute;top:0;left:0;width:100%;will-change:transform}
+    .symbol{width:100%;display:flex;align-items:center;justify-content:center}
+    .countdown{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:15vw;font-weight:bold;color:#ffd700;background:rgba(0,0,0,0.7);border-radius:16px;visibility:hidden}
+    .total-bet-section{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:20px}
+    .total-bet-label{font-size:16px;font-weight:bold;color:#ffd700}
+    .total-bet-display{min-width:150px;height:36px;background:#171c27;border:2px solid #2b3142;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#fff}
+    .grid-container{position:relative;margin-bottom:30px}
+    .grid{display:grid;grid-template-columns:repeat(4,20vw);gap:8px}
+    .cell{height:20vw;background:#171c27;border:2px solid #2b3142;border-radius:10px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:8vw;cursor:pointer}
+    .multiplier{font-size:3vw;color:#ffd700;font-weight:bold;margin-top:2px}
+    .bet-text{position:absolute;left:50%;transform:translateX(-50%);font-size:3vw;font-weight:bold;color:#00ffea;text-shadow:0 0 4px #000;display:flex;align-items:center;gap:2px}
+    .bet-top{top:-20px}
+    .bet-bottom{bottom:-20px}
+    .grid-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);border-radius:10px;display:none}
+    .history{width:406px;max-width:90vw;height:56px;background:#171c27;border:2px solid #2b3142;border-radius:10px;padding:6px;display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px;overflow:hidden}
+    .history-list{display:flex;flex-direction:row-reverse;gap:6px;width:100%}
+    .history-item{width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:24px;background:#222836;border-radius:6px;flex-shrink:0}
+    .bet-section{display:flex;flex-direction:column;align-items:center;gap:6px}
+    .bet-label{font-size:16px;font-weight:bold}
+    .bet-control{display:flex;align-items:center;gap:8px}
+    .bet-display{width:150px;height:40px;background:#171c27;border:2px solid #2b3142;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#00ffea}
+    .bet-btn{width:40px;height:40px;border:none;border-radius:8px;background:#2a6bf3;color:#fff;font-size:20px;font-weight:bold;cursor:pointer}
+    .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .5s ease;z-index:999}
+    .overlay.show{opacity:1;visibility:visible}
+    .win-box{background:linear-gradient(145deg,#2a6bf3,#00ffea);padding:20px 40px;border-radius:16px;text-align:center;color:#fff;box-shadow:0 0 30px rgba(0,255,234,0.6);animation:pop .5s ease}
+    .win-title{font-size:28px;font-weight:bold;margin-bottom:10px}
+    .win-amount{font-size:22px;font-weight:bold;color:#ffd700}
+    @keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+    .rank-panel{position:fixed;top:10px;left:10px;z-index:2500;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:10px 12px;border-radius:10px;width:max-content;box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;font-family:inherit}
+    .rank-panel h3{margin:0 0 6px 0;font-size:.95rem;font-weight:800;letter-spacing:.3px}
+    .rank-panel ol{margin:0;padding-left:18px}
+    .rank-panel li{font-size:.9rem;font-weight:700;line-height:1.25rem;margin-bottom:4px;text-shadow:0 0 6px rgba(0,0,0,.45)}
+    .nickname{display:inline-block;border-radius:6px;padding:2px 6px}
+    .winAmount{font-size:.75rem;font-weight:600;color:#ffd54f;margin-left:2px}
+    @keyframes neonAnim{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   </style>
 </head>
-  
 <body>
-  <!-- ⬇️ Tambahan: container notif -->
   <div id="notifContainer"></div>
 
-  <!-- AUDIO -->
   <audio id="backsound" loop autoplay>
     <source src="sonds/greedyfruit.mp3" type="audio/mpeg">
   </audio>
@@ -143,7 +63,7 @@
   <audio id="countdownSound">
     <source src="sonds/tik.mp3" type="audio/mpeg">
   </audio>
-  
+
   <h1>GREEDY FRUIT</h1>
 
   <div class="saldo-section">
@@ -164,9 +84,7 @@
   <div class="grid-container">
     <div class="grid" id="grid"></div>
     <div class="grid-overlay" id="gridOverlay">
-      <span style="color:#fff;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
-        Tunggu Spin...
-      </span>
+      <span style="color:#fff;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">Tunggu Spin...</span>
     </div>
   </div>
 
@@ -189,265 +107,172 @@
   </div>
 
   <script>
-  // ===== AUDIO SYSTEM =====
-  const backsound = document.getElementById("backsound");
-  const rollSound = document.getElementById("rollSound");
-  const countdownSound = document.getElementById("countdownSound");
-
-  function playBacksound() { backsound.volume = 0.5; backsound.play().catch(()=>{}); }
-  function stopBacksound() { backsound.pause(); backsound.currentTime = 0; }
-  function playRoll() { rollSound.currentTime = 0; rollSound.play().catch(()=>{}); }
-  function playCountdown() { countdownSound.currentTime = 0; countdownSound.play().catch(()=>{}); }
-    
-
-  // auto play backsound ketika masuk game
-  window.addEventListener("DOMContentLoaded", () => {
-    playBacksound();
-    // kalau autoplay diblokir, aktifkan saat klik pertama user
-    document.body.addEventListener("click", () => { if (backsound.paused) playBacksound(); }, { once:true });
-  });
+    const backsound=document.getElementById("backsound");
+    const rollSound=document.getElementById("rollSound");
+    const countdownSound=document.getElementById("countdownSound");
+    function playBacksound(){backsound.volume=.5;backsound.play().catch(()=>{})}
+    function stopBacksound(){backsound.pause();backsound.currentTime=0}
+    function playRoll(){rollSound.currentTime=0;rollSound.play().catch(()=>{})}
+    function playCountdown(){countdownSound.currentTime=0;countdownSound.play().catch(()=>{})}
+    window.addEventListener("DOMContentLoaded",()=>{playBacksound();document.body.addEventListener("click",()=>{if(backsound.paused)playBacksound()},{once:true})});
   </script>
-  
+
   <script type="module">
     import { increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { 
-      getFirestore, doc, updateDoc, onSnapshot, collection, query, where, getCountFromServer,
-      /* ⬇️ Tambahan impor Firestore yang dibutuhkan notif */
-      addDoc, serverTimestamp, orderBy, limit
-    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, updateDoc, onSnapshot, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initOnlineStatus } from "./online.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
-    };
+    const firebaseConfig={apiKey:"AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",authDomain:"fruit-game-5e4a8.firebaseapp.com",projectId:"fruit-game-5e4a8",storageBucket:"fruit-game-5e4a8.appspot.com",messagingSenderId:"936228678997",appId:"1:936228678997:web:9dab2fa0d9a019161bd3dc",measurementId:"G-EPTSQQPM4D"};
+    const app=initializeApp(firebaseConfig);
+    const auth=getAuth(app);
+    const db=getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // ====== SYMBOLS & PROBABILITAS (TOTAL 1000) ======
-    const SYMBOLS = [
-      // FRUITS
-      { icon: "🍒", multi: 5,  weight: 192, type: "fruit" },
-      { icon: "🍊", multi: 5,  weight: 192, type: "fruit" },
-      { icon: "🍇", multi: 5,  weight: 192, type: "fruit" },
-      { icon: "🍏", multi: 5,  weight: 192, type: "fruit" },
-
-      // FOODS
-      { icon: "🌭", multi: 10, weight: 80, type: "food" },
-      { icon: "🍔", multi: 15, weight: 60,  type: "food" },
-      { icon: "🍖", multi: 25, weight: 50,  type: "food" },
-      { icon: "🥩", multi: 45, weight: 30,  type: "food" },
-
-      // JACKPOTS
-      { icon: "🥗", multi: 0,  weight: 7,  type: "jackpot-fruit" },
-      { icon: "🍲", multi: 0,  weight: 5,  type: "jackpot-food" }
+    const SYMBOLS=[
+      {icon:"🍒",multi:5,weight:192,type:"fruit"},
+      {icon:"🍊",multi:5,weight:192,type:"fruit"},
+      {icon:"🍇",multi:5,weight:192,type:"fruit"},
+      {icon:"🍏",multi:5,weight:192,type:"fruit"},
+      {icon:"🌭",multi:10,weight:80,type:"food"},
+      {icon:"🍔",multi:15,weight:60,type:"food"},
+      {icon:"🍖",multi:25,weight:50,type:"food"},
+      {icon:"🥩",multi:45,weight:30,type:"food"},
+      {icon:"🥗",multi:0,weight:7,type:"jackpot-fruit"},
+      {icon:"🍲",multi:0,weight:5,type:"jackpot-food"}
     ];
 
-    const reel = document.getElementById("reel");
-    const countdownEl = document.getElementById("countdown");
-    const grid = document.getElementById("grid");
-    const gridOverlay = document.getElementById("gridOverlay");
-    const historyList = document.getElementById("historyList");
-    const betDisplay = document.getElementById("betDisplay");
-    const plusBtn = document.getElementById("plusBtn");
-    const minusBtn = document.getElementById("minusBtn");
-    const saldoDisplay = document.getElementById("saldoDisplay");
-    const totalBetDisplay = document.getElementById("totalBetDisplay");
-    const winOverlay = document.getElementById("winOverlay");
-    const winAmount = document.getElementById("winAmount");
-    const winTitle = document.getElementById("winTitle");
-    const MAX_HISTORY = 10;
+    const reel=document.getElementById("reel");
+    const countdownEl=document.getElementById("countdown");
+    const grid=document.getElementById("grid");
+    const gridOverlay=document.getElementById("gridOverlay");
+    const historyList=document.getElementById("historyList");
+    const betDisplay=document.getElementById("betDisplay");
+    const plusBtn=document.getElementById("plusBtn");
+    const minusBtn=document.getElementById("minusBtn");
+    const saldoDisplay=document.getElementById("saldoDisplay");
+    const totalBetDisplay=document.getElementById("totalBetDisplay");
+    const winOverlay=document.getElementById("winOverlay");
+    const winAmount=document.getElementById("winAmount");
+    const winTitle=document.getElementById("winTitle");
+    const MAX_HISTORY=10;
 
-    let bets = Array(SYMBOLS.length).fill(0);
-    let betTextRefs = [];
-    let globalBet = 500, saldo = 0, spinning = false;
-    let canBet = true, userDocRef = null;
-
-    // ⬇️ Tambahan: simpan nickname saat ini dari dokumen user
-    let currentNick = "Player";
+    let bets=Array(SYMBOLS.length).fill(0);
+    let betTextRefs=[];
+    let globalBet=500,saldo=0,spinning=false;
+    let canBet=true,userDocRef=null;
+    let currentNick="Player";
 
     updateBetDisplay();
-    
-    // === Firebase sync saldo ===
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        userDocRef = doc(db, "users", user.uid);
-        onSnapshot(userDocRef, (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            saldo = data.saldo || 0;
-            currentNick = data.name || data.username || (auth.currentUser?.displayName) || "Player";
+
+    onAuthStateChanged(auth,(user)=>{
+      if(user){
+        userDocRef=doc(db,"users",user.uid);
+        onSnapshot(userDocRef,(snap)=>{
+          if(snap.exists()){
+            const data=snap.data();
+            saldo=data.saldo||0;
+            currentNick=data.name||data.username||(auth.currentUser?.displayName)||"Player";
             updateSaldo();
           }
         });
-      } else {
-        window.location.href = "index.html";
+      }else{
+        window.location.href="index.html";
       }
     });
 
-    async function saveBalance() {
-      if (userDocRef) await updateDoc(userDocRef, { saldo });
+    async function saveBalance(){if(userDocRef)await updateDoc(userDocRef,{saldo})}
+
+    function getWeightedRandomSymbol(){
+      const totalWeight=SYMBOLS.reduce((s,x)=>s+x.weight,0);
+      let rand=Math.random()*totalWeight;
+      for(let i=0;i<SYMBOLS.length;i++){if(rand<SYMBOLS[i].weight)return{index:i,symbol:SYMBOLS[i]};rand-=SYMBOLS[i].weight}
+      return{index:SYMBOLS.length-1,symbol:SYMBOLS[SYMBOLS.length-1]}
     }
 
-    // Weighted random berdasarkan weight
-    function getWeightedRandomSymbol() {
-      const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
-      let rand = Math.random() * totalWeight;
-      for (let i = 0; i < SYMBOLS.length; i++) {
-        if (rand < SYMBOLS[i].weight) return { index: i, symbol: SYMBOLS[i] };
-        rand -= SYMBOLS[i].weight;
-      }
-      return { index: SYMBOLS.length-1, symbol: SYMBOLS[SYMBOLS.length-1] };
-    }
-
-    // Build grid (8 cell pertama untuk simbol, 4 atas + 4 bawah)
-    SYMBOLS.forEach((obj, index)=>{
-      if (obj.type.startsWith("jackpot")) return;
-      const div = document.createElement("div");
-      div.className = "cell";
-      div.innerHTML = `<div>${obj.icon}</div><div class="multiplier">×${obj.multi}</div>`;
+    SYMBOLS.forEach((obj,index)=>{
+      if(obj.type.startsWith("jackpot"))return;
+      const div=document.createElement("div");
+      div.className="cell";
+      div.innerHTML=`<div>${obj.icon}</div><div class="multiplier">×${obj.multi}</div>`;
       grid.appendChild(div);
-
-      const betText = document.createElement("div");
-      betText.className = "bet-text";
-      if (index < 4) betText.classList.add("bet-top"); else betText.classList.add("bet-bottom");
-      div.appendChild(betText); betTextRefs[index] = betText;
-
-      // Taruhan per cell
-      div.addEventListener("click", async ()=>{
-        if (!canBet) return;
-        if (saldo >= globalBet){
-          saldo -= globalBet; 
-          bets[index] += globalBet;
-          betText.innerHTML = `<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
-          updateSaldo(); 
+      const betText=document.createElement("div");
+      betText.className="bet-text";
+      if(index<4)betText.classList.add("bet-top");else betText.classList.add("bet-bottom");
+      div.appendChild(betText);betTextRefs[index]=betText;
+      div.addEventListener("click",async()=>{
+        if(!canBet)return;
+        if(saldo>=globalBet){
+          saldo-=globalBet;
+          bets[index]+=globalBet;
+          betText.innerHTML=`<span>Rp</span><span>${bets[index].toLocaleString("id-ID")}</span>`;
+          updateSaldo();
           updateTotalBet();
-
-          // 🔥 update saldo & konsumsi
-          await updateDoc(userDocRef, {
-            saldo: saldo,
-            consumedSaldo: increment(globalBet)
-          });
-        } else {
-          alert("Saldo tidak cukup!");
-        }
+          await updateDoc(userDocRef,{saldo:saldo,consumedSaldo:increment(globalBet)});
+        }else{alert("Saldo tidak cukup!")}
       });
     });
 
     function rollSymbol(){
-      if (spinning) return; 
-      spinning = true;
+      if(spinning)return;
+      spinning=true;
       playRoll();
-
-      reel.innerHTML = "";
-      reel.style.transition = "none";
-      reel.style.transform = "translateY(0)";
-
-      const boxH = Math.round(document.getElementById("bigBox").getBoundingClientRect().height);
-      let sequence = [];
-      for (let i=0; i<20; i++){ SYMBOLS.forEach(s => sequence.push(s.icon)); }
-
-      const { index: resultIndex, symbol: result } = getWeightedRandomSymbol();
+      reel.innerHTML="";
+      reel.style.transition="none";
+      reel.style.transform="translateY(0)";
+      const boxH=Math.round(document.getElementById("bigBox").getBoundingClientRect().height);
+      let sequence=[];
+      for(let i=0;i<20;i++){SYMBOLS.forEach(s=>sequence.push(s.icon))}
+      const {index:resultIndex,symbol:result}=getWeightedRandomSymbol();
       sequence.push(result.icon);
-
       sequence.forEach(sym=>{
         const div=document.createElement("div");
         div.className="symbol";
-        div.style.height = boxH + 'px';
-        div.style.fontSize = Math.round(boxH*0.5) + 'px';
-        div.textContent = sym;
+        div.style.height=boxH+'px';
+        div.style.fontSize=Math.round(boxH*0.5)+'px';
+        div.textContent=sym;
         reel.appendChild(div);
       });
-
-      const finalOffset = -(boxH*(sequence.length-1));
-
-      requestAnimationFrame(()=>{
-        reel.style.transition = "transform 5000ms linear";
-        reel.style.transform  = `translateY(${finalOffset}px)`;
-      });
-
-      reel.addEventListener('transitionend', async ()=>{
-        // stop roll sound
-        rollSound.pause(); rollSound.currentTime = 0;
-
+      const finalOffset=-(boxH*(sequence.length-1));
+      requestAnimationFrame(()=>{reel.style.transition="transform 5000ms linear";reel.style.transform=`translateY(${finalOffset}px)`});
+      reel.addEventListener("transitionend",async()=>{
+        rollSound.pause();rollSound.currentTime=0;
         reel.style.transition="none";
         reel.style.transform=`translateY(${finalOffset}px)`;
-
         addHistory(result.icon);
-
-        // ====== HITUNG KEMENANGAN ======
-        let totalWin = 0;
-        const resultType = result.type;
-
-        if (resultType === "jackpot-fruit") {
-          // Semua taruhan di FRUIT menang
-          bets.forEach((bet, idx) => {
-            if (bet > 0 && SYMBOLS[idx].type === "fruit") {
-              totalWin += bet * SYMBOLS[idx].multi;
-            }
-          });
-          winTitle.textContent = "FRUIT JACKPOT! 🥗";
-        } else if (resultType === "jackpot-food") {
-          // Semua taruhan di FOOD menang
-          bets.forEach((bet, idx) => {
-            if (bet > 0 && SYMBOLS[idx].type === "food") {
-              totalWin += bet * SYMBOLS[idx].multi;
-            }
-          });
-          winTitle.textContent = "FOOD JACKPOT! 🍲";
-        } else {
-          // Aturan normal: hanya simbol tepat
-          bets.forEach((bet, idx) => {
-            if (bet > 0 && idx === resultIndex) {
-              totalWin += bet * SYMBOLS[idx].multi;
-            }
-          });
-          winTitle.textContent = "MENANG!";
+        let totalWin=0;
+        const resultType=result.type;
+        if(resultType==="jackpot-fruit"){
+          bets.forEach((bet,idx)=>{if(bet>0&&SYMBOLS[idx].type==="fruit"){totalWin+=bet*SYMBOLS[idx].multi}});
+          winTitle.textContent="FRUIT JACKPOT! 🥗";
+        }else if(resultType==="jackpot-food"){
+          bets.forEach((bet,idx)=>{if(bet>0&&SYMBOLS[idx].type==="food"){totalWin+=bet*SYMBOLS[idx].multi}});
+          winTitle.textContent="FOOD JACKPOT! 🍲";
+        }else{
+          bets.forEach((bet,idx)=>{if(bet>0&&idx===resultIndex){totalWin+=bet*SYMBOLS[idx].multi}});
+          winTitle.textContent="MENANG!";
         }
-
-        if (totalWin > 0){
-          saldo += totalWin; 
-          updateSaldo(); 
+        if(totalWin>0){
+          saldo+=totalWin;
+          updateSaldo();
           showWin(totalWin);
           await saveBalance();
-
-          // ⬇️ NOTIF HEMAT: tampil & broadcast hanya jika ≥ 1.000.000, tanpa deleteDoc
-          try {
-            if (totalWin >= 1000000) {
-              // tampilkan di klien sendiri
-              window.showWinNotif(currentNick, totalWin);
-
-              // tulis dokumen notifikasi ke Firestore agar klien lain melihat (TTL bisa via aturan Firestore)
-              await addDoc(collection(db, "notifs"), {
-                nickname: currentNick,
-                amount: totalWin,
-                createdAt: serverTimestamp()
-                // optional: tambahkan expiredAt bila TTL diaktifkan pada koleksi
-                // expiredAt: Timestamp.fromDate(new Date(Date.now() + 5*60*1000))
-              });
+          try{
+            await updateDoc(userDocRef,{winsCount:increment(1),winsAmount:increment(Math.floor(totalWin))});
+          }catch(e){}
+          try{
+            if(totalWin>=1000000){
+              window.showWinNotif(currentNick,totalWin);
+              await addDoc(collection(db,"notifs"),{nickname:currentNick,amount:totalWin,createdAt:serverTimestamp()});
             }
-          } catch (e) {
-            // abaikan error notif
-          }
+          }catch(e){}
         }
-
-        // clear bets setelah 2 detik
-        setTimeout(clearBets, 2000);
-        spinning = false;
-
-        canBet = true; 
-        gridOverlay.style.display = "none";
-        setTimeout(()=> startCountdown(), 3000);
-      }, { once:true });
+        setTimeout(clearBets,2000);
+        spinning=false;
+        canBet=true;
+        gridOverlay.style.display="none";
+        setTimeout(()=>startCountdown(),3000);
+      },{once:true});
     }
 
     function startCountdown(){
@@ -456,137 +281,129 @@
       countdownEl.style.visibility="visible";
       const interval=setInterval(()=>{
         count--;
-        if(count>=0){
-          countdownEl.textContent=count; playCountdown();
-        }
+        if(count>=0){countdownEl.textContent=count;playCountdown()}
         if(count<0){
           clearInterval(interval);
-          countdownSound.pause(); countdownSound.currentTime = 0;
+          countdownSound.pause();countdownSound.currentTime=0;
           countdownEl.style.visibility="hidden";
-          canBet = false;
-          gridOverlay.style.display = "block";
+          canBet=false;
+          gridOverlay.style.display="block";
           rollSymbol();
         }
       },1000);
     }
 
     function addHistory(icon){
-      const item=document.createElement("div"); item.className="history-item"; item.textContent=icon;
+      const item=document.createElement("div");item.className="history-item";item.textContent=icon;
       historyList.prepend(item);
-      if(historyList.children.length>MAX_HISTORY){ historyList.removeChild(historyList.lastChild); }
+      if(historyList.children.length>MAX_HISTORY){historyList.removeChild(historyList.lastChild)}
     }
-    function clearBets(){ bets = Array(SYMBOLS.length).fill(0); betTextRefs.forEach(el=>{el.textContent="";}); updateTotalBet(); }
-    function updateBetDisplay(){ betDisplay.textContent="Rp. "+globalBet.toLocaleString("id-ID"); }
-    plusBtn.addEventListener("click", ()=>{ globalBet+=500; updateBetDisplay(); });
-    minusBtn.addEventListener("click", ()=>{ if(globalBet>=1000){ globalBet-=500; updateBetDisplay(); }});
-    function updateSaldo(){ saldoDisplay.textContent="Rp. "+saldo.toLocaleString("id-ID"); }
-    function updateTotalBet(){ totalBetDisplay.textContent="Rp. "+bets.reduce((a,b)=>a+b,0).toLocaleString("id-ID"); }
-    function showWin(amount){ winAmount.textContent="Rp. "+amount.toLocaleString("id-ID"); winOverlay.classList.add("show"); setTimeout(()=>{winOverlay.classList.remove("show");},2500); }
+    function clearBets(){bets=Array(SYMBOLS.length).fill(0);betTextRefs.forEach(el=>{el.textContent=""});updateTotalBet()}
+    function updateBetDisplay(){betDisplay.textContent="Rp. "+globalBet.toLocaleString("id-ID")}
+    plusBtn.addEventListener("click",()=>{globalBet+=500;updateBetDisplay()});
+    minusBtn.addEventListener("click",()=>{if(globalBet>=1000){globalBet-=500;updateBetDisplay()}})
+    function updateSaldo(){saldoDisplay.textContent="Rp. "+saldo.toLocaleString("id-ID")}
+    function updateTotalBet(){totalBetDisplay.textContent="Rp. "+bets.reduce((a,b)=>a+b,0).toLocaleString("id-ID")}
+    function showWin(amount){winAmount.textContent="Rp. "+amount.toLocaleString("id-ID");winOverlay.classList.add("show");setTimeout(()=>{winOverlay.classList.remove("show")},2500)}
 
-    // mulai pertama
     startCountdown();
     initOnlineStatus();
   </script>
 
   <div id="chatContainer"></div>
   <script type="module">
-    fetch("chat.html")
-      .then(r => r.text())
-      .then(html => {
-        document.getElementById("chatContainer").innerHTML = html;
-        import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
-      });
+    fetch("chat.html").then(r=>r.text()).then(html=>{document.getElementById("chatContainer").innerHTML=html;import("./chat.js").then(mod=>mod.initChat())});
   </script>
 
-  <!-- ⬇️ Tambahan: expose showWinNotif ke global window -->
   <script type="module">
     import { showWinNotif } from "./notif.js";
-    window.showWinNotif = showWinNotif;
+    window.showWinNotif=showWinNotif;
   </script>
 
-  <!-- ⬇️ NOTIF HEMAT: listener global pakai POLLING 60s, tanpa deleteDoc, hanya amount > 1 jt -->
   <script type="module">
     import { showWinNotif } from "./notif.js";
-    import {
-      getFirestore, collection, query, orderBy, limit, getDocs
-    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-    const db = getFirestore();
-
-    // fallback kalau container belum ada
-    if (!document.getElementById('notifContainer')) {
-      const el = document.createElement('div');
-      el.id = 'notifContainer';
-      document.body.prepend(el);
-    }
-
-    // Simpel anti-duplikat
-    const LS_KEY = "notif:lastId";
-    let lastId = localStorage.getItem(LS_KEY) || null;
-    let first = true;
-    const INTERVAL_MS = 60000; // 60 detik
-    const TTL_FALLBACK_MS = 5 * 60 * 1000; // 5 menit
-
-    function isExpired(d) {
-      const now = Date.now();
-      if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') {
-        return d.expiredAt.toMillis() <= now;
-      }
-      if (d?.createdAt && typeof d.createdAt.toMillis === 'function') {
-        return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
-      }
+    import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    const db=getFirestore();
+    if(!document.getElementById('notifContainer')){const el=document.createElement('div');el.id='notifContainer';document.body.prepend(el)}
+    const LS_KEY="notif:lastId";
+    let lastId=localStorage.getItem(LS_KEY)||null;
+    let first=true;
+    const INTERVAL_MS=60000;
+    const TTL_FALLBACK_MS=5*60*1000;
+    function isExpired(d){
+      const now=Date.now();
+      if(d?.expiredAt&&typeof d.expiredAt.toMillis==='function'){return d.expiredAt.toMillis()<=now}
+      if(d?.createdAt&&typeof d.createdAt.toMillis==='function'){return(now-d.createdAt.toMillis())>TTL_FALLBACK_MS}
       return false;
     }
-
-    async function pollNotif() {
-      // hemat: skip kalau tab sedang tidak aktif
-      if (document.hidden) return;
-
-      try {
-        const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
-        const snap = await getDocs(qNotifs);
-        if (snap.empty) return;
-
-        const docu = snap.docs[0];
-        const data = docu.data();
-
-        // Lewati histori pada load awal
-        if (first) {
-          first = false;
-          lastId = docu.id;
-          localStorage.setItem(LS_KEY, lastId);
-          return;
-        }
-
-        // Hanya kalau ada dok baru
-        if (docu.id === lastId) return;
-
-        const amount = Number(data?.amount || 0);
-        const name = String(data?.nickname || "Player");
-
-        // Hanya tampil jika amount > 1 jt dan belum expired
-        if (amount > 1000000 && !isExpired(data)) {
-          showWinNotif(name, amount);
-        }
-
-        // simpan last id agar tidak mengulang
-        lastId = docu.id;
-        localStorage.setItem(LS_KEY, lastId);
-      } catch (e) {
-        // diamkan agar UX tidak terganggu
-      }
+    async function pollNotif(){
+      if(document.hidden)return;
+      try{
+        const q=query(collection(db,"notifs"),orderBy("createdAt","desc"),limit(1));
+        const snap=await getDocs(q);
+        if(snap.empty)return;
+        const docu=snap.docs[0];
+        const d=docu.data();
+        if(first){first=false;lastId=docu.id;localStorage.setItem(LS_KEY,lastId);return}
+        if(docu.id===lastId)return;
+        const amount=Number(d?.amount||0);
+        const name=String(d?.nickname||"Player");
+        if(!isExpired(d)&&amount>1000000){showWinNotif(name,amount)}
+        lastId=docu.id;localStorage.setItem(LS_KEY,lastId);
+      }catch(e){}
     }
-
-    // jalan awal
     pollNotif();
+    setInterval(pollNotif,INTERVAL_MS);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollNotif()});
+  </script>
 
-    // interval polling
-    setInterval(pollNotif, INTERVAL_MS);
+  <div id="rankPanel" class="rank-panel">
+    <h3>🏆 TOP 3</h3>
+    <ol id="rankList">
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+      <li>username<br><span class="winAmount">Rp. 0</span></li>
+    </ol>
+  </div>
 
-    // kalau tab kembali aktif, cek sekali
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) pollNotif();
-    });
+  <script type="module">
+    import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    const db=getFirestore();
+    const ADMIN_UID="AxB4G2xwhiXdJnyDrzn82Xanc4x2";
+    const listEl=document.getElementById("rankList");
+    const fmtRp=n=>"Rp. "+Number(n||0).toLocaleString('id-ID');
+    function styleFromUser(u){
+      let bg=u.bgColor||'transparent';
+      let extraAnim='';
+      if(u.bgGradient){bg=u.bgGradient;extraAnim='background-size:600% 600%; animation: neonAnim 8s ease infinite;'}
+      let border=`1px solid ${u.borderColor||'#000'}`;
+      let extraBorder='';
+      if(u.borderGradient){
+        const baseBg=u.bgColor||'transparent';
+        border='3px solid transparent';
+        extraBorder=`background-image: linear-gradient(${baseBg}, ${baseBg}), ${u.borderGradient};background-origin: border-box;background-clip: padding-box, border-box;`;
+      }
+      return `color:${u.color||'#fff'};background:${bg};${extraAnim}border:${border};border-radius:6px;padding:2px 6px;${extraBorder}`;
+    }
+    function renderTop(users){
+      listEl.innerHTML='';
+      users.slice(0,3).forEach(u=>{
+        const li=document.createElement('li');
+        li.innerHTML=`<span class="nickname" style="${styleFromUser(u)}">${u.name||u.username||'—'}</span><br><span class="winAmount">${fmtRp(u.winsAmount)}</span>`;
+        listEl.appendChild(li);
+      });
+    }
+    async function loadTopWins(){
+      try{
+        const qTop=query(collection(db,'users'),orderBy('winsAmount','desc'),limit(3));
+        const snap=await getDocs(qTop);
+        const list=[];
+        snap.forEach(docu=>{if(docu.id===ADMIN_UID)return;list.push(docu.data())});
+        if(list.length)renderTop(list);
+      }catch(e){}
+    }
+    loadTopWins();
+    setInterval(loadTopWins,60*1000);
   </script>
 </body>
 </html>
