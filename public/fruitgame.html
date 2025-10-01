@@ -1014,6 +1014,165 @@ window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
       document.getElementById("chatContainer").innerHTML = html;  
       import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang  
     });  
-</script>  
+</script>
+
+<!-- ====== RANK PANEL (pojok kiri, transparan) ====== -->
+<style>
+  .rank-panel{
+    position: fixed;
+    top: 10px; left: 10px;
+    z-index: 2500;
+    background: rgba(0,0,0,.58);
+    backdrop-filter: blur(2px);
+    color: #fff;
+    padding: 10px 12px;
+    border-radius: 10px;
+    width: max-content;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    pointer-events: none;
+    font-family: inherit;
+  }
+  .rank-panel h3{
+    margin: 0 0 6px 0;
+    font-size: .95rem;
+    font-weight: 800;
+    letter-spacing: .3px;
+  }
+  .rank-panel ol{
+    margin: 0;
+    padding-left: 18px;
+  }
+  .rank-panel li{
+    font-size: .95rem;
+    font-weight: 700;
+    line-height: 1.25rem;
+    text-shadow: 0 0 6px rgba(0,0,0,.45);
+  }
+</style>
+
+<div id="rankPanel" class="rank-panel">
+  <h3>Peringkat</h3>
+  <ol id="rankList">
+    <li>username</li>
+    <li>username</li>
+    <li>username</li>
+    <li>username</li>
+    <li>username</li>
+  </ol>
+</div>
+
+<script>
+/* ====== Ambil 5 nama teratas dari rank.html, update 1x sehari ====== */
+(function(){
+  const CACHE_KEY = "rank:cache:v1";
+  const LIST_ID = "rankList";
+  const TODAY = new Date().toISOString().slice(0,10);
+
+  const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+
+  function render(names){
+    const list = document.getElementById(LIST_ID);
+    if (!list) return;
+    list.innerHTML = "";
+    (names && names.length ? names : ["username","username","username","username","username"])
+      .slice(0,5)
+      .forEach(n => {
+        const li = document.createElement("li");
+        li.textContent = n;
+        list.appendChild(li);
+      });
+  }
+
+  // Coba beberapa pola umum di rank.html
+  function pickUsernames(doc){
+    const out = [];
+
+    // 1) <ol id="rankList"><li>Nama</li>...</ol>
+    const ol = doc.querySelector("#rankList");
+    if (ol){
+      ol.querySelectorAll("li").forEach(li => {
+        const t = (li.textContent || "").trim();
+        if (t) out.push(t);
+      });
+    }
+
+    // 2) <table id="rankTable"><tbody><tr><td>1</td><td class="username">Nama</td>...</tr>
+    if (out.length < 5){
+      const rows = doc.querySelectorAll("#rankTable tbody tr, #rankTable tr");
+      rows.forEach(tr => {
+        if (out.length >= 5) return;
+        let name =
+          (tr.querySelector(".username") && tr.querySelector(".username").textContent) ||
+          (tr.querySelector("td:nth-child(2)") && tr.querySelector("td:nth-child(2)").textContent) ||
+          (tr.querySelector("td:nth-child(1)") && tr.querySelector("td:nth-child(1)").textContent);
+        name = (name || "").trim();
+        if (name && !/^\d+$/.test(name)) out.push(name);
+      });
+    }
+
+    // 3) elemen dengan atribut data-username
+    if (out.length < 5){
+      doc.querySelectorAll("[data-username]").forEach(el => {
+        if (out.length >= 5) return;
+        const t = (el.getAttribute("data-username") || el.textContent || "").trim();
+        if (t) out.push(t);
+      });
+    }
+
+    // 4) fallback: elemen yang class-nya mengandung 'name' atau 'user'
+    if (out.length < 5){
+      const cands = doc.querySelectorAll('[class*="name"],[class*="user"]');
+      cands.forEach(el => {
+        if (out.length >= 5) return;
+        const t = (el.textContent || "").trim();
+        if (t && t.length <= 30 && !/\s{2,}/.test(t)) out.push(t);
+      });
+    }
+
+    return out.slice(0,5);
+  }
+
+  function saveCache(names){
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ date: TODAY, names }));
+  }
+
+  async function refreshFromRank(){
+    try{
+      const res = await fetch("rank.html", { cache: "no-store" });
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const names = pickUsernames(doc);
+      if (names && names.length){
+        saveCache(names);
+        render(names);
+      } else {
+        if (cached && cached.date === TODAY) render(cached.names);
+      }
+    }catch(e){
+      if (cached && cached.date === TODAY) render(cached.names);
+    }
+  }
+
+  if (cached && cached.date === TODAY){
+    render(cached.names);
+  } else {
+    refreshFromRank();
+  }
+
+  setInterval(refreshFromRank, 24 * 60 * 60 * 1000);
+})();
+</script>
+
+<!-- Override posisi: pojok kiri bawah -->
+<style>
+  .rank-panel{
+    top: auto !important;
+    bottom: 10px !important;
+    left: 10px !important;
+    right: auto !important;
+  }
+</style>
+<!-- ====== /RANK PANEL ====== -->
+
 </body>  
 </html>
