@@ -8,7 +8,7 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{width:100vw;height:100vh;background:url("public/image/wallpaper-07.jpg") no-repeat center center fixed;font-family:Arial,sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;padding-top:10px}
-    h1{font-size:26px;font-weight:bold;margin-bottom:6px;text-transform:uppercase;animation:glow 3s linear infinite}
+    h1{font-size:26px;font-weight:bold;margin-bottom:15px;text-transform:uppercase;animation:glow 3s linear infinite}
     @keyframes glow{0%{color:#fffb00;text-shadow:0 0 10px #ff7300,0 0 20px #fffb00}25%{color:#48ff00;text-shadow:0 0 10px #00ffd5,0 0 20px #002bff}50%{color:#ff00ab;text-shadow:0 0 10px #ff00ab,0 0 20px #ff0000}75%{color:#00ffd5;text-shadow:0 0 10px #48ff00,0 0 20px #002bff}100%{color:#fffb00;text-shadow:0 0 10px #ff7300,0 0 20px #fffb00}}
     .saldo-section{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:15px}
     .saldo-label{font-size:16px;font-weight:bold;color:#ffd700}
@@ -42,7 +42,7 @@
     .win-title{font-size:28px;font-weight:bold;margin-bottom:10px}
     .win-amount{font-size:22px;font-weight:bold;color:#ffd700}
     @keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
-    .rank-panel{align-self:flex-start;margin-left:10px;margin-top:6px;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:10px 12px;border-radius:10px;width:max-content;box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;font-family:inherit}
+    .rank-panel{position:fixed;top:64px;left:12px;z-index:2500;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:10px 12px;border-radius:12px;width:max-content;box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none}
     .rank-panel h3{margin:0 0 6px 0;font-size:.95rem;font-weight:800;letter-spacing:.3px}
     .rank-panel ol{margin:0;padding-left:18px}
     .rank-panel li{font-size:.9rem;font-weight:700;line-height:1.25rem;margin-bottom:4px;text-shadow:0 0 6px rgba(0,0,0,.45)}
