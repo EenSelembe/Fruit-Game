@@ -18,9 +18,8 @@
 .nickname{display:inline-block; border-radius:6px; padding:2px 6px}
 @keyframes neonAnim {0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
-  </style>
-  <style>
-    #errBanner{display:none;position:fixed;left:0;right:0;bottom:0;background:#2b0b13;color:#ffd6de;padding:10px 14px;border-top:1px solid #5a1d2e;font-size:14px;z-index:9999}
+#errBanner{display:none;position:fixed;left:0;right:0;bottom:0;background:#2b0b13;color:#ffd6de;padding:10px 14px;border-top:1px solid #5a1d2e;font-size:14px;z-index:9999}
+
   </style>
 </head>
 <body>
@@ -29,12 +28,14 @@
   <div id="status" class="info" style="margin-top:6px"></div>
   <div class="seats" id="seats"></div>
   <div id="errBanner"></div>  <script type="module">
+    // ==== Helpers UI ====
     function showStatus(msg){ const el = document.getElementById('status'); if(el) el.textContent = msg; }
     function showError(msg){ const el = document.getElementById('errBanner'); if(!el) return; el.textContent = 'Error: ' + msg; el.style.display='block'; }
 
+    // ==== Firebase ====
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -50,14 +51,16 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // ==== DOM Refs ====
     const seatsEl = document.getElementById("seats");
     const roomIdEl = document.getElementById("roomId");
     const copyBtn = document.getElementById("copyBtn");
 
+    // ==== State ====
     const TOTAL_SEATS = 9;
     let me = { uid:null, name:null };
     let currentRoomId = null;
-    let mySeat = null; // ambil dari participants/{uid}.seat
+    let mySeat = null; // dibaca dari rooms/{id}.seating
 
     function getQuery(key){ return new URL(location.href).searchParams.get(key); }
 
@@ -68,6 +71,18 @@
         await setDoc(ref, { createdAt: serverTimestamp() }, { merge:true });
       }
       return ref;
+    }
+
+    // Sinkron nama & style dari users/{uid}
+    async function fetchUserProfile(uid){
+      const ref = doc(db,'users',uid);
+      const snap = await getDoc(ref);
+      let prof = { name:'Guest-'+uid.slice(0,5) };
+      if(snap.exists()){
+        const d = snap.data();
+        prof = { name:d.name || d.username || ('Guest-'+uid.slice(0,5)), username:d.username, color:d.color, bgColor:d.bgColor, bgGradient:d.bgGradient, borderColor:d.borderColor, borderGradient:d.borderGradient };
+      }
+      return prof;
     }
 
     function nicknameHTML(data){
@@ -86,17 +101,6 @@
       return `<span class="nickname" style="${style}">${display}</span>`;
     }
 
-    async function fetchUserProfile(uid){
-      const ref = doc(db,'users',uid);
-      const snap = await getDoc(ref);
-      let prof = { name:'Guest-'+uid.slice(0,5) };
-      if(snap.exists()){
-        const d = snap.data();
-        prof = { name:d.name || d.username || ('Guest-'+uid.slice(0,5)), username:d.username, color:d.color, bgColor:d.bgColor, bgGradient:d.bgGradient, borderColor:d.borderColor, borderGradient:d.borderGradient };
-      }
-      return prof;
-    }
-
     function seatTemplate(i){
       const isHost = (i===5);
       const seat = document.createElement("div");
@@ -109,66 +113,66 @@
         </div>
         <div class="name">Kursi ${i}</div>
       `;
-      seat.addEventListener("click", async ()=>{
-        if(!currentRoomId || !me.uid){ alert('Memuat... coba lagi'); return; }
-        const seatRef = doc(db,'rooms',currentRoomId,'seats','seat'+i);
-        const partRef = doc(db,'rooms',currentRoomId,'participants',me.uid);
-        try{
-          await runTransaction(db, async (tx)=>{
-            const seatSnap = await tx.get(seatRef);
-            const partSnap = await tx.get(partRef);
-            const curSeat = partSnap.exists()? (partSnap.data().seat || null) : null;
-            const takenBy = seatSnap.exists()? (seatSnap.data().occupiedBy || null) : null;
-
-            if(takenBy && takenBy !== me.uid){ throw new Error('Kursi sudah ditempati'); }
-
-            if(curSeat === i){
-              // toggle: berdiri dari kursi ini
-              tx.delete(seatRef);
-              tx.set(partRef, { uid: me.uid, name: me.name, seat: null, ts: serverTimestamp() }, { merge:true });
-            } else {
-              // kosongkan kursi lama jika ada
-              if(curSeat){ const prevRef = doc(db,'rooms',currentRoomId,'seats','seat'+curSeat); tx.delete(prevRef); }
-              // duduk di kursi baru
-              tx.set(seatRef, { occupiedBy: me.uid, ts: serverTimestamp() });
-              tx.set(partRef, { uid: me.uid, name: me.name, seat: i, ts: serverTimestamp() }, { merge:true });
-            }
-          });
-        }catch(err){ showError(err.message); }
-      });
+      seat.addEventListener("click", ()=> toggleSeat(i));
       return seat;
     }
 
-    async function renderSeats(map={}){
+    // === Anti-double logic: semua pindah kursi diupdate di satu dokumen rooms/{id}.seating ===
+    async function toggleSeat(i){
+      if(!currentRoomId || !me.uid){ alert('Memuat... coba lagi'); return; }
+      const roomRef = doc(db,'rooms',currentRoomId);
+      const partRef = doc(db,'rooms',currentRoomId,'participants',me.uid);
+      try{
+        await runTransaction(db, async (tx)=>{
+          const rsnap = await tx.get(roomRef);
+          const data = rsnap.exists()? rsnap.data() : {};
+          const seating = data.seating || {}; // {"1": uid, "2": uid, ...}
+
+          // cari kursi saya sekarang
+          let cur = null;
+          for(let k=1;k<=TOTAL_SEATS;k++){ if(seating[String(k)] === me.uid){ cur = k; break; } }
+
+          const occupied = seating[String(i)] || null;
+          if(occupied && occupied !== me.uid){ throw new Error('Kursi sudah ditempati'); }
+
+          if(cur === i){
+            // berdiri
+            seating[String(i)] = null;
+            tx.set(partRef, { uid: me.uid, name: me.name, seat: null, ts: serverTimestamp() }, { merge:true });
+          } else {
+            if(cur){ seating[String(cur)] = null; }
+            seating[String(i)] = me.uid;
+            tx.set(partRef, { uid: me.uid, name: me.name, seat: i, ts: serverTimestamp() }, { merge:true });
+          }
+
+          tx.set(roomRef, { seating }, { merge:true });
+        });
+      }catch(err){ showError(err.message); }
+    }
+
+    async function renderSeats(seating={}){
       seatsEl.innerHTML = "";
       for(let i=1;i<=TOTAL_SEATS;i++){
-        const data = map['seat'+i];
+        const uid = seating[String(i)] || null;
         const el = seatTemplate(i);
-        if(data && data.occupiedBy){
+        if(uid){
           el.classList.remove('empty');
-          try{ const prof = await fetchUserProfile(data.occupiedBy); el.querySelector('.name').innerHTML = nicknameHTML(prof); el.querySelector('.avatar').style.borderStyle='solid'; }
+          try{ const prof = await fetchUserProfile(uid); el.querySelector('.name').innerHTML = nicknameHTML(prof); el.querySelector('.avatar').style.borderStyle='solid'; }
           catch(err){ /* ignore styling errors */ }
         }
         seatsEl.appendChild(el);
       }
     }
 
-    function listenSeats(){
-      const seatsRef = collection(db,'rooms',currentRoomId,'seats');
-      onSnapshot(seatsRef,(snap)=>{
-        const all={};
-        snap.forEach(d=>{ all[d.id]=d.data(); });
-        renderSeats(all);
-      },(err)=>{ showError(err.message); });
-    }
-
-    function listenMyParticipant(){
-      const pref = doc(db,'rooms',currentRoomId,'participants',me.uid);
-      onSnapshot(pref,(snap)=>{
-        const d = snap.data();
-        mySeat = d?.seat ?? null;
+    function listenRoomDoc(){
+      const rref = doc(db,'rooms',currentRoomId);
+      onSnapshot(rref,(snap)=>{
+        const d = snap.data() || {};
+        const seating = d.seating || {};
+        mySeat = null; for(let k=1;k<=TOTAL_SEATS;k++){ if(seating[String(k)]===me.uid){ mySeat=k; break; } }
+        renderSeats(seating);
         showStatus(mySeat? ('Duduk di kursi '+mySeat) : 'Belum duduk');
-      });
+      },(err)=> showError(err.message));
     }
 
     // ===== Auth + Room bootstrap =====
@@ -185,9 +189,10 @@
         const rid = getQuery('id');
         if(rid){ currentRoomId = rid; await ensureRoomExists(currentRoomId); }
         else {
-          const ref = doc(collection(db,'rooms')); currentRoomId = ref.id;
-          await setDoc(ref, { createdAt: serverTimestamp(), host: me.uid, hostName: me.name });
-          await setDoc(doc(db,'rooms',currentRoomId,'seats','seat5'), { occupiedBy: me.uid, ts: serverTimestamp() });
+          const rref = doc(collection(db,'rooms')); currentRoomId = rref.id;
+          // host auto duduk di kursi 5 pada dokumen room (satu sumber kebenaran)
+          await setDoc(rref, { createdAt: serverTimestamp(), host: me.uid, hostName: me.name, seating: { '5': me.uid } });
+          await setDoc(doc(db,'rooms',currentRoomId,'participants',me.uid), { uid: me.uid, name: me.name, seat: 5, ts: serverTimestamp() }, { merge:true });
         }
 
         roomIdEl.textContent = currentRoomId;
@@ -196,9 +201,8 @@
           try{ await navigator.clipboard.writeText(url); copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent='Copy Link',1200);}catch(_){ alert(url); }
         };
 
-        renderSeats();
-        listenSeats();
-        listenMyParticipant();
+        renderSeats({});
+        listenRoomDoc();
         showStatus('Siap. Klik kursi untuk duduk/pindah. Klik kursi sendiri untuk berdiri.');
       }catch(err){ showError(err.message); }
     });
