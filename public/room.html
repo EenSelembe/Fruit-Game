@@ -1,357 +1,172 @@
-<!DOCTYPE html><html lang="id">
+<!doctype html>
+
+<html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Room – Voice Chat (Debug Built‑in)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Room Demo — Firebase ESM + Fallback + Debug Log</title>
+  <!-- (Opsional) Jika pakai CSP ketat, izinkan domain Firebase yang dibutuhkan
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; style-src 'self' 'unsafe-inline';"> -->
   <style>
-    body {margin:0; font-family:Arial, sans-serif; background:#0a0e1a; color:#fff;}
-    h2 {text-align:center; margin:16px 0 6px}
-    .info {text-align:center; font-size:14px; color:#9ab0d6}
-    .info code {background:#081132; border:1px dashed #3552a0; padding:2px 6px; border-radius:6px; color:#cfe3ff}
-    .info button {margin-left:8px; border:1px solid #2a3562; background:#0c1332; color:#e9f1ff; padding:6px 10px; border-radius:8px; cursor:pointer}.controls{display:flex;gap:10px;justify-content:center;margin:8px 0 10px}
-.btn{border:1px solid #2a3562;background:#0c1332;color:#e9f1ff;padding:8px 12px;border-radius:10px;cursor:pointer}
-.btn.on{border-color:#34d399}
-
-.seats {display:grid; grid-template-columns:repeat(3,1fr); gap:20px; justify-items:center; padding:20px;}
-.seat {width:120px; height:150px; text-align:center; cursor:pointer;}
-.avatar {width:100px; height:100px; border-radius:50%; background:#222; margin:auto; position:relative; border:2px dashed #555; display:flex; align-items:center; justify-content:center;}
-.avatar .mic {position:absolute; right:5px; bottom:5px; font-size:14px; background:#000; padding:2px 5px; border-radius:6px;}
-.avatar .host {position:absolute; left:5px; top:5px; font-size:12px; background:#333; padding:2px 6px; border-radius:6px;}
-.name {margin-top:6px; font-weight:bold;}
-.empty .avatar {opacity:0.6;}
-.nickname{display:inline-block; border-radius:6px; padding:2px 6px}
-@keyframes neonAnim {0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-
-#errBanner{display:none;position:fixed;left:0;right:0;bottom:0;background:#2b0b13;color:#ffd6de;padding:10px 14px;border-top:1px solid #5a1d2e;font-size:14px;z-index:9999}
-
-/* Debug panel (selalu tampil) */
-#dbg{position:fixed;right:8px;bottom:8px;width:min(92vw,520px);max-height:48vh;overflow:auto;background:#0b122e;border:1px solid #2a3a6a;border-radius:10px;padding:8px 10px;font:12px/1.45 ui-monospace,Menlo,Consolas;color:#d7e3ff;z-index:99999}
-#dbg .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-#dbg button{border:1px solid #31407a;background:#0d1540;color:#eaf1ff;border-radius:6px;padding:2px 8px;cursor:pointer}
-#dbg pre{white-space:pre-wrap;margin:0}
-
+    :root { --bg:#0b1020; --fg:#e6eefc; --muted:#9fb3d9; --accent:#8ad; }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
+    .wrap{max-width:960px;margin:auto;padding:24px}
+    h1{font-weight:700;font-size:20px;margin:0 0 16px}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    code.badge{background:#111a33;border:1px solid #243764;border-radius:10px;padding:6px 10px;color:var(--accent)}
+    button{appearance:none;border:1px solid #2b457a;background:#152447;color:var(--fg);border-radius:10px;padding:8px 12px;cursor:pointer}
+    button:hover{background:#1b2f5e}
+    .card{margin-top:16px;border:1px solid #243764;background:#0f1730;border-radius:12px;padding:12px}
+    .label{color:var(--muted)}
+    pre#debug{min-height:220px;max-height:360px;overflow:auto;margin:8px 0 0;background:#0b132b;border-radius:8px;padding:10px;border:1px solid #1d2b57;white-space:pre-wrap}
+    .small{font-size:12px;color:var(--muted)}
+    a { color: #9ecbff; }
   </style>
 </head>
 <body>
-  <h2>Voice Room</h2>
-  <div class="info">Room ID: <code id="roomId">—</code><button id="copyBtn">Copy Link</button></div>
-  <div id="status" class="info" style="margin-top:6px"></div>
-  <div class="controls">
-    <button id="micBtn" class="btn">🎙️ Mic OFF</button>
-    <button id="resumeBtn" class="btn" title="Paksa play semua audio">▶️ Resume Audio</button>
-  </div>
-  <div class="seats" id="seats"></div>
-  <div id="errBanner"></div>  <!-- Debug panel -->  <div id="dbg"><div class="head"><b>Debug Log</b><div><button id="clearDbg">Clear</button></div></div><pre id="dbgLog"></pre></div>  <script type="module">
-    // ===== DEBUG HELPERS =====
-    const dbgEl = document.getElementById('dbg');
-    const dbgLogEl = document.getElementById('dbgLog');
-    function dlog(...args){
-      console.log('[DBG]', ...args);
-      dbgLogEl.textContent += args.map(a=> typeof a==='string'? a : JSON.stringify(a)).join(' ') + '
-';
-      dbgEl.scrollTop = dbgEl.scrollHeight;
+  <div class="wrap">
+    <h1>Room Demo</h1>
+    <div class="row">
+      <span class="label">Room ID:</span>
+      <code id="room-id" class="badge">—</code>
+      <button id="btn-new">Buat Room Baru</button>
+      <button id="btn-ping">Ping Firestore</button>
+    </div>
+    <div class="card small">
+      <div><strong>Debug Log</strong></div>
+      <pre id="debug"></pre>
+    </div>
+    <p class="small">Tip: Kamu bisa set Room lewat query <code>?room=abc123</code> atau hash <code>#room=abc123</code>.</p>
+  </div>  <script type="module">
+    // =========== Util & Debug ==========
+    const $ = s => document.querySelector(s);
+    const debugEl = $('#debug');
+    const log = (...args) => {
+      const line = args.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join(' ');
+      console.log(...args);
+      if (debugEl) { debugEl.textContent += line + "\n"; debugEl.scrollTop = debugEl.scrollHeight; }
+    };
+    window.addEventListener('error', e => log('[window.error]', e.message));
+    window.addEventListener('unhandledrejection', e => log('[unhandledrejection]', e.reason?.message || e.reason));
+
+    // Room helpers
+    function pickRoomId() {
+      const fromQuery = new URLSearchParams(location.search).get('room');
+      const fromHash = new URLSearchParams(location.hash.replace(/^#/, '')).get('room');
+      return fromQuery || fromHash || randomId(6);
     }
-    document.getElementById('clearDbg').onclick = ()=>{ dbgLogEl.textContent=''; };
+    function randomId(k) {
+      const arr = new Uint8Array(k);
+      crypto.getRandomValues(arr);
+      const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+      return Array.from(arr, b => alphabet[b % alphabet.length]).join('');
+    }
 
-    function showStatus(msg){ const el = document.getElementById('status'); if(el) el.textContent = msg; dlog('STATUS:', msg); }
-    function showError(msg){ const el = document.getElementById('errBanner'); if(!el) return; el.textContent = 'Error: ' + msg; el.style.display='block'; console.error(msg); dlog('ERROR:', msg); }
+    function setRoomId(id) {
+      $('#room-id').textContent = id;
+      const url = new URL(location.href);
+      url.searchParams.set('room', id);
+      history.replaceState(null, '', url);
+    }
 
-    // ===== Firebase =====
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp, runTransaction, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
+    // =========== Resilient ESM Loader ==========
+    const cdn = (pkg) => [
+      `https://www.gstatic.com/firebasejs/12.2.1/${pkg}.js`,
+      `https://cdn.jsdelivr.net/npm/firebase@12.2.1/${pkg}.js`,
+      `https://unpkg.com/firebase@12.2.1/${pkg}.js`,
+    ];
+    const tryImport = async (urls) => {
+      let lastErr;
+      for (const u of urls) {
+        try { const mod = await import(u); log('✓ import', u); return mod; }
+        catch (e) { lastErr = e; log('✗ import gagal', u, e.message); }
+      }
+      throw lastErr;
     };
 
+    // =========== Bootstrap Firebase ==========
+    log('Mulai muat Firebase ESM…');
+    const appMod = await tryImport(cdn('firebase-app'));
+    const { initializeApp, onLog, setLogLevel } = appMod;
+    const authMod = await tryImport(cdn('firebase-auth'));
+    const { getAuth, signInAnonymously, onAuthStateChanged } = authMod;
+    const fsMod = await tryImport(cdn('firebase-firestore'));
+    const { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp } = fsMod;
+
+    // Tampilkan log SDK ke Debug Log
+    setLogLevel('info');
+    onLog(({ level, type, message }) => log(`[SDK ${level}] ${type}: ${message}`));
+
+    // TODO: Ganti dengan konfigurasi project kamu
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID"
+      // (opsional) storageBucket, messagingSenderId, dsb
+    };
+
+    // Inisialisasi
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    log('Firebase init OK. Menandatangani anonim…');
 
-    // ===== DOM Refs =====
-    const seatsEl = document.getElementById("seats");
-    const roomIdEl = document.getElementById("roomId");
-    const copyBtn = document.getElementById("copyBtn");
-    const micBtn = document.getElementById("micBtn");
-    const resumeBtn = document.getElementById("resumeBtn");
-
-    // ===== State =====
-    const TOTAL_SEATS = 9;
-    let me = { uid:null, name:null };
-    let currentRoomId = null;
-    let mySeat = null; // dibaca dari rooms/{id}.seating
-    let latestSeating = {};
-
-    // WebRTC
-    const rtcConfig = { iceServers: [ { urls:["stun:stun.l.google.com:19302","stun:global.stun.twilio.com:3478"] } ] };
-    const pcs = new Map(); // pairId -> RTCPeerConnection
-    const audioEls = new Map(); // pairId -> HTMLAudioElement
-    let localStream = null; let micOn = false;
-
-    function pairIdOf(a,b){ return [a,b].sort().join('_'); }
-    function getQuery(key){ return new URL(location.href).searchParams.get(key); }
-
-    async function ensureRoomExists(roomId){
-      const ref = doc(db, "rooms", roomId);
-      const snap = await getDoc(ref);
-      if(!snap.exists()){
-        await setDoc(ref, { createdAt: serverTimestamp() }, { merge:true });
-        dlog('ROOM created base doc for id', roomId);
-      }
-      return ref;
+    // Sign-in anonim supaya bisa akses rules yang mengizinkan anonymous
+    try {
+      await signInAnonymously(auth);
+    } catch (e) {
+      log('AUTH gagal:', e.message);
     }
 
-    // Sinkron nama & style dari users/{uid}
-    async function fetchUserProfile(uid){
-      const ref = doc(db,'users',uid);
-      const snap = await getDoc(ref);
-      let prof = { name:'Guest-'+uid.slice(0,5) };
-      if(snap.exists()){
-        const d = snap.data();
-        prof = { name:d.name || d.username || ('Guest-'+uid.slice(0,5)), username:d.username, color:d.color, bgColor:d.bgColor, bgGradient:d.bgGradient, borderColor:d.borderColor, borderGradient:d.borderGradient };
-      }
-      return prof;
-    }
+    let CURRENT_UID = null;
+    onAuthStateChanged(auth, (user) => {
+      if (!user) { log('AUTH: signed out'); return; }
+      CURRENT_UID = user.uid;
+      log('AUTH: signed in as', user.uid);
+    });
 
-    function nicknameHTML(data){
-      let bg = data?.bgColor || 'transparent';
-      let extraAnim = '';
-      if(data?.bgGradient){ bg = data.bgGradient; extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;'; }
-      let border = `1px solid ${data?.borderColor || '#000'}`;
-      let extraBorder = '';
-      if(data?.borderGradient){
-        const baseBg = data?.bgColor || 'transparent';
-        border = '3px solid transparent';
-        extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient}; background-origin: border-box; background-clip: padding-box, border-box;`;
-      }
-      const style = `color:${data?.color || '#fff'}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;
-      const display = data?.name || data?.username || 'Anonim';
-      return `<span class="nickname" style="${style}">${display}</span>`;
-    }
+    // =========== Room logic (Firestore) ==========
+    let roomId = pickRoomId();
+    setRoomId(roomId);
+    log('Room aktif =', roomId);
 
-    function seatTemplate(i){
-      const isHost = (i===5);
-      const seat = document.createElement("div");
-      seat.className = "seat empty";
-      seat.id = "seat"+i;
-      seat.innerHTML = `
-        <div class="avatar">
-          ${isHost? '<div class="host">👑</div>':''}
-          <div class="mic">🔇</div>
-        </div>
-        <div class="name">Kursi ${i}</div>
-      `;
-      seat.addEventListener("click", ()=> toggleSeat(i));
-      return seat;
-    }
-
-    // === Anti-double logic: pindah kursi via satu dokumen rooms/{id}.seating ===
-    async function toggleSeat(i){
-      if(!currentRoomId || !me.uid){ alert('Memuat... coba lagi'); return; }
-      const roomRef = doc(db,'rooms',currentRoomId);
-      const partRef = doc(db,'rooms',currentRoomId,'participants',me.uid);
-      try{
-        await runTransaction(db, async (tx)=>{
-          const rsnap = await tx.get(roomRef);
-          const data = rsnap.exists()? rsnap.data() : {};
-          const seating = data.seating || {}; // {"1": uid, "2": uid, ...}
-
-          // cari kursi saya sekarang
-          let cur = null;
-          for(let k=1;k<=TOTAL_SEATS;k++){ if(seating[String(k)] === me.uid){ cur = k; break; } }
-
-          const occupied = seating[String(i)] || null;
-          if(occupied && occupied !== me.uid){ throw new Error('Kursi sudah ditempati'); }
-
-          if(cur === i){
-            // berdiri
-            seating[String(i)] = null;
-            tx.set(partRef, { uid: me.uid, name: me.name, seat: null, ts: serverTimestamp() }, { merge:true });
-            dlog('SEAT leave', i);
-          } else {
-            if(cur){ seating[String(cur)] = null; }
-            seating[String(i)] = me.uid;
-            tx.set(partRef, { uid: me.uid, name: me.name, seat: i, ts: serverTimestamp() }, { merge:true });
-            dlog('SEAT move', cur, '->', i);
-          }
-
-          tx.set(roomRef, { seating }, { merge:true });
-        });
-      }catch(err){ showError(err.message); }
-    }
-
-    async function renderSeats(seating={}){
-      seatsEl.innerHTML = "";
-      for(let i=1;i<=TOTAL_SEATS;i++){
-        const uid = seating[String(i)] || null;
-        const el = seatTemplate(i);
-        if(uid){
-          el.classList.remove('empty');
-          try{ const prof = await fetchUserProfile(uid); el.querySelector('.name').innerHTML = nicknameHTML(prof); el.querySelector('.avatar').style.borderStyle='solid'; el.querySelector('.mic').textContent = (uid===me.uid && micOn)? '🎙️' : '🔇'; }
-          catch(err){ /* ignore styling errors */ }
-        }
-        seatsEl.appendChild(el);
+    // Buat dokumen room jika belum ada, lalu subscribe
+    const roomRef = doc(db, 'rooms', roomId);
+    async function ensureRoomDoc() {
+      const snap = await getDoc(roomRef);
+      if (!snap.exists()) {
+        await setDoc(roomRef, { createdAt: serverTimestamp(), createdBy: CURRENT_UID || null });
+        log('Room dibuat di Firestore');
+      } else {
+        log('Room sudah ada di Firestore');
       }
     }
 
-    function listenRoomDoc(){
-      const rref = doc(db,'rooms',currentRoomId);
-      onSnapshot(rref,(snap)=>{
-        const d = snap.data() || {};
-        const seating = d.seating || {};
-        latestSeating = seating;
-        mySeat = null; for(let k=1;k<=TOTAL_SEATS;k++){ if(seating[String(k)]===me.uid){ mySeat=k; break; } }
-        renderSeats(seating);
-        showStatus(mySeat? ('Duduk di kursi '+mySeat) : 'Belum duduk');
-        rebuildMeshLinks();
-      },(err)=> showError(err.message));
-    }
+    await ensureRoomDoc().catch(e => log('Gagal ensure room:', e.message));
 
-    // ===== WebRTC helpers =====
-    async function ensureMedia(){
-      if(localStream) return localStream;
-      try{
-        const stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
-        dlog('getUserMedia OK. tracks=', stream.getTracks().map(t=>({kind:t.kind,enabled:t.enabled,ready:t.readyState})));
-        localStream = stream;
-        // default OFF
-        localStream.getAudioTracks().forEach(t=> t.enabled = false);
-        return localStream;
-      }catch(e){ showError('Izin mic ditolak: '+(e.message||e.name)); throw e; }
-    }
+    onSnapshot(roomRef, (snap) => {
+      const data = snap.data();
+      log('onSnapshot:', data ? JSON.stringify(data) : '(null)');
+    }, (err) => log('onSnapshot error:', err.message));
 
-    function addRemoteAudio(pairId, stream){
-      dlog('ontrack -> pair', pairId, 'tracks:', stream.getTracks().length);
-      let el = audioEls.get(pairId);
-      if(!el){ el = document.createElement('audio'); el.autoplay = true; el.controls = true; el.playsInline = true; el.setAttribute('playsinline',''); el.muted = false; el.volume = 1.0; document.body.appendChild(el); audioEls.set(pairId, el); }
-      el.srcObject = stream;
-      const play = ()=> el.play().then(()=> dlog('audio.play OK for', pairId)).catch(err=> dlog('audio.play blocked', pairId, err.message||err));
-      play();
-    }
-    function closePair(pairId){
-      const pc = pcs.get(pairId); if(pc){ try{pc.close();}catch(_){} pcs.delete(pairId); }
-      const el = audioEls.get(pairId); if(el){ el.remove(); audioEls.delete(pairId); }
-      dlog('RTC closed pair', pairId);
-    }
-
-    async function ensureLocalTrack(){ await ensureMedia(); return localStream.getAudioTracks()[0]; }
-    function myRole(pairId){ const [a,b]=pairId.split('_'); return (me.uid===a)? 'A':'B'; }
-
-    async function ensureOffer(pairId){
-      if(pcs.has(pairId)) return;
-      dlog('RTC ensureOffer', pairId);
-      const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
-      pc.ontrack = (ev)=> addRemoteAudio(pairId, ev.streams[0]);
-      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), JSON.parse(JSON.stringify(e.candidate))); dlog('RTC ICE A ->', pairId); } };
-      const track = await ensureLocalTrack(); pc.addTrack(track, localStream); dlog('RTC addTrack(A)');
-      const offer = await pc.createOffer(); await pc.setLocalDescription(offer); dlog('RTC setLocalDescription(offer)');
-      await setDoc(doc(db,'rooms',currentRoomId,'mesh',pairId), { aUid: pairId.split('_')[0], bUid: pairId.split('_')[1], offer: JSON.parse(JSON.stringify(offer)), createdAt: serverTimestamp() }, { merge:true });
-      onSnapshot(doc(db,'rooms',currentRoomId,'mesh',pairId), async (snap)=>{ const d=snap.data(); if(d?.answer && !pc.currentRemoteDescription){ await pc.setRemoteDescription(new RTCSessionDescription(d.answer)); dlog('RTC setRemoteDescription(answer) for', pairId); } });
-      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); dlog('RTC ICE from B applied', pairId); } }); });
-    }
-
-    async function ensureAnswer(pairId){
-      if(pcs.has(pairId)) return;
-      const docRef = doc(db,'rooms',currentRoomId,'mesh',pairId); const snap = await getDoc(docRef); const d = snap.data(); if(!d?.offer) return; // wait for offer
-      dlog('RTC ensureAnswer', pairId);
-      const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
-      pc.ontrack = (ev)=> addRemoteAudio(pairId, ev.streams[0]);
-      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), JSON.parse(JSON.stringify(e.candidate))); dlog('RTC ICE B ->', pairId); } };
-      await pc.setRemoteDescription(new RTCSessionDescription(d.offer)); dlog('RTC setRemoteDescription(offer)');
-      const track = await ensureLocalTrack(); pc.addTrack(track, localStream); dlog('RTC addTrack(B)');
-      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); dlog('RTC setLocalDescription(answer)');
-      await updateDoc(docRef, { answer: JSON.parse(JSON.stringify(answer)) });
-      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); dlog('RTC ICE from A applied', pairId); } }); });
-    }
-
-    function listenMesh(){
-      const mref = collection(db,'rooms',currentRoomId,'mesh');
-      onSnapshot(mref, async (snap)=>{
-        for(const d of snap.docs){
-          const id = d.id; const x = d.data(); if(!x.aUid||!x.bUid) continue; if(x.aUid!==me.uid && x.bUid!==me.uid) continue;
-          const role = myRole(id);
-          if(role==='B' && x.offer && !pcs.has(id)) await ensureAnswer(id);
-          if(role==='A' && !pcs.has(id)) await ensureOffer(id);
-        }
+    // UI handlers
+    $('#btn-new').addEventListener('click', async () => {
+      roomId = randomId(6);
+      setRoomId(roomId);
+      log('Room baru =', roomId);
+      await setDoc(doc(db, 'rooms', roomId), {
+        createdAt: serverTimestamp(),
+        createdBy: CURRENT_UID || null
       });
-    }
-
-    async function rebuildMeshLinks(){
-      if(!mySeat){ // tidak perlu koneksi jika belum duduk
-        for(const id of Array.from(pcs.keys())) closePair(id);
-        return;
-      }
-      const others = new Set();
-      for(let k=1;k<=TOTAL_SEATS;k++){ const uid = latestSeating[String(k)]; if(uid && uid!==me.uid) others.add(uid); }
-      dlog('RTC rebuildMesh peers', Array.from(others));
-      for(const uid of others){ const pid = pairIdOf(me.uid, uid); await setDoc(doc(db,'rooms',currentRoomId,'mesh',pid), { aUid: pid.split('_')[0], bUid: pid.split('_')[1], createdAt: serverTimestamp() }, { merge:true }); }
-      for(const pid of Array.from(pcs.keys())){
-        const [a,b] = pid.split('_'); const peer = (a===me.uid)? b : (b===me.uid? a : null);
-        if(peer && !others.has(peer)) closePair(pid);
-      }
-    }
-
-    // ===== Auth + bootstrap =====
-    onAuthStateChanged(auth, async (user)=>{
-      try{
-        if(!user){
-          showStatus('Menyambungkan akun...');
-          try{ await signInAnonymously(auth); dlog('AUTH signInAnonymously called'); return; }
-          catch(e){ showError('Login anonymous gagal. Aktifkan Anonymous di Firebase Auth. ('+ (e.code||e.message) +')'); return; }
-        }
-        me.uid = user.uid; dlog('AUTH signed in as', me.uid);
-        showStatus('Akun: '+me.uid.slice(0,6)+'…');
-        const prof = await fetchUserProfile(me.uid); me.name = prof.name;
-
-        const rid = getQuery('id');
-        if(rid){ currentRoomId = rid; await ensureRoomExists(currentRoomId); dlog('ROOM join', rid); }
-        else {
-          const rref = doc(collection(db,'rooms')); currentRoomId = rref.id; dlog('ROOM create id', currentRoomId);
-          await setDoc(rref, { createdAt: serverTimestamp(), host: me.uid, hostName: me.name, seating: { '5': me.uid } });
-          await setDoc(doc(db,'rooms',currentRoomId,'participants',me.uid), { uid: me.uid, name: me.name, seat: 5, ts: serverTimestamp() }, { merge:true });
-        }
-
-        roomIdEl.textContent = currentRoomId;
-        copyBtn.onclick = async ()=>{
-          const url = location.origin + location.pathname + '?id=' + currentRoomId;
-          try{ await navigator.clipboard.writeText(url); copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent='Copy Link',1200);}catch(_){ alert(url); }
-        };
-
-        renderSeats({});
-        listenRoomDoc();
-        listenMesh();
-        showStatus('Siap. Klik kursi untuk duduk/pindah. Klik kursi sendiri untuk berdiri.');
-      }catch(err){ showError(err.message); }
     });
 
-    // ===== Mic control =====
-    micBtn.addEventListener('click', async ()=>{
-      try{
-        await ensureMedia();
-        micOn = !micOn; dlog('MIC toggled', micOn);
-        localStream.getAudioTracks().forEach(t=> t.enabled = micOn);
-        micBtn.classList.toggle('on', micOn);
-        micBtn.textContent = micOn ? '🎙️ Mic ON' : '🎙️ Mic OFF';
-        renderSeats(latestSeating);
-        for(const el of audioEls.values()){ try{ await el.play(); }catch(e){ dlog('resume play fail', e.message||e); } }
-        rebuildMeshLinks();
-      }catch(e){ showError(e.message||String(e)); }
+    $('#btn-ping').addEventListener('click', async () => {
+      try {
+        await setDoc(roomRef, { lastPingAt: serverTimestamp(), by: CURRENT_UID || null }, { merge: true });
+        log('Ping terkirim');
+      } catch (e) { log('Ping gagal:', e.message); }
     });
-
-    resumeBtn.addEventListener('click', async ()=>{
-      for(const el of audioEls.values()){ try{ await el.play(); }catch(e){ dlog('resume click play fail', e.message||e); } }
-    });
-
-    document.addEventListener('visibilitychange', async ()=>{ if(!document.hidden){ for(const el of audioEls.values()){ try{ await el.play(); }catch(_){} } } });
-
-    window.addEventListener('error', (e)=> showError(e.error?.message || e.message));
-    window.addEventListener('unhandledrejection', (e)=> showError(e.reason?.message || String(e.reason)) );
   </script></body>
 </html>
