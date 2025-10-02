@@ -2,198 +2,69 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Room</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ruang Suara</title>
   <style>
     :root {
-      --card-bg: #0f1220;
-      --card-border: #22273a;
-      --text: #eaefff;
-      --muted: #9aa3b2;
-      --accent: #6ea8ff;
-      --danger: #ff6b6b;
-      --ok: #3ad29f;
+      --bg:#0b0f14; --card:#141a22; --muted:#8892a6; --accent:#4f8cff;
+      --ok:#31c48d; --danger:#ef4444; --warn:#f59e0b;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial;
-      background: radial-gradient(1200px 800px at 50% -200px, #1b1f33, #0b0d17 60%);
-      color: var(--text);
-      min-height: 100dvh;
-      display: grid;
-      grid-template-rows: auto 1fr;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #1b2032;
-      backdrop-filter: blur(6px);
-      background: rgba(7,10,20,.6);
-    }
-    .room-title {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .room-title h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
-    .room-title code {
-      font-size: 12px;
-      color: var(--muted);
-      border: 1px solid #28304b;
-      background: #0d1122;
-      padding: 3px 6px;
-      border-radius: 6px;
-    }
-    .actbar { display: flex; gap: 8px; }
-    button {
-      cursor: pointer;
-      border: 1px solid var(--card-border);
-      background: #111425;
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: .2s ease;
-    }
-    button:hover { transform: translateY(-1px); border-color: #31406f; }
-    button.danger { border-color: #3a1421; background: #1a0e12; color: #ffb3b3; }
-    button.ok { border-color: #174333; background: #0d1a16; color: #bdf4df; }
-
-    main { padding: 18px 16px 24px; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat( auto-fit, minmax(220px, 1fr) );
-      gap: 14px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-    .seat {
-      position: relative;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 14px;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      min-height: 130px;
-      box-shadow: 0 6px 30px rgba(0,0,0,.25);
-    }
-    .seat .head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .seat .body {
-      display: grid;
-      place-items: start;
-      align-content: start;
-      gap: 8px;
-    }
-    .seat .foot {
-      display: flex; gap: 8px; margin-top: 10px;
-    }
-    .tag {
-      font-size: 11px;
-      padding: 2px 6px;
-      border: 1px solid #2a3352;
-      background: #0d1124;
-      color: #b4c0ff;
-      border-radius: 999px;
-    }
-
-    /* Nickname pill (akan dioverride inline style dari Firestore profile) */
-    .nickname {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 10px;
-      line-height: 1.4;
-      font-weight: 700;
-      box-shadow: inset 0 0 0 999px rgba(0,0,0,.08);
-      backdrop-filter: blur(2px);
-      text-shadow: 0 1px 0 rgba(0,0,0,.25);
-    }
-    .subtle {
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .mic {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid #24324a;
-      background: #0c1220;
-      color: #c8d2ff;
-    }
-    .mic.on { border-color: #214634; color: #baf1dd; background: #0c1a15; }
-
-    .seat.empty .body {
-      place-items: center;
-      align-content: center;
-      color: #a3acc3;
-    }
-    .seat.empty .foot { justify-content: center; }
-    .you {
-      position: absolute;
-      top: 10px; right: 10px;
-      font-size: 10px;
-      background: #132234;
-      color: #bbd8ff;
-      border: 1px solid #264a7a;
-      padding: 2px 6px;
-      border-radius: 999px;
-    }
-
-    /* anim untuk bgGradient */
-    @keyframes neonAnim {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#e6edf7;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    header{display:flex;gap:.75rem;align-items:center;padding:16px}
+    header .badge{font:600 12px/1.6 ui-monospace,Menlo,Consolas;background:#1b2430;color:#bcd; padding:2px 8px;border-radius:8px}
+    header h1{font-size:20px;margin:0 8px 0 0}
+    #roomName{opacity:.85}
+    main{padding:16px;max-width:980px;margin:0 auto}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+    .seat{background:var(--card);border-radius:16px;padding:16px;border:1px solid #1f2835;position:relative}
+    .seat h3{margin:0 0 8px;font-size:14px;color:#a9b6cc}
+    .who{position:absolute;right:12px;top:12px;font-size:12px;color:#94a3b8;opacity:.9}
+    .nick{display:inline-flex;align-items:center;gap:6px;font-weight:700;padding:6px 10px;border-radius:10px;background:#0e1622;border:1px solid #223047}
+    .status{margin:10px 0 12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#cbd5e1}
+    .status .dot{width:10px;height:10px;border-radius:999px;background:#475569}
+    .status .on{background:var(--ok)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    button{cursor:pointer;border:0;border-radius:12px;padding:10px 12px;font-weight:600}
+    .btn{background:#1f2a38;color:#dbeafe;border:1px solid #273547}
+    .danger{background:#2a1b1b;color:#fecaca;border-color:#3b2323}
+    .ok{background:#162722;color:#c7f9e9;border-color:#224235}
+    .muted{color:#97a6ba}
+    footer{padding:16px;color:#93a4bf;font-size:12px;opacity:.9}
+    .meTag{padding:2px 6px;border:1px solid #41506b;border-radius:999px;background:#0f1722;color:#9fb4d8;font-weight:700}
+    .toprow{display:flex;justify-content:space-between;align-items:center}
+    .sr{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
   </style>
 </head>
 <body>
   <header>
-    <div class="room-title">
-      <h1>Ruang</h1>
-      <code id="roomCode">main</code>
-    </div>
-    <div class="actbar">
-      <button id="leaveMySeatBtn" class="danger" title="Keluar dari kursi saya">Keluar Kursi</button>
-      <button id="logoutBtn">Logout</button>
-    </div>
+    <h1>Ruang</h1>
+    <span id="roomName" class="badge">main</span>
+    <span id="me" class="badge">masuk…</span>
   </header>
 
   <main>
-    <div id="info" class="subtle" style="max-width:1100px;margin:0 auto 12px;">
-      Klik **Duduk** untuk mengambil kursi. Mic bisa dinyalakan/matikan setelah duduk.
-    </div>
-    <div id="seatsGrid" class="grid" aria-live="polite"></div>
+    <div id="grid" class="grid"></div>
+    <footer>
+      Tip: ganti room via <code>?room=abc123</code>. Mic butuh HTTPS/izin browser.
+    </footer>
   </main>
 
+  <!-- elemen audio remote dibuat dinamis di sini -->
+  <div id="audios" class="sr" aria-hidden="true"></div>
+
   <script type="module">
-    // ----------------- Firebase Init -----------------
+    /* ---------------- Firebase import ---------------- */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import {
-      getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
-      runTransaction, serverTimestamp, onSnapshot, collection, query,
-      where, getCountFromServer
+      getAuth, signInAnonymously, onAuthStateChanged, updateProfile
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import {
+      getFirestore, collection, doc, setDoc, getDoc, getDocs, onSnapshot,
+      deleteDoc, query, where, serverTimestamp, updateDoc, arrayUnion
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+    /* ---------------- Config kamu ---------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
       authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -203,312 +74,303 @@
       appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
       measurementId: "G-EPTSQQPM4D"
     };
+
+    /* ---------------- Init ---------------- */
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    const db   = getFirestore(app);
 
-    // ----------------- Room/Seats Setup -----------------
-    const NUM_SEATS = 9; // jumlah kursi
-    const roomId = (new URLSearchParams(location.search).get("room")) || "main";
-    document.getElementById("roomCode").textContent = roomId;
+    const qs = new URLSearchParams(location.search);
+    const ROOM_ID = qs.get("room") || "main";
+    document.getElementById("roomName").textContent = ROOM_ID;
 
-    const seatsGrid = document.getElementById("seatsGrid");
-    const leaveMySeatBtn = document.getElementById("leaveMySeatBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
+    const roomsRef = doc(db, "rooms", ROOM_ID);
+    const seatsCol = collection(roomsRef, "seats");
+    const signalsCol = collection(roomsRef, "signals"); // dokumen per pasangan peer
 
-    let me = null;           // current user
-    let mySeatIndex = null;  // kursi yang sedang kita duduki (angka)
-    let unsubscribers = [];  // simpan unsubscribe onSnapshot
+    const grid = document.getElementById("grid");
+    const audios = document.getElementById("audios");
+    const meBadge = document.getElementById("me");
 
-    // kunci sesi tab (agar tab lain tidak ikut "melepas" kursi ini)
-    const SESSION_KEY = (() => {
-      let s = sessionStorage.getItem("sessionKey");
-      if (!s) {
-        s = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        sessionStorage.setItem("sessionKey", s);
-      }
-      return s;
-    })();
+    // state
+    let me = null;
+    let mySeat = null;
+    let localStream = null;
+    const pcs = new Map();         // pairKey -> RTCPeerConnection
+    const audioEls = new Map();    // uid -> <audio>
+    const handledCand = new Map(); // pairKeySide -> Set<string>
 
-    // ---- Helpers Firestore path
-    const seatRef = (idx) => doc(db, "rooms", roomId, "seats", String(idx));
-
-    // ----------------- UI Render -----------------
-    function makeSeatCard(idx) {
-      const el = document.createElement("div");
-      el.className = "seat empty";
-      el.dataset.idx = String(idx);
-      el.innerHTML = `
-        <div class="head">
-          <span class="tag">Kursi #${idx + 1}</span>
-          <span class="subtle status">Kosong</span>
+    /* --------- UI: render 9 seat card --------- */
+    const seatEls = [];
+    for (let i=1;i<=9;i++){
+      const card = document.createElement("div");
+      card.className = "seat";
+      card.dataset.seat = String(i);
+      card.innerHTML = `
+        <div class="toprow">
+          <h3>Kursi #${i}</h3>
+          <span class="who" id="who-${i}">Ditempati</span>
         </div>
-        <div class="body">
-          <div class="subtle">Belum ada pemain</div>
-        </div>
-        <div class="foot">
-          <button class="btn-sit ok" data-idx="${idx}">Duduk</button>
+        <div class="nick" id="nick-${i}">Kosong</div>
+        <div class="status"><div class="dot" id="dot-${i}"></div><span id="mic-${i}" class="muted">Mic OFF</span></div>
+        <div class="row" id="btns-${i}">
+          <button class="btn sit">Duduk</button>
+          <button class="btn ok mic-on">Nyalakan Mic</button>
+          <button class="btn danger leave">Keluar</button>
         </div>
       `;
+      grid.appendChild(card);
+      seatEls.push(card);
+    }
+
+    /* --------- Helpers --------- */
+    const pairKey = (a,b)=> a < b ? `${a}_${b}` : `${b}_${a}`;
+    const iAmA = (a,b)=> a < b; // apakah UID-ku sisi 'a'?
+
+    function setSeatUI(i, data, isMe){
+      const idx = Number(i);
+      const nick = document.getElementById(`nick-${idx}`);
+      const who  = document.getElementById(`who-${idx}`);
+      const dot  = document.getElementById(`dot-${idx}`);
+      const micL = document.getElementById(`mic-${idx}`);
+
+      if (!data){
+        nick.textContent = "Kosong";
+        who.textContent = "Kosong";
+        dot.classList.remove("on");
+        micL.textContent = "Mic OFF";
+        seatEls[idx-1].querySelector(".sit").disabled = false;
+        seatEls[idx-1].querySelector(".leave").disabled = true;
+        seatEls[idx-1].querySelector(".mic-on").disabled = true;
+        return;
+      }
+      const name = data.name || "GM";
+      nick.innerHTML = isMe ? `👑 <span>${name}</span> <span class="meTag">Anda</span>` : `<span>${name}</span>`;
+      who.textContent = isMe ? "Ditempati (Anda)" : "Ditempati";
+      if (data.mic){ dot.classList.add("on"); micL.textContent = "Mic ON"; }
+      else { dot.classList.remove("on"); micL.textContent = "Mic OFF"; }
+
+      seatEls[idx-1].querySelector(".sit").disabled   = !!data && !isMe;
+      seatEls[idx-1].querySelector(".leave").disabled = !isMe;
+      seatEls[idx-1].querySelector(".mic-on").disabled = !isMe;
+      seatEls[idx-1].querySelector(".mic-on").textContent = data?.mic ? "Matikan Mic" : "Nyalakan Mic";
+    }
+
+    async function removeMyOldSeat(){
+      if (!me) return;
+      const q = query(seatsCol, where("uid","==", me.uid));
+      const snap = await getDocs(q);
+      for (const d of snap.docs){ await deleteDoc(d.ref); }
+      mySeat = null;
+    }
+
+    async function takeSeat(seatNo){
+      if (!me) return;
+      // hapus kursi lama agar tidak dobel
+      await removeMyOldSeat();
+
+      const seatRef = doc(seatsCol, String(seatNo));
+      await setDoc(seatRef, {
+        uid: me.uid,
+        name: me.displayName || "GM",
+        mic: false,
+        ts: serverTimestamp()
+      });
+      mySeat = seatNo;
+    }
+
+    async function leaveSeat(){
+      if (!me || !mySeat) return;
+      await deleteDoc(doc(seatsCol, String(mySeat)));
+      mySeat = null;
+      await micToggle(false);
+    }
+
+    async function micToggle(turnOn){
+      if (!me || !mySeat) return;
+      const seatRef = doc(seatsCol, String(mySeat));
+
+      if (turnOn){
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+        } catch(e){
+          alert("Izin microphone ditolak / tidak tersedia.");
+          return;
+        }
+        await updateDoc(seatRef, { mic: true });
+
+        // hubungkan ke semua pemain lain yang ada
+        const all = await getDocs(seatsCol);
+        for (const d of all.docs){
+          const s = d.data();
+          if (!s?.uid || s.uid === me.uid) continue;
+          await connectToPeer(s.uid);
+        }
+      } else {
+        // stop mic
+        if (localStream){
+          localStream.getTracks().forEach(t=>t.stop());
+          localStream = null;
+        }
+        // tutup semua PC
+        for (const pc of pcs.values()) try{ pc.close(); } catch{}
+        pcs.clear();
+        // hapus audio tag
+        for (const el of audioEls.values()) try{ el.remove(); } catch{}
+        audioEls.clear();
+
+        await updateDoc(seatRef, { mic: false });
+      }
+    }
+
+    function ensureAudioEl(uid){
+      if (audioEls.has(uid)) return audioEls.get(uid);
+      const el = document.createElement("audio");
+      el.autoplay = true; el.playsInline = true; el.controls = false;
+      el.id = `a_${uid}`;
+      audios.appendChild(el);
+      audioEls.set(uid, el);
       return el;
     }
 
-    function safeText(s){ return (s ?? "").toString().replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+    async function connectToPeer(otherUid){
+      if (!localStream) return;
+      const pKey = pairKey(me.uid, otherUid);
+      if (pcs.has(pKey)) return; // sudah ada
 
-    // build nickname style sama dengan home.html
-    function buildNicknameStyle(profile) {
-      let bg = profile?.bgColor || 'transparent';
-      let extraAnim = '';
-      if (profile?.bgGradient) {
-        bg = profile.bgGradient;
-        extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
-      }
-      let border = `1px solid ${profile?.borderColor || '#000'}`;
-      let extraBorder = '';
-      if (profile?.borderGradient) {
-        const baseBg = profile?.bgColor || 'transparent';
-        border = '3px solid transparent';
-        extraBorder = `
-          background-image: linear-gradient(${baseBg}, ${baseBg}), ${profile.borderGradient};
-          background-origin: border-box;
-          background-clip: padding-box, border-box;`;
-      }
-      const color = profile?.color || '#fff';
-      return `color:${color}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;
-    }
+      const isA = iAmA(me.uid, otherUid);
+      const docRef = doc(signalsCol, pKey);
+      const pc = new RTCPeerConnection({
+        iceServers: [{urls: "stun:stun.l.google.com:19302"}]
+      });
+      pcs.set(pKey, pc);
 
-    function rankEmblem(rank) {
-      if (rank === 1) return "🥇 ";
-      if (rank === 2) return "🥈 ";
-      if (rank === 3) return "🥉 ";
-      return "";
-    }
-
-    // Render satu kursi dari data snapshot
-    function renderSeat(idx, data) {
-      const card = seatsGrid.querySelector(`.seat[data-idx="${idx}"]`);
-      const headStatus = card.querySelector(".status");
-      const body = card.querySelector(".body");
-      const foot = card.querySelector(".foot");
-
-      if (!data || !data.uid) {
-        card.classList.add("empty");
-        card.classList.remove("occupied");
-        card.querySelector(".you")?.remove();
-        headStatus.textContent = "Kosong";
-        body.innerHTML = `<div class="subtle">Belum ada pemain</div>`;
-        foot.innerHTML = `<button class="btn-sit ok" data-idx="${idx}">Duduk</button>`;
-        return;
-      }
-
-      card.classList.remove("empty");
-      card.classList.add("occupied");
-      headStatus.textContent = data.uid === me?.uid ? "Ditempati (Anda)" : "Ditempati";
-
-      // Lencana "Anda"
-      card.querySelector(".you")?.remove();
-      if (data.uid === me?.uid) {
-        const you = document.createElement("span");
-        you.className = "you";
-        you.textContent = "Anda";
-        card.appendChild(you);
-      }
-
-      // Nickname pill + mic
-      const style = buildNicknameStyle(data);
-      const nick = safeText(data.displayName || data.username || "Anonim");
-      const micClass = data.micOn ? "mic on" : "mic";
-      const micText = data.micOn ? "Mic ON" : "Mic OFF";
-      const micIcon = data.micOn ? "🎤" : "🔇";
-
-      body.innerHTML = `
-        <span class="nickname" style="${style}">${nick}</span>
-        <span class="${micClass}" title="Status mic">${micIcon} ${micText}</span>
-      `;
-
-      // tombol sesuai kepemilikan
-      if (data.uid === me?.uid) {
-        foot.innerHTML = `
-          <button class="btn-mic" data-idx="${idx}">${data.micOn ? "Matikan Mic" : "Nyalakan Mic"}</button>
-          <button class="btn-leave danger" data-idx="${idx}">Keluar</button>
-        `;
-      } else {
-        foot.innerHTML = `<span class="subtle">Dipakai pemain lain</span>`;
-      }
-    }
-
-    // ----------------- Actions -----------------
-    async function sitDown(idx) {
-      if (!me) return alert("Harus login dulu.");
-      try {
-        // ambil profil dari users/{uid}
-        const profSnap = await getDoc(doc(db, "users", me.uid));
-        const profile = profSnap.exists() ? profSnap.data() : {};
-        const saldo = profile.saldo || 0;
-
-        // hitung rank utk emblem (sekali saja saat duduk)
-        let myRank = 0;
-        try {
-          const usersRef = collection(db, "users");
-          const qAbove = query(usersRef, where("saldo", ">", saldo));
-          const above = await getCountFromServer(qAbove);
-          myRank = (above.data().count || 0) + 1;
-        } catch (e) {
-          // abaikan jika quota index, dll
-        }
-
-        const displayNameBase = profile.name || profile.username || me.displayName || me.email || "Anonim";
-        const displayName = `${rankEmblem(myRank)}${displayNameBase}`;
-
-        await runTransaction(db, async (tx) => {
-          const ref = seatRef(idx);
-          const snap = await tx.get(ref);
-          if (snap.exists()) {
-            const cur = snap.data();
-            if (cur.uid && cur.uid !== me.uid) {
-              throw new Error("Kursi sudah ditempati.");
-            }
-          }
-          tx.set(ref, {
-            index: idx,
-            uid: me.uid,
-            sessionKey: SESSION_KEY,
-            displayName,
-            username: profile.username || "",
-            micOn: false,
-            color: profile.color || "#fff",
-            bgColor: profile.bgColor || "transparent",
-            bgGradient: profile.bgGradient || "",
-            borderColor: profile.borderColor || "#000",
-            borderGradient: profile.borderGradient || "",
-            saldo: saldo,
-            joinedAt: serverTimestamp(),
-            lastSeen: serverTimestamp()
-          }, { merge: true });
-        });
-
-        mySeatIndex = idx;
-        sessionStorage.setItem("mySeatIndex:" + roomId, String(idx));
-      } catch (e) {
-        alert(e.message || "Gagal duduk.");
-      }
-    }
-
-    async function toggleMic(idx) {
-      try {
-        await runTransaction(db, async (tx) => {
-          const ref = seatRef(idx);
-          const snap = await tx.get(ref);
-          if (!snap.exists()) throw new Error("Kursi belum ada data.");
-          const d = snap.data();
-          if (d.uid !== me?.uid) throw new Error("Bukan kursi Anda.");
-          tx.update(ref, { micOn: !d.micOn, lastSeen: serverTimestamp() });
-        });
-      } catch (e) {
-        alert(e.message || "Gagal toggle mic.");
-      }
-    }
-
-    async function leaveSeat(idx) {
-      try {
-        await runTransaction(db, async (tx) => {
-          const ref = seatRef(idx);
-          const snap = await tx.get(ref);
-          if (!snap.exists()) return;
-          const d = snap.data();
-          // hanya tab pemilik kursi yang boleh melepas
-          if (d.uid === me?.uid && d.sessionKey === SESSION_KEY) {
-            tx.delete(ref);
-          }
-        });
-      } catch (e) {
-        // diamkan
-      } finally {
-        if (mySeatIndex === idx) {
-          mySeatIndex = null;
-          sessionStorage.removeItem("mySeatIndex:" + roomId);
-        }
-      }
-    }
-
-    // best-effort auto-lepas kursi saat tab tertutup/refresh
-    function setupAutoRelease() {
-      const release = async () => {
-        if (mySeatIndex != null) {
-          try {
-            const ref = seatRef(mySeatIndex);
-            const snap = await getDoc(ref);
-            const d = snap.exists() ? snap.data() : null;
-            if (d && d.uid === me?.uid && d.sessionKey === SESSION_KEY) {
-              await deleteDoc(ref);
-            }
-          } catch {}
-        }
+      // kirim kandidat ICE ke field sisi masing-masing
+      pc.onicecandidate = async (e)=>{
+        if (!e.candidate) return;
+        const field = isA ? "aCandidates" : "bCandidates";
+        try{
+          await setDoc(docRef, {[field]: arrayUnion(e.candidate.toJSON())},{merge:true});
+        }catch{}
       };
-      window.addEventListener("pagehide", release);
-      window.addEventListener("beforeunload", release);
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") {
-          // update lastSeen saja untuk jaga-jaga
-          if (mySeatIndex != null) updateDoc(seatRef(mySeatIndex), { lastSeen: serverTimestamp() }).catch(()=>{});
+
+      // terima stream lawan
+      pc.ontrack = (ev)=>{
+        const audio = ensureAudioEl(otherUid);
+        if (!audio.srcObject) audio.srcObject = ev.streams[0];
+      };
+
+      // tambahkan track mic-ku
+      localStream.getTracks().forEach(t=>pc.addTrack(t, localStream));
+
+      // signaling
+      const unsub = onSnapshot(docRef, async (snap)=>{
+        const data = snap.data() || {};
+
+        // kalau aku sisi B, tunggu aOffer
+        if (!isA && data.aOffer && !pc.currentRemoteDescription){
+          await pc.setRemoteDescription(new RTCSessionDescription(data.aOffer));
+          const ans = await pc.createAnswer();
+          await pc.setLocalDescription(ans);
+          await setDoc(docRef, { bAnswer: ans, aUid: otherUid, bUid: me.uid }, {merge:true});
+        }
+
+        // kalau aku sisi A, tunggu bAnswer
+        if (isA && data.bAnswer && !pc.currentRemoteDescription){
+          await pc.setRemoteDescription(new RTCSessionDescription(data.bAnswer));
+        }
+
+        // kandidat dari lawan
+        const otherField = isA ? "bCandidates" : "aCandidates";
+        const list = data[otherField] || [];
+        const seenKey = pKey + (isA ? "_b":"_a");
+        if (!handledCand.has(seenKey)) handledCand.set(seenKey, new Set());
+        const seen = handledCand.get(seenKey);
+        for (const c of list){
+          const sig = JSON.stringify(c);
+          if (seen.has(sig)) continue;
+          seen.add(sig);
+          try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {}
         }
       });
+
+      // buat offer bila aku sisi A
+      if (isA){
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await setDoc(docRef, {
+          aUid: me.uid, bUid: otherUid, aOffer: offer,
+          aCandidates: arrayUnion(), bCandidates: arrayUnion(),
+          updatedAt: serverTimestamp()
+        }, {merge:true});
+      }
+      // simpan untuk dibersihkan bila perlu
+      pc._unsub = unsub;
     }
 
-    // ----------------- Event Delegation -----------------
-    seatsGrid.addEventListener("click", (e) => {
-      const btn = e.target.closest("button");
-      if (!btn) return;
-      const idx = Number(btn.dataset.idx);
-      if (btn.classList.contains("btn-sit")) sitDown(idx);
-      if (btn.classList.contains("btn-leave")) leaveSeat(idx);
-      if (btn.classList.contains("btn-mic")) toggleMic(idx);
-    });
+    /* --------- Event tombol di setiap seat --------- */
+    grid.addEventListener("click", async (e)=>{
+      const card = e.target.closest(".seat");
+      if (!card) return;
+      const seatNo = Number(card.dataset.seat);
 
-    leaveMySeatBtn.addEventListener("click", () => {
-      if (mySeatIndex == null) return alert("Anda belum duduk.");
-      leaveSeat(mySeatIndex);
-    });
-
-    logoutBtn.addEventListener("click", async () => {
-      try {
-        // lepas kursi dulu kalau ada
-        if (mySeatIndex != null) await leaveSeat(mySeatIndex);
-      } finally {
-        await signOut(auth);
-        location.href = "index.html";
+      if (e.target.classList.contains("sit")){
+        await takeSeat(seatNo);
+      }
+      if (e.target.classList.contains("leave")){
+        await leaveSeat();
+      }
+      if (e.target.classList.contains("mic-on")){
+        const btn = e.target;
+        const isOn = btn.textContent.includes("Matikan");
+        await micToggle(!isOn);
       }
     });
 
-    // ----------------- Auth & Live Seats -----------------
-    function startListeningSeats() {
-      // buat grid seat
-      seatsGrid.innerHTML = "";
-      for (let i = 0; i < NUM_SEATS; i++) seatsGrid.appendChild(makeSeatCard(i));
-
-      // pasang listener per kursi
-      unsubscribers.forEach(u => u());
-      unsubscribers = [];
-      for (let i = 0; i < NUM_SEATS; i++) {
-        const un = onSnapshot(seatRef(i), (snap) => {
-          renderSeat(i, snap.exists() ? snap.data() : null);
-        });
-        unsubscribers.push(un);
+    /* --------- Live sync kursi --------- */
+    onSnapshot(seatsCol, (snap)=>{
+      const bySeat = {};
+      snap.forEach(d=> bySeat[d.id] = d.data());
+      for (let i=1;i<=9;i++){
+        const data = bySeat[i];
+        setSeatUI(i, data, data?.uid === me?.uid);
       }
 
-      // restore kursi saya jika reload
-      const saved = sessionStorage.getItem("mySeatIndex:" + roomId);
-      mySeatIndex = saved != null ? Number(saved) : null;
-    }
+      // Jika mic-ku ON, koneksikan ke pemain baru yang muncul
+      if (localStream){
+        for (const id in bySeat){
+          const u = bySeat[id]?.uid;
+          if (u && u !== me?.uid) connectToPeer(u);
+        }
+      }
 
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        location.href = "index.html";
+      // Tutup koneksi ke pemain yang sudah tidak ada
+      for (const [key, pc] of pcs){
+        const [a,b] = key.split("_");
+        const other = (a===me?.uid)? b : a;
+        const stillThere = Object.values(bySeat).some(s=> s?.uid === other && s?.mic);
+        if (!stillThere){
+          try { pc._unsub?.(); pc.close(); } catch {}
+          pcs.delete(key);
+          const el = audioEls.get(other);
+          if (el){ try{ el.remove(); }catch{} audioEls.delete(other); }
+        }
+      }
+    });
+
+    /* --------- Auth --------- */
+    onAuthStateChanged(auth, async (user)=>{
+      if (!user){
+        await signInAnonymously(auth);
         return;
       }
+      // kasih default displayName biar enak dilihat
+      if (!user.displayName){
+        const short = "GM";
+        try{ await updateProfile(user, {displayName: short}); }catch{}
+      }
       me = user;
-      startListeningSeats();
-      setupAutoRelease();
+      meBadge.textContent = `UID: ${user.uid.slice(0,6)}…`;
     });
   </script>
 </body>
