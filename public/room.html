@@ -57,9 +57,9 @@
     const TOTAL_SEATS = 9;
     let me = { uid:null, name:null };
     let currentRoomId = null;
-    let mySeat = null; // 1..9 or null
+    let mySeat = null; // source of truth = participants/{uid}.seat
 
-    function getQuery(key){ return new URL(location.href).searchParams.get(key); }
+    function getQuery(key){ return new URL(location.href).searchParams.get(key); }(key){ return new URL(location.href).searchParams.get(key); }
 
     async function ensureRoomExists(roomId){
       const ref = doc(db, "rooms", roomId);
@@ -112,19 +112,29 @@
       seat.addEventListener("click", async ()=>{
         if(!currentRoomId || !me.uid){ alert('Memuat... coba lagi'); return; }
         const seatRef = doc(db,'rooms',currentRoomId,'seats','seat'+i);
+        const partRef = doc(db,'rooms',currentRoomId,'participants',me.uid);
         try{
           await runTransaction(db, async (tx)=>{
-            const sSnap = await tx.get(seatRef);
-            const cur = sSnap.exists()? sSnap.data() : null;
-            // kalau kursi ditempati orang lain → tolak
-            if(cur && cur.occupiedBy && cur.occupiedBy !== me.uid){ throw new Error('Kursi sudah ditempati'); }
-            if(mySeat === i){
+            const seatSnap = await tx.get(seatRef);
+            const partSnap = await tx.get(partRef);
+            const curSeat = partSnap.exists()? (partSnap.data().seat || null) : null;
+            const takenBy = seatSnap.exists()? (seatSnap.data().occupiedBy || null) : null;
+
+            if(takenBy && takenBy !== me.uid){ throw new Error('Kursi sudah ditempati'); }
+
+            if(curSeat === i){
               // toggle: berdiri dari kursi ini
               tx.delete(seatRef);
+              tx.set(partRef, { uid: me.uid, name: me.name, seat: null, ts: serverTimestamp() }, { merge:true });
             } else {
-              // kalau sebelumnya sudah duduk di kursi lain → hapus dulu
-              if(mySeat){ const prevRef = doc(db,'rooms',currentRoomId,'seats','seat'+mySeat); tx.delete(prevRef); }
+              // kosongkan kursi lama jika ada
+              if(curSeat){ const prevRef = doc(db,'rooms',currentRoomId,'seats','seat'+curSeat); tx.delete(prevRef); }
+              // duduk di kursi baru
               tx.set(seatRef, { occupiedBy: me.uid, ts: serverTimestamp() });
+              tx.set(partRef, { uid: me.uid, name: me.name, seat: i, ts: serverTimestamp() }, { merge:true });
+            }
+          });
+        }catch(err){ showError(err.message); }
             }
           });
         }catch(err){ showError(err.message); }
@@ -150,18 +160,18 @@
       const seatsRef = collection(db,'rooms',currentRoomId,'seats');
       onSnapshot(seatsRef,(snap)=>{
         const all={};
-        mySeat = null; // hitung ulang kursi saya dari snapshot
-        snap.forEach(d=>{
-          const val = d.data();
-          all[d.id] = val;
-          if(val?.occupiedBy === me.uid){
-            const n = parseInt(d.id.replace('seat',''),10);
-            if(!Number.isNaN(n)) mySeat = n;
-          }
-        });
+        snap.forEach(d=>{ all[d.id]=d.data(); });
         renderSeats(all);
-        showStatus(mySeat? ('Duduk di kursi '+mySeat) : 'Belum duduk');
       },(err)=>{ showError(err.message); });
+    }
+
+    function listenMyParticipant(){
+      const pref = doc(db,'rooms',currentRoomId,'participants',me.uid);
+      onSnapshot(pref,(snap)=>{
+        const d = snap.data();
+        mySeat = d?.seat ?? null;
+        showStatus(mySeat? ('Duduk di kursi '+mySeat) : 'Belum duduk');
+      });
     }
 
     // ===== Auth + Room bootstrap =====
@@ -191,6 +201,7 @@
 
         renderSeats();
         listenSeats();
+        listenMyParticipant();
         showStatus('Siap. Klik kursi untuk duduk/pindah. Klik kursi sendiri untuk berdiri.');
       }catch(err){ showError(err.message); }
     });
