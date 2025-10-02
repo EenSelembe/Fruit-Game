@@ -46,6 +46,14 @@
     let me = { uid:null, name:null };
     let currentRoomId = "demo-room"; // contoh room id tetap
 
+    async function ensureRoomExists(roomId){
+      const ref = doc(db, "rooms", roomId);
+      const snap = await getDoc(ref);
+      if(!snap.exists()){
+        await setDoc(ref, { createdAt: serverTimestamp() });
+      }
+    }
+
     function nicknameHTML(data){
       let bg = data.bgColor || 'transparent';
       let extraAnim = '';
@@ -123,6 +131,8 @@
       me.uid = user.uid;
       const prof = await fetchUserProfile(me.uid);
       me.name = prof.name;
+      // pastikan room ada
+      await ensureRoomExists(currentRoomId);
       // gambar kursi default dulu
       renderSeats();
       // lalu dengarkan update realtime
