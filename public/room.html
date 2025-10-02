@@ -5,24 +5,33 @@
   <title>Room – Voice Chat</title>
   <style>
     body {margin:0; font-family:Arial, sans-serif; background:#0a0e1a; color:#fff;}
-    .seats {display:grid; grid-template-columns:repeat(3,1fr); gap:20px; justify-items:center; padding:20px;}
-    .seat {width:120px; height:150px; text-align:center; cursor:pointer;}
-    .avatar {width:100px; height:100px; border-radius:50%; background:#222; margin:auto; position:relative; border:2px dashed #555; display:flex; align-items:center; justify-content:center;}
-    .avatar .mic {position:absolute; right:5px; bottom:5px; font-size:14px; background:#000; padding:2px 5px; border-radius:6px;}
-    .avatar .host {position:absolute; left:5px; top:5px; font-size:12px; background:#333; padding:2px 6px; border-radius:6px;}
-    .name {margin-top:6px; font-weight:bold;}
-    .empty .avatar {opacity:0.6;}
-    .nickname{display:inline-block; border-radius:6px; padding:2px 6px}
-    @keyframes neonAnim {
-      0% { background-position:0% 50%; }
-      50% { background-position:100% 50%; }
-      100% { background-position:0% 50%; }
-    }
+    h2 {text-align:center; margin:16px 0 6px}
+    .info {text-align:center; font-size:14px; color:#9ab0d6}
+    .info code {background:#081132; border:1px dashed #3552a0; padding:2px 6px; border-radius:6px; color:#cfe3ff}
+    .info button {margin-left:8px; border:1px solid #2a3562; background:#0c1332; color:#e9f1ff; padding:6px 10px; border-radius:8px; cursor:pointer}.seats {display:grid; grid-template-columns:repeat(3,1fr); gap:20px; justify-items:center; padding:20px;}
+.seat {width:120px; height:150px; text-align:center; cursor:pointer;}
+.avatar {width:100px; height:100px; border-radius:50%; background:#222; margin:auto; position:relative; border:2px dashed #555; display:flex; align-items:center; justify-content:center;}
+.avatar .mic {position:absolute; right:5px; bottom:5px; font-size:14px; background:#000; padding:2px 5px; border-radius:6px;}
+.avatar .host {position:absolute; left:5px; top:5px; font-size:12px; background:#333; padding:2px 6px; border-radius:6px;}
+.name {margin-top:6px; font-weight:bold;}
+.empty .avatar {opacity:0.6;}
+.nickname{display:inline-block; border-radius:6px; padding:2px 6px}
+@keyframes neonAnim {0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+  </style>
+  <style>
+    /* simple error banner */
+    #errBanner{display:none;position:fixed;left:0;right:0;bottom:0;background:#2b0b13;color:#ffd6de;padding:10px 14px;border-top:1px solid #5a1d2e;font-size:14px;z-index:9999}
   </style>
 </head>
 <body>
-  <h2 style="text-align:center;">Voice Room</h2>
+  <h2>Voice Room</h2>
+  <div class="info">Room ID: <code id="roomId">—</code><button id="copyBtn">Copy Link</button></div>
+  <div id="status" class="info" style="margin-top:6px"></div>
   <div class="seats" id="seats"></div>  <script type="module">
+    function showStatus(msg){ const el = document.getElementById('status'); if(el) el.textContent = msg; }
+    function showError(msg){ const el = document.getElementById('errBanner'); if(!el) return; el.textContent = 'Error: ' + msg; el.style.display='block'; }
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
@@ -42,32 +51,37 @@
     const db = getFirestore(app);
 
     const seatsEl = document.getElementById("seats");
+    const roomIdEl = document.getElementById("roomId");
+    const copyBtn = document.getElementById("copyBtn");
+
     const TOTAL_SEATS = 9;
     let me = { uid:null, name:null };
-    let currentRoomId = "demo-room"; // contoh room id tetap
+    let currentRoomId = null;
+
+    function getQuery(key){ return new URL(location.href).searchParams.get(key); }
 
     async function ensureRoomExists(roomId){
       const ref = doc(db, "rooms", roomId);
       const snap = await getDoc(ref);
       if(!snap.exists()){
-        await setDoc(ref, { createdAt: serverTimestamp() });
+        await setDoc(ref, { createdAt: serverTimestamp() }, { merge:true });
       }
+      return ref;
     }
 
     function nicknameHTML(data){
-      let bg = data.bgColor || 'transparent';
+      let bg = data?.bgColor || 'transparent';
       let extraAnim = '';
-      if(data.bgGradient){ bg = data.bgGradient; extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;'; }
-      let border = `1px solid ${data.borderColor || '#000'}`;
+      if(data?.bgGradient){ bg = data.bgGradient; extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;'; }
+      let border = `1px solid ${data?.borderColor || '#000'}`;
       let extraBorder = '';
-      if(data.borderGradient){
-        const baseBg = data.bgColor || 'transparent';
+      if(data?.borderGradient){
+        const baseBg = data?.bgColor || 'transparent';
         border = '3px solid transparent';
-        extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient};
-                       background-origin: border-box; background-clip: padding-box, border-box;`;
+        extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient}; background-origin: border-box; background-clip: padding-box, border-box;`;
       }
-      const style = `color:${data.color || '#fff'}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;
-      const display = data.name || data.username || 'Anonim';
+      const style = `color:${data?.color || '#fff'}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;
+      const display = data?.name || data?.username || 'Anonim';
       return `<span class="nickname" style="${style}">${display}</span>`;
     }
 
@@ -95,10 +109,13 @@
         <div class="name">Kursi ${i}</div>
       `;
       seat.addEventListener("click", async ()=>{
-        await setDoc(doc(db,'rooms',currentRoomId,'seats','seat'+i), {
-          occupiedBy: me.uid,
-          ts: serverTimestamp()
-        });
+        if(!currentRoomId || !me.uid){ alert('Memuat... coba lagi'); return; }
+        try{
+          await setDoc(doc(db,'rooms',currentRoomId,'seats','seat'+i), {
+            occupiedBy: me.uid,
+            ts: serverTimestamp()
+          });
+        }catch(err){ showError(err.message); }
       });
       return seat;
     }
@@ -110,8 +127,8 @@
         const el = seatTemplate(i);
         if(data && data.occupiedBy){
           el.classList.remove('empty');
-          const prof = await fetchUserProfile(data.occupiedBy);
-          el.querySelector('.name').innerHTML = nicknameHTML(prof);
+          try{ const prof = await fetchUserProfile(data.occupiedBy); el.querySelector('.name').innerHTML = nicknameHTML(prof); el.querySelector('.avatar').style.borderStyle='solid'; }
+          catch(err){ /* ignore styling errors */ }
         }
         seatsEl.appendChild(el);
       }
@@ -120,23 +137,45 @@
     function listenSeats(){
       const seatsRef = collection(db,'rooms',currentRoomId,'seats');
       onSnapshot(seatsRef,(snap)=>{
-        const all={};
-        snap.forEach(d=> all[d.id]=d.data());
+        const all={}; snap.forEach(d=> all[d.id]=d.data());
         renderSeats(all);
-      });
+      },(err)=>{ showError(err.message); });
     }
 
+    // ===== Auth + Room bootstrap =====
     onAuthStateChanged(auth, async (user)=>{
-      if(!user){ await signInAnonymously(auth); return; }
-      me.uid = user.uid;
-      const prof = await fetchUserProfile(me.uid);
-      me.name = prof.name;
-      // pastikan room ada
-      await ensureRoomExists(currentRoomId);
-      // gambar kursi default dulu
-      renderSeats();
-      // lalu dengarkan update realtime
-      listenSeats();
+      try{
+        if(!user){
+          showStatus('Menyambungkan akun...');
+          try{ await signInAnonymously(auth); return; }
+          catch(e){ showError('Login anonymous gagal. Aktifkan Anonymous di Firebase Auth, atau login di home.html. ('+ (e.code||e.message) +')'); return; }
+        }
+        me.uid = user.uid; showStatus('Akun: '+me.uid.slice(0,6)+'…');
+        const prof = await fetchUserProfile(me.uid); me.name = prof.name;
+
+        const rid = getQuery('id');
+        if(rid){ currentRoomId = rid; await ensureRoomExists(currentRoomId); }
+        else {
+          const ref = doc(collection(db,'rooms')); currentRoomId = ref.id;
+          await setDoc(ref, { createdAt: serverTimestamp(), host: me.uid, hostName: me.name });
+          await setDoc(doc(db,'rooms',currentRoomId,'seats','seat5'), { occupiedBy: me.uid, ts: serverTimestamp() });
+        }
+
+        roomIdEl.textContent = currentRoomId;
+        copyBtn.onclick = async ()=>{
+          const url = location.origin + location.pathname + '?id=' + currentRoomId;
+          try{ await navigator.clipboard.writeText(url); copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent='Copy Link',1200);}catch(_){ alert(url); }
+        };
+
+        renderSeats();
+        listenSeats();
+        showStatus('Siap. Klik kursi untuk duduk.');
+      }catch(err){ showError(err.message); }
     });
-  </script></body>
+
+    // Global JS error catcher
+    window.addEventListener('error', (e)=> showError(e.error?.message || e.message));
+    window.addEventListener('unhandledrejection', (e)=> showError(e.reason?.message || String(e.reason)) );
+  </script>  <div id="errBanner"></div>
+</body>
 </html>
