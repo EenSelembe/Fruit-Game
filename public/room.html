@@ -57,9 +57,9 @@
     const TOTAL_SEATS = 9;
     let me = { uid:null, name:null };
     let currentRoomId = null;
-    let mySeat = null; // source of truth = participants/{uid}.seat
+    let mySeat = null; // ambil dari participants/{uid}.seat
 
-    function getQuery(key){ return new URL(location.href).searchParams.get(key); }(key){ return new URL(location.href).searchParams.get(key); }
+    function getQuery(key){ return new URL(location.href).searchParams.get(key); }
 
     async function ensureRoomExists(roomId){
       const ref = doc(db, "rooms", roomId);
@@ -132,9 +132,6 @@
               // duduk di kursi baru
               tx.set(seatRef, { occupiedBy: me.uid, ts: serverTimestamp() });
               tx.set(partRef, { uid: me.uid, name: me.name, seat: i, ts: serverTimestamp() }, { merge:true });
-            }
-          });
-        }catch(err){ showError(err.message); }
             }
           });
         }catch(err){ showError(err.message); }
