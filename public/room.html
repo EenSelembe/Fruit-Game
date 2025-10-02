@@ -20,22 +20,29 @@
 
 #errBanner{display:none;position:fixed;left:0;right:0;bottom:0;background:#2b0b13;color:#ffd6de;padding:10px 14px;border-top:1px solid #5a1d2e;font-size:14px;z-index:9999}
 
+.controls{display:flex;gap:10px;justify-content:center;margin:-6px 0 10px}
+.btn{border:1px solid #2a3562;background:#0c1332;color:#e9f1ff;padding:8px 12px;border-radius:10px;cursor:pointer}
+.btn.on{border-color:#34d399}
+
   </style>
 </head>
 <body>
   <h2>Voice Room</h2>
   <div class="info">Room ID: <code id="roomId">—</code><button id="copyBtn">Copy Link</button></div>
   <div id="status" class="info" style="margin-top:6px"></div>
+  <div class="controls">
+    <button id="micBtn" class="btn">🎙️ Mic OFF</button>
+  </div>
   <div class="seats" id="seats"></div>
   <div id="errBanner"></div>  <script type="module">
     // ==== Helpers UI ====
     function showStatus(msg){ const el = document.getElementById('status'); if(el) el.textContent = msg; }
-    function showError(msg){ const el = document.getElementById('errBanner'); if(!el) return; el.textContent = 'Error: ' + msg; el.style.display='block'; }
+    function showError(msg){ const el = document.getElementById('errBanner'); if(!el) return; el.textContent = 'Error: ' + msg; el.style.display='block'; console.error(msg); }
 
     // ==== Firebase ====
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp, runTransaction, collection } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp, runTransaction, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -55,12 +62,22 @@
     const seatsEl = document.getElementById("seats");
     const roomIdEl = document.getElementById("roomId");
     const copyBtn = document.getElementById("copyBtn");
+    const micBtn = document.getElementById("micBtn");
 
     // ==== State ====
     const TOTAL_SEATS = 9;
     let me = { uid:null, name:null };
     let currentRoomId = null;
     let mySeat = null; // dibaca dari rooms/{id}.seating
+    let latestSeating = {};
+
+    // WebRTC
+    const rtcConfig = { iceServers: [ { urls:["stun:stun.l.google.com:19302","stun:global.stun.twilio.com:3478"] } ] };
+    const pcs = new Map(); // pairId -> RTCPeerConnection
+    const audioEls = new Map(); // pairId -> HTMLAudioElement
+    let localStream = null; let micOn = false;
+
+    function pairIdOf(a,b){ return [a,b].sort().join('_'); }
 
     function getQuery(key){ return new URL(location.href).searchParams.get(key); }
 
@@ -117,7 +134,7 @@
       return seat;
     }
 
-    // === Anti-double logic: semua pindah kursi diupdate di satu dokumen rooms/{id}.seating ===
+    // === Anti-double logic: pindah kursi via satu dokumen rooms/{id}.seating ===
     async function toggleSeat(i){
       if(!currentRoomId || !me.uid){ alert('Memuat... coba lagi'); return; }
       const roomRef = doc(db,'rooms',currentRoomId);
@@ -157,7 +174,7 @@
         const el = seatTemplate(i);
         if(uid){
           el.classList.remove('empty');
-          try{ const prof = await fetchUserProfile(uid); el.querySelector('.name').innerHTML = nicknameHTML(prof); el.querySelector('.avatar').style.borderStyle='solid'; }
+          try{ const prof = await fetchUserProfile(uid); el.querySelector('.name').innerHTML = nicknameHTML(prof); el.querySelector('.avatar').style.borderStyle='solid'; el.querySelector('.mic').textContent = (uid===me.uid && micOn)? '🎙️' : '🔇'; }
           catch(err){ /* ignore styling errors */ }
         }
         seatsEl.appendChild(el);
@@ -169,13 +186,96 @@
       onSnapshot(rref,(snap)=>{
         const d = snap.data() || {};
         const seating = d.seating || {};
+        latestSeating = seating;
         mySeat = null; for(let k=1;k<=TOTAL_SEATS;k++){ if(seating[String(k)]===me.uid){ mySeat=k; break; } }
         renderSeats(seating);
         showStatus(mySeat? ('Duduk di kursi '+mySeat) : 'Belum duduk');
+        rebuildMeshLinks();
       },(err)=> showError(err.message));
     }
 
-    // ===== Auth + Room bootstrap =====
+    // ===== WebRTC helpers =====
+    async function ensureMedia(){
+      if(localStream) return localStream;
+      try{
+        localStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+        // default OFF
+        localStream.getAudioTracks().forEach(t=> t.enabled = false);
+        return localStream;
+      }catch(e){ showError('Izin mic ditolak: '+(e.message||e.name)); throw e; }
+    }
+
+    function addRemoteAudio(pairId, stream){
+      let el = audioEls.get(pairId);
+      if(!el){ el = document.createElement('audio'); el.autoplay = true; el.controls = true; document.body.appendChild(el); audioEls.set(pairId, el); }
+      el.srcObject = stream; el.play().catch(()=>{});
+    }
+    function closePair(pairId){
+      const pc = pcs.get(pairId); if(pc){ try{pc.close();}catch(_){} pcs.delete(pairId); }
+      const el = audioEls.get(pairId); if(el){ el.remove(); audioEls.delete(pairId); }
+    }
+
+    async function ensureLocalTrack(){ await ensureMedia(); return localStream.getAudioTracks()[0]; }
+
+    function myRole(pairId){ const [a,b]=pairId.split('_'); return (me.uid===a)? 'A':'B'; }
+
+    async function ensureOffer(pairId){
+      if(pcs.has(pairId)) return;
+      const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
+      pc.ontrack = (ev)=> addRemoteAudio(pairId, ev.streams[0]);
+      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), JSON.parse(JSON.stringify(e.candidate))); } };
+      const track = await ensureLocalTrack(); pc.addTrack(track, localStream);
+      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+      await setDoc(doc(db,'rooms',currentRoomId,'mesh',pairId), { aUid: pairId.split('_')[0], bUid: pairId.split('_')[1], offer: JSON.parse(JSON.stringify(offer)), createdAt: serverTimestamp() }, { merge:true });
+      // wait for answer
+      onSnapshot(doc(db,'rooms',currentRoomId,'mesh',pairId), async (snap)=>{ const d=snap.data(); if(d?.answer && !pc.currentRemoteDescription){ await pc.setRemoteDescription(new RTCSessionDescription(d.answer)); } });
+      // read ICE from B
+      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); } }); });
+    }
+
+    async function ensureAnswer(pairId){
+      if(pcs.has(pairId)) return;
+      const docRef = doc(db,'rooms',currentRoomId,'mesh',pairId); const snap = await getDoc(docRef); const d = snap.data(); if(!d?.offer) return; // wait for offer
+      const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
+      pc.ontrack = (ev)=> addRemoteAudio(pairId, ev.streams[0]);
+      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), JSON.parse(JSON.stringify(e.candidate))); } };
+      await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
+      const track = await ensureLocalTrack(); pc.addTrack(track, localStream);
+      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+      await updateDoc(docRef, { answer: JSON.parse(JSON.stringify(answer)) });
+      // read ICE from A
+      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); } }); });
+    }
+
+    function listenMesh(){
+      const mref = collection(db,'rooms',currentRoomId,'mesh');
+      onSnapshot(mref, async (snap)=>{
+        for(const d of snap.docs){
+          const id = d.id; const x = d.data(); if(!x.aUid||!x.bUid) continue; if(x.aUid!==me.uid && x.bUid!==me.uid) continue;
+          const role = myRole(id);
+          if(role==='B' && x.offer && !pcs.has(id)) await ensureAnswer(id);
+          if(role==='A' && !pcs.has(id)) await ensureOffer(id);
+        }
+      });
+    }
+
+    async function rebuildMeshLinks(){
+      if(!mySeat){ // tidak perlu koneksi jika belum duduk
+        for(const id of Array.from(pcs.keys())) closePair(id);
+        return;
+      }
+      const others = new Set();
+      for(let k=1;k<=TOTAL_SEATS;k++){ const uid = latestSeating[String(k)]; if(uid && uid!==me.uid) others.add(uid); }
+      // buat pair doc untuk setiap peer yang diperlukan
+      for(const uid of others){ const pid = pairIdOf(me.uid, uid); await setDoc(doc(db,'rooms',currentRoomId,'mesh',pid), { aUid: pid.split('_')[0], bUid: pid.split('_')[1], createdAt: serverTimestamp() }, { merge:true }); }
+      // tutup koneksi yang tidak perlu
+      for(const pid of Array.from(pcs.keys())){
+        const [a,b] = pid.split('_'); const peer = (a===me.uid)? b : (b===me.uid? a : null);
+        if(peer && !others.has(peer)) closePair(pid);
+      }
+    }
+
+    // ===== Auth + bootstrap =====
     onAuthStateChanged(auth, async (user)=>{
       try{
         if(!user){
@@ -190,7 +290,6 @@
         if(rid){ currentRoomId = rid; await ensureRoomExists(currentRoomId); }
         else {
           const rref = doc(collection(db,'rooms')); currentRoomId = rref.id;
-          // host auto duduk di kursi 5 pada dokumen room (satu sumber kebenaran)
           await setDoc(rref, { createdAt: serverTimestamp(), host: me.uid, hostName: me.name, seating: { '5': me.uid } });
           await setDoc(doc(db,'rooms',currentRoomId,'participants',me.uid), { uid: me.uid, name: me.name, seat: 5, ts: serverTimestamp() }, { merge:true });
         }
@@ -203,8 +302,24 @@
 
         renderSeats({});
         listenRoomDoc();
+        listenMesh();
         showStatus('Siap. Klik kursi untuk duduk/pindah. Klik kursi sendiri untuk berdiri.');
       }catch(err){ showError(err.message); }
+    });
+
+    // ===== Mic control =====
+    micBtn.addEventListener('click', async ()=>{
+      try{
+        await ensureMedia();
+        micOn = !micOn;
+        localStream.getAudioTracks().forEach(t=> t.enabled = micOn);
+        micBtn.classList.toggle('on', micOn);
+        micBtn.textContent = micOn ? '🎙️ Mic ON' : '🎙️ Mic OFF';
+        renderSeats(latestSeating);
+        // beberapa browser butuh interaksi user sebelum bisa play audio
+        for(const el of audioEls.values()){ try{ await el.play(); }catch(_){} }
+        rebuildMeshLinks();
+      }catch(e){ showError(e.message||String(e)); }
     });
 
     window.addEventListener('error', (e)=> showError(e.error?.message || e.message));
