@@ -25,7 +25,7 @@
   <div class="seats" id="seats"></div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -87,7 +87,6 @@
         <div class="name">Kursi ${i}</div>
       `;
       seat.addEventListener("click", async ()=>{
-        // User duduk di kursi ini
         await setDoc(doc(db,'rooms',currentRoomId,'seats','seat'+i), {
           occupiedBy: me.uid,
           ts: serverTimestamp()
@@ -96,7 +95,7 @@
       return seat;
     }
 
-    async function renderSeats(map){
+    async function renderSeats(map={}){
       seatsEl.innerHTML = "";
       for(let i=1;i<=TOTAL_SEATS;i++){
         const data = map['seat'+i];
@@ -124,6 +123,9 @@
       me.uid = user.uid;
       const prof = await fetchUserProfile(me.uid);
       me.name = prof.name;
+      // gambar kursi default dulu
+      renderSeats();
+      // lalu dengarkan update realtime
       listenSeats();
     });
   </script></body>
