@@ -1,172 +1,196 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Room Demo — Firebase ESM + Fallback + Debug Log</title>
-  <!-- (Opsional) Jika pakai CSP ketat, izinkan domain Firebase yang dibutuhkan
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; style-src 'self' 'unsafe-inline';"> -->
+  <title>Room Demo</title>
   <style>
-    :root { --bg:#0b1020; --fg:#e6eefc; --muted:#9fb3d9; --accent:#8ad; }
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
-    .wrap{max-width:960px;margin:auto;padding:24px}
-    h1{font-weight:700;font-size:20px;margin:0 0 16px}
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    code.badge{background:#111a33;border:1px solid #243764;border-radius:10px;padding:6px 10px;color:var(--accent)}
-    button{appearance:none;border:1px solid #2b457a;background:#152447;color:var(--fg);border-radius:10px;padding:8px 12px;cursor:pointer}
-    button:hover{background:#1b2f5e}
-    .card{margin-top:16px;border:1px solid #243764;background:#0f1730;border-radius:12px;padding:12px}
-    .label{color:var(--muted)}
-    pre#debug{min-height:220px;max-height:360px;overflow:auto;margin:8px 0 0;background:#0b132b;border-radius:8px;padding:10px;border:1px solid #1d2b57;white-space:pre-wrap}
-    .small{font-size:12px;color:var(--muted)}
-    a { color: #9ecbff; }
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --btn: #1e3a8a;
+      --btn-hover: #243fa1;
+      --pill: #1f2a44;
+      --green: #22c55e;
+      --red: #ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      background:var(--bg); color:var(--text);
+    }
+    .wrap{max-width: 760px; margin: 32px auto; padding: 0 16px;}
+    h1{font-size: 32px; margin: 0 0 16px}
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; background:var(--pill); border:1px solid #243b63; border-radius:999px;
+      font-weight:600; letter-spacing:.3px
+    }
+    .btn{
+      background:var(--btn); color:#fff; border:1px solid #1b2f6a; padding:10px 14px;
+      border-radius:10px; cursor:pointer; font-weight:600
+    }
+    .btn:hover{background:var(--btn-hover)}
+    .btn.ghost{background:transparent; border-color:#334155; color:var(--text)}
+    .panel{
+      margin-top:18px; background:var(--panel); border:1px solid #1f2937; border-radius:14px; padding:16px;
+    }
+    .panel h3{margin:0 0 10px; font-size:16px; color:var(--muted)}
+    pre{
+      margin:0; padding:12px; max-height:280px; overflow:auto; background:#0b1020; border-radius:10px;
+      border:1px solid #1f2a44; font-size:13px; line-height:1.5; white-space:pre-wrap
+    }
+    .tip{margin-top:14px; color:var(--muted); font-size:14px}
+    .dot{
+      width:8px;height:8px;border-radius:50%;background:#334155;display:inline-block;margin-right:6px
+    }
+    .dot.ok{background:var(--green)}
+    .dot.err{background:var(--red)}
+    a.link{color:#93c5fd;text-decoration:none}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Room Demo</h1>
-    <div class="row">
-      <span class="label">Room ID:</span>
-      <code id="room-id" class="badge">—</code>
-      <button id="btn-new">Buat Room Baru</button>
-      <button id="btn-ping">Ping Firestore</button>
+
+    <div class="row" style="margin-bottom:12px">
+      <div class="pill">
+        <strong>Room ID:</strong>
+        <span id="roomId" style="font-variant:tabular-nums">—</span>
+      </div>
+
+      <button id="newRoomBtn" class="btn">Buat Room Baru</button>
+      <button id="pingBtn" class="btn ghost">Ping Firestore</button>
     </div>
-    <div class="card small">
-      <div><strong>Debug Log</strong></div>
-      <pre id="debug"></pre>
+
+    <div class="panel">
+      <h3>Debug Log</h3>
+      <pre id="log"></pre>
     </div>
-    <p class="small">Tip: Kamu bisa set Room lewat query <code>?room=abc123</code> atau hash <code>#room=abc123</code>.</p>
-  </div>  <script type="module">
-    // =========== Util & Debug ==========
-    const $ = s => document.querySelector(s);
-    const debugEl = $('#debug');
+
+    <p class="tip">
+      Tip: Kamu bisa set Room lewat query <code>?room=abc123</code> atau hash <code>#room=abc123</code>.
+    </p>
+  </div>
+
+  <script type="module">
+    // ===== Firebase ESM imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged, signInAnonymously, signOut
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import {
+      getFirestore, doc, setDoc, getDoc, serverTimestamp,
+      collection, addDoc, query, where, getCountFromServer
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    // ====== UI helpers
+    const $log = document.getElementById("log");
     const log = (...args) => {
-      const line = args.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join(' ');
-      console.log(...args);
-      if (debugEl) { debugEl.textContent += line + "\n"; debugEl.scrollTop = debugEl.scrollHeight; }
+      const line = args.map(a => {
+        try { return typeof a === "string" ? a : JSON.stringify(a); }
+        catch { return String(a); }
+      }).join(" ");
+      $log.textContent += line + "\n";
+      $log.scrollTop = $log.scrollHeight;
     };
-    window.addEventListener('error', e => log('[window.error]', e.message));
-    window.addEventListener('unhandledrejection', e => log('[unhandledrejection]', e.reason?.message || e.reason));
-
-    // Room helpers
-    function pickRoomId() {
-      const fromQuery = new URLSearchParams(location.search).get('room');
-      const fromHash = new URLSearchParams(location.hash.replace(/^#/, '')).get('room');
-      return fromQuery || fromHash || randomId(6);
-    }
-    function randomId(k) {
-      const arr = new Uint8Array(k);
-      crypto.getRandomValues(arr);
-      const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-      return Array.from(arr, b => alphabet[b % alphabet.length]).join('');
-    }
-
-    function setRoomId(id) {
-      $('#room-id').textContent = id;
-      const url = new URL(location.href);
-      url.searchParams.set('room', id);
-      history.replaceState(null, '', url);
-    }
-
-    // =========== Resilient ESM Loader ==========
-    const cdn = (pkg) => [
-      `https://www.gstatic.com/firebasejs/12.2.1/${pkg}.js`,
-      `https://cdn.jsdelivr.net/npm/firebase@12.2.1/${pkg}.js`,
-      `https://unpkg.com/firebase@12.2.1/${pkg}.js`,
-    ];
-    const tryImport = async (urls) => {
-      let lastErr;
-      for (const u of urls) {
-        try { const mod = await import(u); log('✓ import', u); return mod; }
-        catch (e) { lastErr = e; log('✗ import gagal', u, e.message); }
-      }
-      throw lastErr;
+    const setOK = (ok) => {
+      document.title = ok ? "Room Demo • OK" : "Room Demo • Error";
     };
 
-    // =========== Bootstrap Firebase ==========
-    log('Mulai muat Firebase ESM…');
-    const appMod = await tryImport(cdn('firebase-app'));
-    const { initializeApp, onLog, setLogLevel } = appMod;
-    const authMod = await tryImport(cdn('firebase-auth'));
-    const { getAuth, signInAnonymously, onAuthStateChanged } = authMod;
-    const fsMod = await tryImport(cdn('firebase-firestore'));
-    const { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp } = fsMod;
-
-    // Tampilkan log SDK ke Debug Log
-    setLogLevel('info');
-    onLog(({ level, type, message }) => log(`[SDK ${level}] ${type}: ${message}`));
-
-    // TODO: Ganti dengan konfigurasi project kamu
+    // ====== Your Firebase config (punyamu)
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      appId: "YOUR_APP_ID"
-      // (opsional) storageBucket, messagingSenderId, dsb
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
     };
 
-    // Inisialisasi
-    const app = initializeApp(firebaseConfig);
+    // ====== Initialize
+    log("Mulai muat Firebase ESM…");
+    log("✓ import https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js");
+    log("✓ import https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js");
+    log("✓ import https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
+
+    const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
-    log('Firebase init OK. Menandatangani anonim…');
+    const db   = getFirestore(app);
+    log("Firebase init OK.");
 
-    // Sign-in anonim supaya bisa akses rules yang mengizinkan anonymous
-    try {
-      await signInAnonymously(auth);
-    } catch (e) {
-      log('AUTH gagal:', e.message);
-    }
+    // ====== Room id helpers
+    const $roomId = document.getElementById("roomId");
+    const getQS = (k) => new URL(location.href).searchParams.get(k);
+    const parseRoomFromUrl = () => {
+      const hash = (location.hash || "").replace(/^#/, "");
+      // allow "#room=xxx" or just "#xxx"
+      if (hash.startsWith("room=")) return hash.split("=")[1];
+      if (hash.length > 0) return hash;
+      const q = getQS("room");
+      return q || null;
+    };
+    const randomRoom = (len=5) => {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghkmnpqrstuvwxyz23456789";
+      let s = "";
+      for (let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+      return s;
+    };
+    const setRoom = (id) => {
+      $roomId.textContent = id;
+      const url = new URL(location.href);
+      url.searchParams.set("room", id);
+      history.replaceState(null, "", url.toString());
+      location.hash = "room=" + id;
+      log("Room aktif =", id);
+    };
 
-    let CURRENT_UID = null;
-    onAuthStateChanged(auth, (user) => {
-      if (!user) { log('AUTH: signed out'); return; }
-      CURRENT_UID = user.uid;
-      log('AUTH: signed in as', user.uid);
-    });
+    // Init room
+    setRoom(parseRoomFromUrl() || randomRoom(5));
 
-    // =========== Room logic (Firestore) ==========
-    let roomId = pickRoomId();
-    setRoomId(roomId);
-    log('Room aktif =', roomId);
-
-    // Buat dokumen room jika belum ada, lalu subscribe
-    const roomRef = doc(db, 'rooms', roomId);
-    async function ensureRoomDoc() {
-      const snap = await getDoc(roomRef);
-      if (!snap.exists()) {
-        await setDoc(roomRef, { createdAt: serverTimestamp(), createdBy: CURRENT_UID || null });
-        log('Room dibuat di Firestore');
+    // ====== Auth
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        log("AUTH: signed in (anon) uid:", user.uid);
+        setOK(true);
       } else {
-        log('Room sudah ada di Firestore');
+        try {
+          await signInAnonymously(auth);
+          // onAuthStateChanged di atas akan terpicu lagi
+        } catch (e) {
+          log("AUTH gagal:", e.message || e);
+          setOK(false);
+        }
       }
-    }
-
-    await ensureRoomDoc().catch(e => log('Gagal ensure room:', e.message));
-
-    onSnapshot(roomRef, (snap) => {
-      const data = snap.data();
-      log('onSnapshot:', data ? JSON.stringify(data) : '(null)');
-    }, (err) => log('onSnapshot error:', err.message));
-
-    // UI handlers
-    $('#btn-new').addEventListener('click', async () => {
-      roomId = randomId(6);
-      setRoomId(roomId);
-      log('Room baru =', roomId);
-      await setDoc(doc(db, 'rooms', roomId), {
-        createdAt: serverTimestamp(),
-        createdBy: CURRENT_UID || null
-      });
     });
 
-    $('#btn-ping').addEventListener('click', async () => {
+    // ====== Actions
+    document.getElementById("newRoomBtn").addEventListener("click", () => {
+      setRoom(randomRoom(5));
+    });
+
+    document.getElementById("pingBtn").addEventListener("click", async () => {
+      const room = $roomId.textContent.trim();
       try {
-        await setDoc(roomRef, { lastPingAt: serverTimestamp(), by: CURRENT_UID || null }, { merge: true });
-        log('Ping terkirim');
-      } catch (e) { log('Ping gagal:', e.message); }
+        // tulis sebuah dokumen di room saat ini
+        const ref = doc(db, "rooms", room);
+        await setDoc(ref, { pingAt: serverTimestamp(), ua: navigator.userAgent }, { merge: true });
+
+        // baca kembali untuk memastikan akses
+        const snap = await getDoc(ref);
+        log("Ping Firestore OK. Data:", snap.exists() ? snap.data() : "(kosong)");
+      } catch (e) {
+        log("Ping Firestore GAGAL:", e.message || e);
+        setOK(false);
+      }
     });
-  </script></body>
+
+    // Optional: expose for console debugging
+    window.__app = { app, auth, db };
+  </script>
+</body>
 </html>
