@@ -1,196 +1,620 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Room Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voice Room - 9 Seats (WebRTC)</title>
   <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --muted: #94a3b8;
-      --text: #e5e7eb;
-      --btn: #1e3a8a;
-      --btn-hover: #243fa1;
-      --pill: #1f2a44;
-      --green: #22c55e;
-      --red: #ef4444;
+    :root{
+      --bg:#0b1120; --card:#111827; --muted:#6b7280; --text:#e5e7eb;
+      --accent:#10b981; --danger:#ef4444; --ring:#22d3ee;
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0; font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
-      background:var(--bg); color:var(--text);
+      margin:0; background:radial-gradient(1200px 800px at 20% -10%,#111827 0,#0b1120 55%,#050814 100%);
+      color:var(--text); font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      display:flex; flex-direction:column; gap:16px;
     }
-    .wrap{max-width: 760px; margin: 32px auto; padding: 0 16px;}
-    h1{font-size: 32px; margin: 0 0 16px}
-    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:14px 16px; backdrop-filter:saturate(140%) blur(8px);
+      background:rgba(17,24,39,.6); border-bottom:1px solid rgba(255,255,255,.06);
+      position:sticky; top:0; z-index:5;
+    }
+    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
     .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 12px; background:var(--pill); border:1px solid #243b63; border-radius:999px;
-      font-weight:600; letter-spacing:.3px
+      padding:6px 10px; border:1px solid rgba(255,255,255,.08); border-radius:9999px; font-size:13px;
+      background:rgba(255,255,255,.04);
     }
     .btn{
-      background:var(--btn); color:#fff; border:1px solid #1b2f6a; padding:10px 14px;
-      border-radius:10px; cursor:pointer; font-weight:600
+      padding:9px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.08); cursor:pointer;
+      background:#0f172a; color:var(--text); font-weight:600;
     }
-    .btn:hover{background:var(--btn-hover)}
-    .btn.ghost{background:transparent; border-color:#334155; color:var(--text)}
-    .panel{
-      margin-top:18px; background:var(--panel); border:1px solid #1f2937; border-radius:14px; padding:16px;
+    .btn:hover{background:#111827}
+    .btn.danger{border-color:rgba(239,68,68,.25); background:rgba(239,68,68,.12); color:#fecaca}
+    .grid{
+      width:min(980px, 96vw); margin:10px auto 28px; display:grid; gap:18px;
+      grid-template-columns:repeat(3,1fr);
     }
-    .panel h3{margin:0 0 10px; font-size:16px; color:var(--muted)}
-    pre{
-      margin:0; padding:12px; max-height:280px; overflow:auto; background:#0b1020; border-radius:10px;
-      border:1px solid #1f2a44; font-size:13px; line-height:1.5; white-space:pre-wrap
+    .seat{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:14px; text-align:center;
+      position:relative; min-height:206px; display:flex; flex-direction:column; justify-content:center; align-items:center;
+      transition:transform .15s ease, border-color .2s ease, box-shadow .2s ease;
     }
-    .tip{margin-top:14px; color:var(--muted); font-size:14px}
-    .dot{
-      width:8px;height:8px;border-radius:50%;background:#334155;display:inline-block;margin-right:6px
+    .seat:hover{transform:translateY(-2px); border-color:rgba(255,255,255,.16); box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .seat.host{outline:2px dashed rgba(34,211,238,.22); outline-offset:6px}
+    .avatar-wrap{position:relative; width:92px; height:92px; border-radius:50%; display:grid; place-items:center;}
+    .ring{
+      position:absolute; inset:-6px; border-radius:50%;
+      border:3px solid transparent;
+      background:
+        linear-gradient(#0b1120,#0b1120) padding-box,
+        conic-gradient(from 0deg, rgba(34,211,238,.0), rgba(34,211,238,.45), rgba(34,211,238,.0)) border-box;
+      filter:drop-shadow(0 0 10px rgba(34,211,238,.25));
+      opacity:.9; transition:opacity .2s ease, transform .2s ease;
     }
-    .dot.ok{background:var(--green)}
-    .dot.err{background:var(--red)}
-    a.link{color:#93c5fd;text-decoration:none}
+    .ring.speaking{animation:wave 1.2s ease-in-out infinite}
+    @keyframes wave{0%,100%{transform:scale(1)} 50%{transform:scale(1.06)}}
+    .avatar{
+      width:86px; height:86px; border-radius:50%; background:#222; background-size:cover; background-position:center;
+      display:grid; place-items:center; font-weight:700; font-size:28px; color:#cbd5e1; border:1px solid rgba(255,255,255,.08);
+    }
+    .name{margin-top:10px; font-size:14px; line-height:1.2; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .badge{font-size:11px; color:var(--muted); margin-top:2px}
+    .seat .controls{position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:8px;}
+    .icon-btn{
+      width:36px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.04); display:grid; place-items:center; cursor:pointer; font-size:16px;
+    }
+    .icon-btn:hover{background:rgba(255,255,255,.08)}
+    .icon-btn.muted{background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.36)}
+    .slot-label{
+      position:absolute; top:8px; left:8px; font-size:11px; color:#94a3b8; background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.06); border-radius:999px; padding:3px 8px;
+    }
+    .tiny{font-size:12px; color:#9ca3af}
+    footer{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px; color:#9ca3af}
+    .kick{position:absolute; top:8px; right:8px; font-size:11px; cursor:pointer; opacity:.85; display:none}
+    .seat[data-has="1"] .kick.host-can{display:block}
+    .seat.owned .kick, .seat.host .kick{display:none}
+    .toast{
+      position:fixed; left:50%; transform:translateX(-50%); bottom:16px; background:#0f172a; color:#e5e7eb;
+      padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); box-shadow:0 10px 30px rgba(0,0,0,.4);
+      font-size:14px; display:none; z-index:50;
+    }
+    audio{display:none}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Room Demo</h1>
-
-    <div class="row" style="margin-bottom:12px">
-      <div class="pill">
-        <strong>Room ID:</strong>
-        <span id="roomId" style="font-variant:tabular-nums">—</span>
-      </div>
-
-      <button id="newRoomBtn" class="btn">Buat Room Baru</button>
-      <button id="pingBtn" class="btn ghost">Ping Firestore</button>
-    </div>
-
-    <div class="panel">
-      <h3>Debug Log</h3>
-      <pre id="log"></pre>
-    </div>
-
-    <p class="tip">
-      Tip: Kamu bisa set Room lewat query <code>?room=abc123</code> atau hash <code>#room=abc123</code>.
-    </p>
+<header>
+  <div class="row">
+    <div class="pill" id="roomIdPill">Room: —</div>
+    <div class="pill" id="hostPill">Host: —</div>
+    <div class="pill" id="youPill">Kamu: —</div>
   </div>
+  <div class="row">
+    <button id="copyLink" class="btn">Copy Link</button>
+    <button id="leaveSeat" class="btn">Berdiri</button>
+    <button id="logoutBtn" class="btn danger">Keluar</button>
+  </div>
+</header>
 
-  <script type="module">
-    // ===== Firebase ESM imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import {
-      getAuth, onAuthStateChanged, signInAnonymously, signOut
-    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import {
-      getFirestore, doc, setDoc, getDoc, serverTimestamp,
-      collection, addDoc, query, where, getCountFromServer
-    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+<main class="grid" id="grid">
+  <!-- Kursi dibuat via JS (9 buah, index 0..8; index 4 = host seat) -->
+</main>
 
-    // ====== UI helpers
-    const $log = document.getElementById("log");
-    const log = (...args) => {
-      const line = args.map(a => {
-        try { return typeof a === "string" ? a : JSON.stringify(a); }
-        catch { return String(a); }
-      }).join(" ");
-      $log.textContent += line + "\n";
-      $log.scrollTop = $log.scrollHeight;
-    };
-    const setOK = (ok) => {
-      document.title = ok ? "Room Demo • OK" : "Room Demo • Error";
-    };
+<footer>
+  <span class="tiny">Tip: Klik kursi untuk duduk / berdiri. Host (kursi tengah) bisa “Kick” kursi lain. Aktifkan mic untuk bicara.</span>
+</footer>
 
-    // ====== Your Firebase config (punyamu)
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-      measurementId: "G-EPTSQQPM4D"
-    };
+<div id="toast" class="toast"></div>
 
-    // ====== Initialize
-    log("Mulai muat Firebase ESM…");
-    log("✓ import https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js");
-    log("✓ import https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js");
-    log("✓ import https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
+<script type="module">
+  // ========================= Firebase =========================
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, runTransaction,
+    collection, serverTimestamp, updateDoc, addDoc, query, where, getDocs
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
-    log("Firebase init OK.");
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",
+    projectId: "fruit-game-5e4a8",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
+    messagingSenderId: "936228678997",
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+    measurementId: "G-EPTSQQPM4D"
+  };
 
-    // ====== Room id helpers
-    const $roomId = document.getElementById("roomId");
-    const getQS = (k) => new URL(location.href).searchParams.get(k);
-    const parseRoomFromUrl = () => {
-      const hash = (location.hash || "").replace(/^#/, "");
-      // allow "#room=xxx" or just "#xxx"
-      if (hash.startsWith("room=")) return hash.split("=")[1];
-      if (hash.length > 0) return hash;
-      const q = getQS("room");
-      return q || null;
-    };
-    const randomRoom = (len=5) => {
-      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghkmnpqrstuvwxyz23456789";
-      let s = "";
-      for (let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
-      return s;
-    };
-    const setRoom = (id) => {
-      $roomId.textContent = id;
-      const url = new URL(location.href);
-      url.searchParams.set("room", id);
-      history.replaceState(null, "", url.toString());
-      location.hash = "room=" + id;
-      log("Room aktif =", id);
-    };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    // Init room
-    setRoom(parseRoomFromUrl() || randomRoom(5));
+  // ========================= Helpers =========================
+  const $ = s => document.querySelector(s);
+  const toast = (msg, ms=1600) => {
+    const el = $("#toast"); el.textContent = msg; el.style.display="block";
+    clearTimeout(toast._t); toast._t = setTimeout(()=> el.style.display="none", ms);
+  };
+  const getQuery = (k) => new URLSearchParams(location.search).get(k);
 
-    // ====== Auth
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        log("AUTH: signed in (anon) uid:", user.uid);
-        setOK(true);
-      } else {
-        try {
-          await signInAnonymously(auth);
-          // onAuthStateChanged di atas akan terpicu lagi
-        } catch (e) {
-          log("AUTH gagal:", e.message || e);
-          setOK(false);
+  // ========================= UI Kursi =========================
+  const grid = $("#grid");
+  const seatsEls = [];
+  function makeSeats(){
+    grid.innerHTML = "";
+    for (let i=0;i<9;i++){
+      const div = document.createElement("div");
+      div.className = "seat"; if (i===4) div.classList.add("host");
+      div.dataset.index = i; div.dataset.has = "0";
+      div.innerHTML = `
+        <div class="slot-label">Seat ${i+1}${i===4?' · Host':''}</div>
+        <div class="kick host-can">Kick</div>
+        <div class="avatar-wrap">
+          <div class="ring"></div>
+          <div class="avatar" data-initial>?</div>
+          <audio playsinline></audio>
+        </div>
+        <div class="name">Kosong</div>
+        <div class="badge">Klik untuk duduk</div>
+        <div class="controls">
+          <div class="icon-btn mic-btn" title="Mic"><span>🎤</span></div>
+        </div>`;
+      grid.appendChild(div);
+      seatsEls.push(div);
+    }
+  }
+
+  function renderSeat(idx, data, myUid, hostUid){
+    const el = seatsEls[idx];
+    const avatar = el.querySelector(".avatar");
+    const ring = el.querySelector(".ring");
+    const name = el.querySelector(".name");
+    const badge = el.querySelector(".badge");
+    const micBtn = el.querySelector(".mic-btn");
+    const kick = el.querySelector(".kick");
+    const audioEl = el.querySelector("audio");
+
+    if (!data){
+      el.dataset.has="0"; el.classList.remove("owned","hosting");
+      avatar.style.backgroundImage=""; avatar.textContent="?"; name.textContent="Kosong";
+      badge.textContent="Klik untuk duduk"; ring.classList.remove("speaking");
+      micBtn.style.visibility="hidden"; kick.style.display="none";
+      // putuskan audio seat ini (kalau ada uid sebelumnya)
+      const prevUid = indexToUid.get(idx);
+      if (prevUid && prevUid !== myUid){
+        closeConnection(prevUid);
+      }
+      indexToUid.delete(idx);
+      return;
+    }
+
+    el.dataset.has="1";
+    const isMe = data.uid===myUid;
+    const amHost = hostUid && myUid===hostUid;
+    el.classList.toggle("owned", isMe);
+    el.classList.toggle("hosting", amHost && idx===4);
+
+    if (data.photoURL){ avatar.style.backgroundImage=`url(${data.photoURL})`; avatar.textContent=""; }
+    else { avatar.style.backgroundImage=""; avatar.textContent=(data.displayName?.[0]||data.username?.[0]||"U").toUpperCase(); }
+
+    name.textContent = data.displayName || data.username || "User";
+    badge.textContent = data.micOn ? "Mic ON" : "Mic OFF";
+    ring.classList.toggle("speaking", !!data.micOn);
+
+    micBtn.style.visibility = isMe ? "visible" : "hidden";
+    if (amHost && data.uid !== hostUid && idx!==4) { kick.style.display="block"; } else { kick.style.display="none"; }
+
+    // petakan occupant
+    indexToUid.set(idx, data.uid);
+    if (!isMe) uidToIndex.set(data.uid, idx);
+  }
+
+  // ========================= Room & Seats Core =========================
+  const seatRef = (roomId, idx) => doc(db, "rooms", roomId, "seats", `seat${idx}`);
+  async function ensureRoom(roomId, uid){
+    if (!roomId){
+      const rid = "ROOM" + Math.random().toString(36).slice(2,8).toUpperCase();
+      const ref = doc(db,"rooms",rid);
+      await setDoc(ref,{ createdAt:serverTimestamp(), hostUid:uid||null, active:true });
+      location.replace(`room.html?room=${rid}`); return null;
+    } else {
+      const ref = doc(db,"rooms",roomId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()){
+        await setDoc(ref,{ createdAt:serverTimestamp(), hostUid:uid||null, active:true });
+      } else if (!snap.data().hostUid && uid){
+        await updateDoc(ref,{ hostUid:uid });
+      }
+      return roomId;
+    }
+  }
+
+  async function sitDown(roomId, idx, me){
+    const roomRef = doc(db,"rooms",roomId);
+    const roomSnap = await getDoc(roomRef);
+    const hostUid = roomSnap.exists()? roomSnap.data().hostUid : null;
+    if (idx===4 && me.uid!==hostUid){ toast("Kursi host hanya untuk Host."); return; }
+
+    const current = await findMySeat(roomId, me.uid);
+    if (current!==null){
+      if (current===idx){ await standUp(roomId, idx, me.uid); return; }
+      await standUp(roomId, current, me.uid);
+    }
+
+    const ref = seatRef(roomId, idx);
+    try{
+      await runTransaction(db, async tx=>{
+        const s = await tx.get(ref);
+        if (s.exists()) throw new Error("Kursi sudah terisi.");
+        tx.set(ref,{
+          uid: me.uid,
+          displayName: me.displayName || me.email || "User",
+          username: me.displayName || me.email || "User",
+          photoURL: me.photoURL || null,
+          micOn: false, joinedAt: serverTimestamp()
+        });
+      });
+      toast("Kamu duduk di kursi " + (idx+1));
+    }catch(e){ toast(e.message||"Gagal duduk."); }
+  }
+
+  async function standUp(roomId, idx, myUid){
+    const ref = seatRef(roomId, idx);
+    try{
+      await runTransaction(db, async tx=>{
+        const s = await tx.get(ref);
+        if (!s.exists()) return;
+        if (s.data().uid!==myUid) throw new Error("Bukan kursi kamu.");
+        tx.delete(ref);
+      });
+      toast("Kamu berdiri dari kursi " + (idx+1));
+    }catch(e){ toast(e.message||"Gagal berdiri."); }
+  }
+
+  async function hostKick(roomId, idx, myUid){
+    const roomRef = doc(db,"rooms",roomId);
+    const roomSnap = await getDoc(roomRef);
+    const hostUid = roomSnap.exists()? roomSnap.data().hostUid : null;
+    if (myUid!==hostUid){ toast("Hanya Host yang bisa kick."); return; }
+    if (idx===4) return;
+    try{ await deleteDoc(seatRef(roomId, idx)); toast("Kursi "+(idx+1)+" dikosongkan."); }
+    catch{ toast("Gagal kick."); }
+  }
+
+  async function toggleMic(roomId, idx, myUid){
+    const ref = seatRef(roomId, idx);
+    try{
+      await runTransaction(db, async tx=>{
+        const s = await tx.get(ref);
+        if (!s.exists()) throw new Error("Kursi kosong.");
+        if (s.data().uid!==myUid) throw new Error("Bukan kursi kamu.");
+        tx.update(ref,{ micOn: !s.data().micOn });
+      });
+    }catch(e){ toast(e.message||"Gagal toggle mic."); }
+  }
+
+  async function findMySeat(roomId, myUid){
+    const reads=[]; for (let i=0;i<9;i++) reads.push(getDoc(seatRef(roomId,i)));
+    const snaps = await Promise.all(reads);
+    for (let i=0;i<snaps.length;i++){
+      const s=snaps[i]; if (s.exists() && s.data().uid===myUid) return i;
+    }
+    return null;
+  }
+
+  // ========================= State =========================
+  const uidToIndex = new Map(); // uid -> seat index
+  const indexToUid = new Map(); // index -> uid
+  let CURRENT = { roomId:null, me:null, hostUid:null, mySeat:null };
+
+  // ========================= WebRTC (Mesh) =========================
+  const pcs = new Map();            // remoteUid -> RTCPeerConnection
+  const unsubInbox = [];            // array of unsubscribe functions
+  const remoteAudios = new Map();   // remoteUid -> <audio>
+  let localStream = null;
+  let localAudioTrack = null;
+
+  const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+  const myMailbox = {
+    offersCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid,"inbox","offers"),
+    answersCol:()=> collection(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid,"inbox","answers"),
+    candsCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid,"inbox","candidates"),
+  };
+  const theirMailbox = (remoteUid)=> ({
+    offersCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",remoteUid,"inbox","offers"),
+    answersCol:()=> collection(db,"rooms",CURRENT.roomId,"peers",remoteUid,"inbox","answers"),
+    candsCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",remoteUid,"inbox","candidates"),
+  });
+
+  async function ensurePeerDoc(){
+    const ref = doc(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid);
+    await setDoc(ref,{ uid: CURRENT.me.uid, updatedAt: serverTimestamp() },{merge:true});
+  }
+
+  function isCaller(a,b){ return a < b; } // deterministik anti-glare
+
+  function getSeatAudioEl(remoteUid){
+    const idx = uidToIndex.get(remoteUid);
+    if (idx==null) return null;
+    const seatEl = seatsEls[idx];
+    return seatEl ? seatEl.querySelector("audio") : null;
+  }
+
+  function attachRemoteTrack(remoteUid, event){
+    // Ambil audioEl dari kursi target
+    let audioEl = getSeatAudioEl(remoteUid);
+    if (!audioEl) {
+      // fallback: buat sementara di body
+      audioEl = document.createElement("audio");
+      audioEl.playsInline = true;
+      document.body.appendChild(audioEl);
+    }
+    const stream = event.streams[0];
+    audioEl.srcObject = stream;
+    audioEl.muted = false;
+    audioEl.autoplay = true;
+    audioEl.play().catch(()=>{ /* autoplay might need user's gesture, UI mic click helps */ });
+    remoteAudios.set(remoteUid, audioEl);
+  }
+
+  function addLocalTrackIfAny(pc){
+    if (localAudioTrack){
+      const hasSender = pc.getSenders().some(s=> s.track && s.track.kind==="audio");
+      if (!hasSender) pc.addTrack(localAudioTrack, localStream);
+    }
+  }
+
+  async function applyMicState(micOn){
+    try{
+      if (micOn){
+        if (!localStream){
+          localStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true }
+          });
+          localAudioTrack = localStream.getAudioTracks()[0];
         }
+        localAudioTrack.enabled = true;
+        // pastikan terkirim ke semua pc
+        pcs.forEach(pc=> addLocalTrackIfAny(pc));
+      }else{
+        if (localAudioTrack) localAudioTrack.enabled = false;
+      }
+    }catch(e){
+      toast("Izin mikrofon ditolak.");
+      console.error(e);
+    }
+  }
+
+  function createPC(remoteUid){
+    if (pcs.has(remoteUid)) return pcs.get(remoteUid);
+    const pc = new RTCPeerConnection(rtcConfig);
+
+    pc.onicecandidate = async (ev)=>{
+      if (!ev.candidate) return;
+      const cand = {
+        candidate: ev.candidate.candidate,
+        sdpMid: ev.candidate.sdpMid,
+        sdpMLineIndex: ev.candidate.sdpMLineIndex
+      };
+      await addDoc(theirMailbox(remoteUid).candsCol(), {
+        from: CURRENT.me.uid, candidate: cand, createdAt: serverTimestamp()
+      });
+    };
+    pc.ontrack = (ev)=> attachRemoteTrack(remoteUid, ev);
+    pc.onconnectionstatechange = ()=>{
+      if (["failed","disconnected","closed"].includes(pc.connectionState)){
+        // biarkan cleanup via seat/unload; opsional: closeConnection(remoteUid)
+      }
+    };
+
+    addLocalTrackIfAny(pc);
+    pcs.set(remoteUid, pc);
+    return pc;
+  }
+
+  async function startCaller(remoteUid){
+    const pc = createPC(remoteUid);
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    await pc.setLocalDescription(offer);
+    await setDoc(doc(theirMailbox(remoteUid).offersCol(), CURRENT.me.uid), {
+      from: CURRENT.me.uid, type: offer.type, sdp: offer.sdp, createdAt: serverTimestamp()
+    });
+    // listen answer untukku dari remote
+    const ansDocRef = doc(myMailbox.answersCol(), remoteUid);
+    const unsubAns = onSnapshot(ansDocRef, async snap=>{
+      if (snap.exists()){
+        const a = snap.data();
+        if (!pc.currentRemoteDescription){
+          await pc.setRemoteDescription(new RTCSessionDescription({ type:a.type, sdp:a.sdp }));
+        }
+        // bersihkan surat jawaban setelah dipakai
+        try{ await deleteDoc(ansDocRef); }catch{}
+      }
+    });
+    unsubInbox.push(unsubAns);
+  }
+
+  function subscribeInbox(){
+    // Offers to me
+    const unsubOffers = onSnapshot(myMailbox.offersCol(), async snap=>{
+      for (const ch of snap.docChanges()){
+        if (ch.type!=="added") continue;
+        const fromUid = ch.doc.id;
+        const data = ch.doc.data();
+        try{
+          const pc = createPC(fromUid);
+          await pc.setRemoteDescription(new RTCSessionDescription({ type:data.type, sdp:data.sdp }));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          await setDoc(doc(theirMailbox(fromUid).answersCol(), CURRENT.me.uid), {
+            from: CURRENT.me.uid, type: answer.type, sdp: answer.sdp, createdAt: serverTimestamp()
+          });
+        }catch(e){ console.error("Offer handle error", e); }
+        // hapus pesan offer yang sudah diproses
+        try{ await deleteDoc(ch.doc.ref); }catch{}
+      }
+    });
+    unsubInbox.push(unsubOffers);
+
+    // Candidates to me
+    const unsubCands = onSnapshot(myMailbox.candsCol(), async snap=>{
+      for (const ch of snap.docChanges()){
+        if (ch.type!=="added") continue;
+        const { from, candidate } = ch.doc.data();
+        const pc = pcs.get(from);
+        if (pc){
+          try{ await pc.addIceCandidate(new RTCIceCandidate(candidate)); }catch(e){ console.warn(e); }
+        }
+        try{ await deleteDoc(ch.doc.ref); }catch{}
+      }
+    });
+    unsubInbox.push(unsubCands);
+
+    // Answers to my previous offers already handled in startCaller()
+  }
+
+  function attemptConnectToAll(){
+    if (CURRENT.mySeat==null) return;
+    uidToIndex.forEach((idx, remoteUid)=>{
+      if (remoteUid===CURRENT.me.uid) return;
+      if (!pcs.has(remoteUid) && isCaller(CURRENT.me.uid, remoteUid)){
+        startCaller(remoteUid).catch(console.error);
+      }
+    });
+  }
+
+  function closeConnection(remoteUid){
+    const pc = pcs.get(remoteUid);
+    if (pc){ try{ pc.close(); }catch{} pcs.delete(remoteUid); }
+    const a = remoteAudios.get(remoteUid);
+    if (a){ try{ a.srcObject=null; a.remove(); }catch{} remoteAudios.delete(remoteUid); }
+  }
+
+  function closeAllConnections(){
+    Array.from(pcs.keys()).forEach(closeConnection);
+  }
+
+  // ========================= Listeners & UI Bind =========================
+  function bindSeatClicks(){
+    seatsEls.forEach((el)=>{
+      const idx = Number(el.dataset.index);
+      el.addEventListener("click", async (ev)=>{
+        const t = ev.target;
+        if (!CURRENT.me || !CURRENT.roomId) return;
+        const has = el.dataset.has==="1";
+        const amHost = CURRENT.hostUid && CURRENT.me.uid===CURRENT.hostUid;
+
+        if (t.classList.contains("mic-btn")){
+          if (CURRENT.mySeat!==idx) return;
+          await toggleMic(CURRENT.roomId, idx, CURRENT.me.uid);
+          return;
+        }
+        if (t.classList.contains("kick")){
+          if (amHost) await hostKick(CURRENT.roomId, idx, CURRENT.me.uid);
+          return;
+        }
+
+        if (!has) await sitDown(CURRENT.roomId, idx, CURRENT.me);
+        else {
+          if (CURRENT.mySeat===idx) await standUp(CURRENT.roomId, idx, CURRENT.me.uid);
+          else if (amHost && idx!==4) await hostKick(CURRENT.roomId, idx, CURRENT.me.uid);
+        }
+      }, false);
+    });
+  }
+
+  function listenSeats(roomId, myUid){
+    seatsEls.forEach((_, idx)=>{
+      const ref = seatRef(roomId, idx);
+      onSnapshot(ref, (snap)=>{
+        const data = snap.exists()? snap.data() : null;
+        renderSeat(idx, data, myUid, CURRENT.hostUid);
+
+        // my seat & mic application
+        if (data && data.uid===myUid){
+          CURRENT.mySeat = idx; $("#leaveSeat").disabled = false;
+          applyMicState(!!data.micOn);
+          // setelah duduk, coba hubungkan ke semua occupant lain
+          attemptConnectToAll();
+        } else if (CURRENT.mySeat===idx && !data){
+          $("#leaveSeat").disabled = true;
+          CURRENT.mySeat = null;
+          // matikan mic secara lokal (track disabled), tapi biarkan stream agar cepat ON saat toggle
+          applyMicState(false);
+          // tutup seluruh koneksi saat berdiri
+          closeAllConnections();
+        }
+
+        // occupant lain: kalau baru muncul dan kita caller, connect
+        if (data && data.uid!==myUid){
+          if (CURRENT.mySeat!=null && isCaller(myUid, data.uid) && !pcs.has(data.uid)){
+            startCaller(data.uid).catch(console.error);
+          }
+        }
+      });
+    });
+  }
+
+  $("#leaveSeat").addEventListener("click", async ()=>{
+    if (CURRENT.roomId && CURRENT.mySeat!=null && CURRENT.me){
+      await standUp(CURRENT.roomId, CURRENT.mySeat, CURRENT.me.uid);
+    }
+  });
+  $("#copyLink").addEventListener("click", async ()=>{
+    const url = location.href; await navigator.clipboard.writeText(url); toast("Link disalin: "+url, 1800);
+  });
+  $("#logoutBtn").addEventListener("click", async ()=>{
+    try{ await signOut(auth); location.href="index.html"; }catch{ toast("Gagal logout"); }
+  });
+
+  // ========================= Bootstrap =========================
+  makeSeats(); bindSeatClicks();
+
+  onAuthStateChanged(auth, async (user)=>{
+    if (!user){ location.href="index.html"; return; }
+    CURRENT.me = user;
+    $("#youPill").textContent = "Kamu: " + (user.displayName || user.email || user.uid.slice(0,6));
+
+    let askedId = getQuery("room");
+    const finalId = await ensureRoom(askedId, user.uid);
+    if (!finalId) return; // redirect
+    CURRENT.roomId = finalId;
+    $("#roomIdPill").textContent = "Room: " + CURRENT.roomId;
+
+    // host info
+    const roomRef = doc(db,"rooms",CURRENT.roomId);
+    onSnapshot(roomRef, (snap)=>{
+      const data = snap.data()||{};
+      CURRENT.hostUid = data.hostUid || null;
+      const hostLabel = data.hostUid ? (data.hostUid===user.uid?"Kamu":data.hostUid.slice(0,6)) : "—";
+      $("#hostPill").textContent = "Host: " + hostLabel;
+      if (!data.hostUid){
+        updateDoc(roomRef,{ hostUid:user.uid }).catch(()=>{});
       }
     });
 
-    // ====== Actions
-    document.getElementById("newRoomBtn").addEventListener("click", () => {
-      setRoom(randomRoom(5));
-    });
+    await ensurePeerDoc();
+    subscribeInbox();
+    listenSeats(CURRENT.roomId, user.uid);
+  });
 
-    document.getElementById("pingBtn").addEventListener("click", async () => {
-      const room = $roomId.textContent.trim();
-      try {
-        // tulis sebuah dokumen di room saat ini
-        const ref = doc(db, "rooms", room);
-        await setDoc(ref, { pingAt: serverTimestamp(), ua: navigator.userAgent }, { merge: true });
-
-        // baca kembali untuk memastikan akses
-        const snap = await getDoc(ref);
-        log("Ping Firestore OK. Data:", snap.exists() ? snap.data() : "(kosong)");
-      } catch (e) {
-        log("Ping Firestore GAGAL:", e.message || e);
-        setOK(false);
+  // Bersih saat keluar tab
+  window.addEventListener("beforeunload", async ()=>{
+    try{
+      closeAllConnections();
+      if (CURRENT.roomId && CURRENT.mySeat!=null && CURRENT.me){
+        await standUp(CURRENT.roomId, CURRENT.mySeat, CURRENT.me.uid);
       }
-    });
-
-    // Optional: expose for console debugging
-    window.__app = { app, auth, db };
-  </script>
+      // hapus surat2 kadaluarsa di inbox-ku (optional, aman dilewati)
+      // (dilewati demi kesederhanaan)
+    }catch{}
+  });
+</script>
 </body>
 </html>
