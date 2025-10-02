@@ -1,620 +1,515 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Voice Room - 9 Seats (WebRTC)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Room</title>
   <style>
-    :root{
-      --bg:#0b1120; --card:#111827; --muted:#6b7280; --text:#e5e7eb;
-      --accent:#10b981; --danger:#ef4444; --ring:#22d3ee;
+    :root {
+      --card-bg: #0f1220;
+      --card-border: #22273a;
+      --text: #eaefff;
+      --muted: #9aa3b2;
+      --accent: #6ea8ff;
+      --danger: #ff6b6b;
+      --ok: #3ad29f;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:radial-gradient(1200px 800px at 20% -10%,#111827 0,#0b1120 55%,#050814 100%);
-      color:var(--text); font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      display:flex; flex-direction:column; gap:16px;
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 800px at 50% -200px, #1b1f33, #0b0d17 60%);
+      color: var(--text);
+      min-height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr;
     }
-    header{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:14px 16px; backdrop-filter:saturate(140%) blur(8px);
-      background:rgba(17,24,39,.6); border-bottom:1px solid rgba(255,255,255,.06);
-      position:sticky; top:0; z-index:5;
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #1b2032;
+      backdrop-filter: blur(6px);
+      background: rgba(7,10,20,.6);
     }
-    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .pill{
-      padding:6px 10px; border:1px solid rgba(255,255,255,.08); border-radius:9999px; font-size:13px;
-      background:rgba(255,255,255,.04);
+    .room-title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .btn{
-      padding:9px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.08); cursor:pointer;
-      background:#0f172a; color:var(--text); font-weight:600;
+    .room-title h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+    .room-title code {
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid #28304b;
+      background: #0d1122;
+      padding: 3px 6px;
+      border-radius: 6px;
     }
-    .btn:hover{background:#111827}
-    .btn.danger{border-color:rgba(239,68,68,.25); background:rgba(239,68,68,.12); color:#fecaca}
-    .grid{
-      width:min(980px, 96vw); margin:10px auto 28px; display:grid; gap:18px;
-      grid-template-columns:repeat(3,1fr);
+    .actbar { display: flex; gap: 8px; }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--card-border);
+      background: #111425;
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: .2s ease;
     }
-    .seat{
-      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-      border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:14px; text-align:center;
-      position:relative; min-height:206px; display:flex; flex-direction:column; justify-content:center; align-items:center;
-      transition:transform .15s ease, border-color .2s ease, box-shadow .2s ease;
+    button:hover { transform: translateY(-1px); border-color: #31406f; }
+    button.danger { border-color: #3a1421; background: #1a0e12; color: #ffb3b3; }
+    button.ok { border-color: #174333; background: #0d1a16; color: #bdf4df; }
+
+    main { padding: 18px 16px 24px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat( auto-fit, minmax(220px, 1fr) );
+      gap: 14px;
+      max-width: 1100px;
+      margin: 0 auto;
     }
-    .seat:hover{transform:translateY(-2px); border-color:rgba(255,255,255,.16); box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    .seat.host{outline:2px dashed rgba(34,211,238,.22); outline-offset:6px}
-    .avatar-wrap{position:relative; width:92px; height:92px; border-radius:50%; display:grid; place-items:center;}
-    .ring{
-      position:absolute; inset:-6px; border-radius:50%;
-      border:3px solid transparent;
-      background:
-        linear-gradient(#0b1120,#0b1120) padding-box,
-        conic-gradient(from 0deg, rgba(34,211,238,.0), rgba(34,211,238,.45), rgba(34,211,238,.0)) border-box;
-      filter:drop-shadow(0 0 10px rgba(34,211,238,.25));
-      opacity:.9; transition:opacity .2s ease, transform .2s ease;
+    .seat {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 130px;
+      box-shadow: 0 6px 30px rgba(0,0,0,.25);
     }
-    .ring.speaking{animation:wave 1.2s ease-in-out infinite}
-    @keyframes wave{0%,100%{transform:scale(1)} 50%{transform:scale(1.06)}}
-    .avatar{
-      width:86px; height:86px; border-radius:50%; background:#222; background-size:cover; background-position:center;
-      display:grid; place-items:center; font-weight:700; font-size:28px; color:#cbd5e1; border:1px solid rgba(255,255,255,.08);
+    .seat .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
     }
-    .name{margin-top:10px; font-size:14px; line-height:1.2; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-    .badge{font-size:11px; color:var(--muted); margin-top:2px}
-    .seat .controls{position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:8px;}
-    .icon-btn{
-      width:36px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
-      background:rgba(255,255,255,.04); display:grid; place-items:center; cursor:pointer; font-size:16px;
+    .seat .body {
+      display: grid;
+      place-items: start;
+      align-content: start;
+      gap: 8px;
     }
-    .icon-btn:hover{background:rgba(255,255,255,.08)}
-    .icon-btn.muted{background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.36)}
-    .slot-label{
-      position:absolute; top:8px; left:8px; font-size:11px; color:#94a3b8; background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.06); border-radius:999px; padding:3px 8px;
+    .seat .foot {
+      display: flex; gap: 8px; margin-top: 10px;
     }
-    .tiny{font-size:12px; color:#9ca3af}
-    footer{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px; color:#9ca3af}
-    .kick{position:absolute; top:8px; right:8px; font-size:11px; cursor:pointer; opacity:.85; display:none}
-    .seat[data-has="1"] .kick.host-can{display:block}
-    .seat.owned .kick, .seat.host .kick{display:none}
-    .toast{
-      position:fixed; left:50%; transform:translateX(-50%); bottom:16px; background:#0f172a; color:#e5e7eb;
-      padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); box-shadow:0 10px 30px rgba(0,0,0,.4);
-      font-size:14px; display:none; z-index:50;
+    .tag {
+      font-size: 11px;
+      padding: 2px 6px;
+      border: 1px solid #2a3352;
+      background: #0d1124;
+      color: #b4c0ff;
+      border-radius: 999px;
     }
-    audio{display:none}
+
+    /* Nickname pill (akan dioverride inline style dari Firestore profile) */
+    .nickname {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 10px;
+      line-height: 1.4;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 999px rgba(0,0,0,.08);
+      backdrop-filter: blur(2px);
+      text-shadow: 0 1px 0 rgba(0,0,0,.25);
+    }
+    .subtle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .mic {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid #24324a;
+      background: #0c1220;
+      color: #c8d2ff;
+    }
+    .mic.on { border-color: #214634; color: #baf1dd; background: #0c1a15; }
+
+    .seat.empty .body {
+      place-items: center;
+      align-content: center;
+      color: #a3acc3;
+    }
+    .seat.empty .foot { justify-content: center; }
+    .you {
+      position: absolute;
+      top: 10px; right: 10px;
+      font-size: 10px;
+      background: #132234;
+      color: #bbd8ff;
+      border: 1px solid #264a7a;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    /* anim untuk bgGradient */
+    @keyframes neonAnim {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
   </style>
 </head>
 <body>
-<header>
-  <div class="row">
-    <div class="pill" id="roomIdPill">Room: —</div>
-    <div class="pill" id="hostPill">Host: —</div>
-    <div class="pill" id="youPill">Kamu: —</div>
-  </div>
-  <div class="row">
-    <button id="copyLink" class="btn">Copy Link</button>
-    <button id="leaveSeat" class="btn">Berdiri</button>
-    <button id="logoutBtn" class="btn danger">Keluar</button>
-  </div>
-</header>
+  <header>
+    <div class="room-title">
+      <h1>Ruang</h1>
+      <code id="roomCode">main</code>
+    </div>
+    <div class="actbar">
+      <button id="leaveMySeatBtn" class="danger" title="Keluar dari kursi saya">Keluar Kursi</button>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </header>
 
-<main class="grid" id="grid">
-  <!-- Kursi dibuat via JS (9 buah, index 0..8; index 4 = host seat) -->
-</main>
+  <main>
+    <div id="info" class="subtle" style="max-width:1100px;margin:0 auto 12px;">
+      Klik **Duduk** untuk mengambil kursi. Mic bisa dinyalakan/matikan setelah duduk.
+    </div>
+    <div id="seatsGrid" class="grid" aria-live="polite"></div>
+  </main>
 
-<footer>
-  <span class="tiny">Tip: Klik kursi untuk duduk / berdiri. Host (kursi tengah) bisa “Kick” kursi lain. Aktifkan mic untuk bicara.</span>
-</footer>
+  <script type="module">
+    // ----------------- Firebase Init -----------------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
+      runTransaction, serverTimestamp, onSnapshot, collection, query,
+      where, getCountFromServer
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-<div id="toast" class="toast"></div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-<script type="module">
-  // ========================= Firebase =========================
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import {
-    getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, runTransaction,
-    collection, serverTimestamp, updateDoc, addDoc, query, where, getDocs
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    // ----------------- Room/Seats Setup -----------------
+    const NUM_SEATS = 9; // jumlah kursi
+    const roomId = (new URLSearchParams(location.search).get("room")) || "main";
+    document.getElementById("roomCode").textContent = roomId;
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
-  };
+    const seatsGrid = document.getElementById("seatsGrid");
+    const leaveMySeatBtn = document.getElementById("leaveMySeatBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    let me = null;           // current user
+    let mySeatIndex = null;  // kursi yang sedang kita duduki (angka)
+    let unsubscribers = [];  // simpan unsubscribe onSnapshot
 
-  // ========================= Helpers =========================
-  const $ = s => document.querySelector(s);
-  const toast = (msg, ms=1600) => {
-    const el = $("#toast"); el.textContent = msg; el.style.display="block";
-    clearTimeout(toast._t); toast._t = setTimeout(()=> el.style.display="none", ms);
-  };
-  const getQuery = (k) => new URLSearchParams(location.search).get(k);
+    // kunci sesi tab (agar tab lain tidak ikut "melepas" kursi ini)
+    const SESSION_KEY = (() => {
+      let s = sessionStorage.getItem("sessionKey");
+      if (!s) {
+        s = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        sessionStorage.setItem("sessionKey", s);
+      }
+      return s;
+    })();
 
-  // ========================= UI Kursi =========================
-  const grid = $("#grid");
-  const seatsEls = [];
-  function makeSeats(){
-    grid.innerHTML = "";
-    for (let i=0;i<9;i++){
-      const div = document.createElement("div");
-      div.className = "seat"; if (i===4) div.classList.add("host");
-      div.dataset.index = i; div.dataset.has = "0";
-      div.innerHTML = `
-        <div class="slot-label">Seat ${i+1}${i===4?' · Host':''}</div>
-        <div class="kick host-can">Kick</div>
-        <div class="avatar-wrap">
-          <div class="ring"></div>
-          <div class="avatar" data-initial>?</div>
-          <audio playsinline></audio>
+    // ---- Helpers Firestore path
+    const seatRef = (idx) => doc(db, "rooms", roomId, "seats", String(idx));
+
+    // ----------------- UI Render -----------------
+    function makeSeatCard(idx) {
+      const el = document.createElement("div");
+      el.className = "seat empty";
+      el.dataset.idx = String(idx);
+      el.innerHTML = `
+        <div class="head">
+          <span class="tag">Kursi #${idx + 1}</span>
+          <span class="subtle status">Kosong</span>
         </div>
-        <div class="name">Kosong</div>
-        <div class="badge">Klik untuk duduk</div>
-        <div class="controls">
-          <div class="icon-btn mic-btn" title="Mic"><span>🎤</span></div>
-        </div>`;
-      grid.appendChild(div);
-      seatsEls.push(div);
-    }
-  }
-
-  function renderSeat(idx, data, myUid, hostUid){
-    const el = seatsEls[idx];
-    const avatar = el.querySelector(".avatar");
-    const ring = el.querySelector(".ring");
-    const name = el.querySelector(".name");
-    const badge = el.querySelector(".badge");
-    const micBtn = el.querySelector(".mic-btn");
-    const kick = el.querySelector(".kick");
-    const audioEl = el.querySelector("audio");
-
-    if (!data){
-      el.dataset.has="0"; el.classList.remove("owned","hosting");
-      avatar.style.backgroundImage=""; avatar.textContent="?"; name.textContent="Kosong";
-      badge.textContent="Klik untuk duduk"; ring.classList.remove("speaking");
-      micBtn.style.visibility="hidden"; kick.style.display="none";
-      // putuskan audio seat ini (kalau ada uid sebelumnya)
-      const prevUid = indexToUid.get(idx);
-      if (prevUid && prevUid !== myUid){
-        closeConnection(prevUid);
-      }
-      indexToUid.delete(idx);
-      return;
+        <div class="body">
+          <div class="subtle">Belum ada pemain</div>
+        </div>
+        <div class="foot">
+          <button class="btn-sit ok" data-idx="${idx}">Duduk</button>
+        </div>
+      `;
+      return el;
     }
 
-    el.dataset.has="1";
-    const isMe = data.uid===myUid;
-    const amHost = hostUid && myUid===hostUid;
-    el.classList.toggle("owned", isMe);
-    el.classList.toggle("hosting", amHost && idx===4);
+    function safeText(s){ return (s ?? "").toString().replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
-    if (data.photoURL){ avatar.style.backgroundImage=`url(${data.photoURL})`; avatar.textContent=""; }
-    else { avatar.style.backgroundImage=""; avatar.textContent=(data.displayName?.[0]||data.username?.[0]||"U").toUpperCase(); }
-
-    name.textContent = data.displayName || data.username || "User";
-    badge.textContent = data.micOn ? "Mic ON" : "Mic OFF";
-    ring.classList.toggle("speaking", !!data.micOn);
-
-    micBtn.style.visibility = isMe ? "visible" : "hidden";
-    if (amHost && data.uid !== hostUid && idx!==4) { kick.style.display="block"; } else { kick.style.display="none"; }
-
-    // petakan occupant
-    indexToUid.set(idx, data.uid);
-    if (!isMe) uidToIndex.set(data.uid, idx);
-  }
-
-  // ========================= Room & Seats Core =========================
-  const seatRef = (roomId, idx) => doc(db, "rooms", roomId, "seats", `seat${idx}`);
-  async function ensureRoom(roomId, uid){
-    if (!roomId){
-      const rid = "ROOM" + Math.random().toString(36).slice(2,8).toUpperCase();
-      const ref = doc(db,"rooms",rid);
-      await setDoc(ref,{ createdAt:serverTimestamp(), hostUid:uid||null, active:true });
-      location.replace(`room.html?room=${rid}`); return null;
-    } else {
-      const ref = doc(db,"rooms",roomId);
-      const snap = await getDoc(ref);
-      if (!snap.exists()){
-        await setDoc(ref,{ createdAt:serverTimestamp(), hostUid:uid||null, active:true });
-      } else if (!snap.data().hostUid && uid){
-        await updateDoc(ref,{ hostUid:uid });
+    // build nickname style sama dengan home.html
+    function buildNicknameStyle(profile) {
+      let bg = profile?.bgColor || 'transparent';
+      let extraAnim = '';
+      if (profile?.bgGradient) {
+        bg = profile.bgGradient;
+        extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
       }
-      return roomId;
-    }
-  }
-
-  async function sitDown(roomId, idx, me){
-    const roomRef = doc(db,"rooms",roomId);
-    const roomSnap = await getDoc(roomRef);
-    const hostUid = roomSnap.exists()? roomSnap.data().hostUid : null;
-    if (idx===4 && me.uid!==hostUid){ toast("Kursi host hanya untuk Host."); return; }
-
-    const current = await findMySeat(roomId, me.uid);
-    if (current!==null){
-      if (current===idx){ await standUp(roomId, idx, me.uid); return; }
-      await standUp(roomId, current, me.uid);
+      let border = `1px solid ${profile?.borderColor || '#000'}`;
+      let extraBorder = '';
+      if (profile?.borderGradient) {
+        const baseBg = profile?.bgColor || 'transparent';
+        border = '3px solid transparent';
+        extraBorder = `
+          background-image: linear-gradient(${baseBg}, ${baseBg}), ${profile.borderGradient};
+          background-origin: border-box;
+          background-clip: padding-box, border-box;`;
+      }
+      const color = profile?.color || '#fff';
+      return `color:${color}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;
     }
 
-    const ref = seatRef(roomId, idx);
-    try{
-      await runTransaction(db, async tx=>{
-        const s = await tx.get(ref);
-        if (s.exists()) throw new Error("Kursi sudah terisi.");
-        tx.set(ref,{
-          uid: me.uid,
-          displayName: me.displayName || me.email || "User",
-          username: me.displayName || me.email || "User",
-          photoURL: me.photoURL || null,
-          micOn: false, joinedAt: serverTimestamp()
-        });
-      });
-      toast("Kamu duduk di kursi " + (idx+1));
-    }catch(e){ toast(e.message||"Gagal duduk."); }
-  }
-
-  async function standUp(roomId, idx, myUid){
-    const ref = seatRef(roomId, idx);
-    try{
-      await runTransaction(db, async tx=>{
-        const s = await tx.get(ref);
-        if (!s.exists()) return;
-        if (s.data().uid!==myUid) throw new Error("Bukan kursi kamu.");
-        tx.delete(ref);
-      });
-      toast("Kamu berdiri dari kursi " + (idx+1));
-    }catch(e){ toast(e.message||"Gagal berdiri."); }
-  }
-
-  async function hostKick(roomId, idx, myUid){
-    const roomRef = doc(db,"rooms",roomId);
-    const roomSnap = await getDoc(roomRef);
-    const hostUid = roomSnap.exists()? roomSnap.data().hostUid : null;
-    if (myUid!==hostUid){ toast("Hanya Host yang bisa kick."); return; }
-    if (idx===4) return;
-    try{ await deleteDoc(seatRef(roomId, idx)); toast("Kursi "+(idx+1)+" dikosongkan."); }
-    catch{ toast("Gagal kick."); }
-  }
-
-  async function toggleMic(roomId, idx, myUid){
-    const ref = seatRef(roomId, idx);
-    try{
-      await runTransaction(db, async tx=>{
-        const s = await tx.get(ref);
-        if (!s.exists()) throw new Error("Kursi kosong.");
-        if (s.data().uid!==myUid) throw new Error("Bukan kursi kamu.");
-        tx.update(ref,{ micOn: !s.data().micOn });
-      });
-    }catch(e){ toast(e.message||"Gagal toggle mic."); }
-  }
-
-  async function findMySeat(roomId, myUid){
-    const reads=[]; for (let i=0;i<9;i++) reads.push(getDoc(seatRef(roomId,i)));
-    const snaps = await Promise.all(reads);
-    for (let i=0;i<snaps.length;i++){
-      const s=snaps[i]; if (s.exists() && s.data().uid===myUid) return i;
+    function rankEmblem(rank) {
+      if (rank === 1) return "🥇 ";
+      if (rank === 2) return "🥈 ";
+      if (rank === 3) return "🥉 ";
+      return "";
     }
-    return null;
-  }
 
-  // ========================= State =========================
-  const uidToIndex = new Map(); // uid -> seat index
-  const indexToUid = new Map(); // index -> uid
-  let CURRENT = { roomId:null, me:null, hostUid:null, mySeat:null };
+    // Render satu kursi dari data snapshot
+    function renderSeat(idx, data) {
+      const card = seatsGrid.querySelector(`.seat[data-idx="${idx}"]`);
+      const headStatus = card.querySelector(".status");
+      const body = card.querySelector(".body");
+      const foot = card.querySelector(".foot");
 
-  // ========================= WebRTC (Mesh) =========================
-  const pcs = new Map();            // remoteUid -> RTCPeerConnection
-  const unsubInbox = [];            // array of unsubscribe functions
-  const remoteAudios = new Map();   // remoteUid -> <audio>
-  let localStream = null;
-  let localAudioTrack = null;
+      if (!data || !data.uid) {
+        card.classList.add("empty");
+        card.classList.remove("occupied");
+        card.querySelector(".you")?.remove();
+        headStatus.textContent = "Kosong";
+        body.innerHTML = `<div class="subtle">Belum ada pemain</div>`;
+        foot.innerHTML = `<button class="btn-sit ok" data-idx="${idx}">Duduk</button>`;
+        return;
+      }
 
-  const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+      card.classList.remove("empty");
+      card.classList.add("occupied");
+      headStatus.textContent = data.uid === me?.uid ? "Ditempati (Anda)" : "Ditempati";
 
-  const myMailbox = {
-    offersCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid,"inbox","offers"),
-    answersCol:()=> collection(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid,"inbox","answers"),
-    candsCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid,"inbox","candidates"),
-  };
-  const theirMailbox = (remoteUid)=> ({
-    offersCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",remoteUid,"inbox","offers"),
-    answersCol:()=> collection(db,"rooms",CURRENT.roomId,"peers",remoteUid,"inbox","answers"),
-    candsCol: ()=> collection(db,"rooms",CURRENT.roomId,"peers",remoteUid,"inbox","candidates"),
-  });
+      // Lencana "Anda"
+      card.querySelector(".you")?.remove();
+      if (data.uid === me?.uid) {
+        const you = document.createElement("span");
+        you.className = "you";
+        you.textContent = "Anda";
+        card.appendChild(you);
+      }
 
-  async function ensurePeerDoc(){
-    const ref = doc(db,"rooms",CURRENT.roomId,"peers",CURRENT.me.uid);
-    await setDoc(ref,{ uid: CURRENT.me.uid, updatedAt: serverTimestamp() },{merge:true});
-  }
+      // Nickname pill + mic
+      const style = buildNicknameStyle(data);
+      const nick = safeText(data.displayName || data.username || "Anonim");
+      const micClass = data.micOn ? "mic on" : "mic";
+      const micText = data.micOn ? "Mic ON" : "Mic OFF";
+      const micIcon = data.micOn ? "🎤" : "🔇";
 
-  function isCaller(a,b){ return a < b; } // deterministik anti-glare
+      body.innerHTML = `
+        <span class="nickname" style="${style}">${nick}</span>
+        <span class="${micClass}" title="Status mic">${micIcon} ${micText}</span>
+      `;
 
-  function getSeatAudioEl(remoteUid){
-    const idx = uidToIndex.get(remoteUid);
-    if (idx==null) return null;
-    const seatEl = seatsEls[idx];
-    return seatEl ? seatEl.querySelector("audio") : null;
-  }
-
-  function attachRemoteTrack(remoteUid, event){
-    // Ambil audioEl dari kursi target
-    let audioEl = getSeatAudioEl(remoteUid);
-    if (!audioEl) {
-      // fallback: buat sementara di body
-      audioEl = document.createElement("audio");
-      audioEl.playsInline = true;
-      document.body.appendChild(audioEl);
+      // tombol sesuai kepemilikan
+      if (data.uid === me?.uid) {
+        foot.innerHTML = `
+          <button class="btn-mic" data-idx="${idx}">${data.micOn ? "Matikan Mic" : "Nyalakan Mic"}</button>
+          <button class="btn-leave danger" data-idx="${idx}">Keluar</button>
+        `;
+      } else {
+        foot.innerHTML = `<span class="subtle">Dipakai pemain lain</span>`;
+      }
     }
-    const stream = event.streams[0];
-    audioEl.srcObject = stream;
-    audioEl.muted = false;
-    audioEl.autoplay = true;
-    audioEl.play().catch(()=>{ /* autoplay might need user's gesture, UI mic click helps */ });
-    remoteAudios.set(remoteUid, audioEl);
-  }
 
-  function addLocalTrackIfAny(pc){
-    if (localAudioTrack){
-      const hasSender = pc.getSenders().some(s=> s.track && s.track.kind==="audio");
-      if (!hasSender) pc.addTrack(localAudioTrack, localStream);
-    }
-  }
+    // ----------------- Actions -----------------
+    async function sitDown(idx) {
+      if (!me) return alert("Harus login dulu.");
+      try {
+        // ambil profil dari users/{uid}
+        const profSnap = await getDoc(doc(db, "users", me.uid));
+        const profile = profSnap.exists() ? profSnap.data() : {};
+        const saldo = profile.saldo || 0;
 
-  async function applyMicState(micOn){
-    try{
-      if (micOn){
-        if (!localStream){
-          localStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true }
-          });
-          localAudioTrack = localStream.getAudioTracks()[0];
-        }
-        localAudioTrack.enabled = true;
-        // pastikan terkirim ke semua pc
-        pcs.forEach(pc=> addLocalTrackIfAny(pc));
-      }else{
-        if (localAudioTrack) localAudioTrack.enabled = false;
-      }
-    }catch(e){
-      toast("Izin mikrofon ditolak.");
-      console.error(e);
-    }
-  }
-
-  function createPC(remoteUid){
-    if (pcs.has(remoteUid)) return pcs.get(remoteUid);
-    const pc = new RTCPeerConnection(rtcConfig);
-
-    pc.onicecandidate = async (ev)=>{
-      if (!ev.candidate) return;
-      const cand = {
-        candidate: ev.candidate.candidate,
-        sdpMid: ev.candidate.sdpMid,
-        sdpMLineIndex: ev.candidate.sdpMLineIndex
-      };
-      await addDoc(theirMailbox(remoteUid).candsCol(), {
-        from: CURRENT.me.uid, candidate: cand, createdAt: serverTimestamp()
-      });
-    };
-    pc.ontrack = (ev)=> attachRemoteTrack(remoteUid, ev);
-    pc.onconnectionstatechange = ()=>{
-      if (["failed","disconnected","closed"].includes(pc.connectionState)){
-        // biarkan cleanup via seat/unload; opsional: closeConnection(remoteUid)
-      }
-    };
-
-    addLocalTrackIfAny(pc);
-    pcs.set(remoteUid, pc);
-    return pc;
-  }
-
-  async function startCaller(remoteUid){
-    const pc = createPC(remoteUid);
-    const offer = await pc.createOffer({ offerToReceiveAudio: true });
-    await pc.setLocalDescription(offer);
-    await setDoc(doc(theirMailbox(remoteUid).offersCol(), CURRENT.me.uid), {
-      from: CURRENT.me.uid, type: offer.type, sdp: offer.sdp, createdAt: serverTimestamp()
-    });
-    // listen answer untukku dari remote
-    const ansDocRef = doc(myMailbox.answersCol(), remoteUid);
-    const unsubAns = onSnapshot(ansDocRef, async snap=>{
-      if (snap.exists()){
-        const a = snap.data();
-        if (!pc.currentRemoteDescription){
-          await pc.setRemoteDescription(new RTCSessionDescription({ type:a.type, sdp:a.sdp }));
-        }
-        // bersihkan surat jawaban setelah dipakai
-        try{ await deleteDoc(ansDocRef); }catch{}
-      }
-    });
-    unsubInbox.push(unsubAns);
-  }
-
-  function subscribeInbox(){
-    // Offers to me
-    const unsubOffers = onSnapshot(myMailbox.offersCol(), async snap=>{
-      for (const ch of snap.docChanges()){
-        if (ch.type!=="added") continue;
-        const fromUid = ch.doc.id;
-        const data = ch.doc.data();
-        try{
-          const pc = createPC(fromUid);
-          await pc.setRemoteDescription(new RTCSessionDescription({ type:data.type, sdp:data.sdp }));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          await setDoc(doc(theirMailbox(fromUid).answersCol(), CURRENT.me.uid), {
-            from: CURRENT.me.uid, type: answer.type, sdp: answer.sdp, createdAt: serverTimestamp()
-          });
-        }catch(e){ console.error("Offer handle error", e); }
-        // hapus pesan offer yang sudah diproses
-        try{ await deleteDoc(ch.doc.ref); }catch{}
-      }
-    });
-    unsubInbox.push(unsubOffers);
-
-    // Candidates to me
-    const unsubCands = onSnapshot(myMailbox.candsCol(), async snap=>{
-      for (const ch of snap.docChanges()){
-        if (ch.type!=="added") continue;
-        const { from, candidate } = ch.doc.data();
-        const pc = pcs.get(from);
-        if (pc){
-          try{ await pc.addIceCandidate(new RTCIceCandidate(candidate)); }catch(e){ console.warn(e); }
-        }
-        try{ await deleteDoc(ch.doc.ref); }catch{}
-      }
-    });
-    unsubInbox.push(unsubCands);
-
-    // Answers to my previous offers already handled in startCaller()
-  }
-
-  function attemptConnectToAll(){
-    if (CURRENT.mySeat==null) return;
-    uidToIndex.forEach((idx, remoteUid)=>{
-      if (remoteUid===CURRENT.me.uid) return;
-      if (!pcs.has(remoteUid) && isCaller(CURRENT.me.uid, remoteUid)){
-        startCaller(remoteUid).catch(console.error);
-      }
-    });
-  }
-
-  function closeConnection(remoteUid){
-    const pc = pcs.get(remoteUid);
-    if (pc){ try{ pc.close(); }catch{} pcs.delete(remoteUid); }
-    const a = remoteAudios.get(remoteUid);
-    if (a){ try{ a.srcObject=null; a.remove(); }catch{} remoteAudios.delete(remoteUid); }
-  }
-
-  function closeAllConnections(){
-    Array.from(pcs.keys()).forEach(closeConnection);
-  }
-
-  // ========================= Listeners & UI Bind =========================
-  function bindSeatClicks(){
-    seatsEls.forEach((el)=>{
-      const idx = Number(el.dataset.index);
-      el.addEventListener("click", async (ev)=>{
-        const t = ev.target;
-        if (!CURRENT.me || !CURRENT.roomId) return;
-        const has = el.dataset.has==="1";
-        const amHost = CURRENT.hostUid && CURRENT.me.uid===CURRENT.hostUid;
-
-        if (t.classList.contains("mic-btn")){
-          if (CURRENT.mySeat!==idx) return;
-          await toggleMic(CURRENT.roomId, idx, CURRENT.me.uid);
-          return;
-        }
-        if (t.classList.contains("kick")){
-          if (amHost) await hostKick(CURRENT.roomId, idx, CURRENT.me.uid);
-          return;
+        // hitung rank utk emblem (sekali saja saat duduk)
+        let myRank = 0;
+        try {
+          const usersRef = collection(db, "users");
+          const qAbove = query(usersRef, where("saldo", ">", saldo));
+          const above = await getCountFromServer(qAbove);
+          myRank = (above.data().count || 0) + 1;
+        } catch (e) {
+          // abaikan jika quota index, dll
         }
 
-        if (!has) await sitDown(CURRENT.roomId, idx, CURRENT.me);
-        else {
-          if (CURRENT.mySeat===idx) await standUp(CURRENT.roomId, idx, CURRENT.me.uid);
-          else if (amHost && idx!==4) await hostKick(CURRENT.roomId, idx, CURRENT.me.uid);
-        }
-      }, false);
-    });
-  }
+        const displayNameBase = profile.name || profile.username || me.displayName || me.email || "Anonim";
+        const displayName = `${rankEmblem(myRank)}${displayNameBase}`;
 
-  function listenSeats(roomId, myUid){
-    seatsEls.forEach((_, idx)=>{
-      const ref = seatRef(roomId, idx);
-      onSnapshot(ref, (snap)=>{
-        const data = snap.exists()? snap.data() : null;
-        renderSeat(idx, data, myUid, CURRENT.hostUid);
-
-        // my seat & mic application
-        if (data && data.uid===myUid){
-          CURRENT.mySeat = idx; $("#leaveSeat").disabled = false;
-          applyMicState(!!data.micOn);
-          // setelah duduk, coba hubungkan ke semua occupant lain
-          attemptConnectToAll();
-        } else if (CURRENT.mySeat===idx && !data){
-          $("#leaveSeat").disabled = true;
-          CURRENT.mySeat = null;
-          // matikan mic secara lokal (track disabled), tapi biarkan stream agar cepat ON saat toggle
-          applyMicState(false);
-          // tutup seluruh koneksi saat berdiri
-          closeAllConnections();
-        }
-
-        // occupant lain: kalau baru muncul dan kita caller, connect
-        if (data && data.uid!==myUid){
-          if (CURRENT.mySeat!=null && isCaller(myUid, data.uid) && !pcs.has(data.uid)){
-            startCaller(data.uid).catch(console.error);
+        await runTransaction(db, async (tx) => {
+          const ref = seatRef(idx);
+          const snap = await tx.get(ref);
+          if (snap.exists()) {
+            const cur = snap.data();
+            if (cur.uid && cur.uid !== me.uid) {
+              throw new Error("Kursi sudah ditempati.");
+            }
           }
+          tx.set(ref, {
+            index: idx,
+            uid: me.uid,
+            sessionKey: SESSION_KEY,
+            displayName,
+            username: profile.username || "",
+            micOn: false,
+            color: profile.color || "#fff",
+            bgColor: profile.bgColor || "transparent",
+            bgGradient: profile.bgGradient || "",
+            borderColor: profile.borderColor || "#000",
+            borderGradient: profile.borderGradient || "",
+            saldo: saldo,
+            joinedAt: serverTimestamp(),
+            lastSeen: serverTimestamp()
+          }, { merge: true });
+        });
+
+        mySeatIndex = idx;
+        sessionStorage.setItem("mySeatIndex:" + roomId, String(idx));
+      } catch (e) {
+        alert(e.message || "Gagal duduk.");
+      }
+    }
+
+    async function toggleMic(idx) {
+      try {
+        await runTransaction(db, async (tx) => {
+          const ref = seatRef(idx);
+          const snap = await tx.get(ref);
+          if (!snap.exists()) throw new Error("Kursi belum ada data.");
+          const d = snap.data();
+          if (d.uid !== me?.uid) throw new Error("Bukan kursi Anda.");
+          tx.update(ref, { micOn: !d.micOn, lastSeen: serverTimestamp() });
+        });
+      } catch (e) {
+        alert(e.message || "Gagal toggle mic.");
+      }
+    }
+
+    async function leaveSeat(idx) {
+      try {
+        await runTransaction(db, async (tx) => {
+          const ref = seatRef(idx);
+          const snap = await tx.get(ref);
+          if (!snap.exists()) return;
+          const d = snap.data();
+          // hanya tab pemilik kursi yang boleh melepas
+          if (d.uid === me?.uid && d.sessionKey === SESSION_KEY) {
+            tx.delete(ref);
+          }
+        });
+      } catch (e) {
+        // diamkan
+      } finally {
+        if (mySeatIndex === idx) {
+          mySeatIndex = null;
+          sessionStorage.removeItem("mySeatIndex:" + roomId);
+        }
+      }
+    }
+
+    // best-effort auto-lepas kursi saat tab tertutup/refresh
+    function setupAutoRelease() {
+      const release = async () => {
+        if (mySeatIndex != null) {
+          try {
+            const ref = seatRef(mySeatIndex);
+            const snap = await getDoc(ref);
+            const d = snap.exists() ? snap.data() : null;
+            if (d && d.uid === me?.uid && d.sessionKey === SESSION_KEY) {
+              await deleteDoc(ref);
+            }
+          } catch {}
+        }
+      };
+      window.addEventListener("pagehide", release);
+      window.addEventListener("beforeunload", release);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          // update lastSeen saja untuk jaga-jaga
+          if (mySeatIndex != null) updateDoc(seatRef(mySeatIndex), { lastSeen: serverTimestamp() }).catch(()=>{});
         }
       });
-    });
-  }
-
-  $("#leaveSeat").addEventListener("click", async ()=>{
-    if (CURRENT.roomId && CURRENT.mySeat!=null && CURRENT.me){
-      await standUp(CURRENT.roomId, CURRENT.mySeat, CURRENT.me.uid);
     }
-  });
-  $("#copyLink").addEventListener("click", async ()=>{
-    const url = location.href; await navigator.clipboard.writeText(url); toast("Link disalin: "+url, 1800);
-  });
-  $("#logoutBtn").addEventListener("click", async ()=>{
-    try{ await signOut(auth); location.href="index.html"; }catch{ toast("Gagal logout"); }
-  });
 
-  // ========================= Bootstrap =========================
-  makeSeats(); bindSeatClicks();
+    // ----------------- Event Delegation -----------------
+    seatsGrid.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const idx = Number(btn.dataset.idx);
+      if (btn.classList.contains("btn-sit")) sitDown(idx);
+      if (btn.classList.contains("btn-leave")) leaveSeat(idx);
+      if (btn.classList.contains("btn-mic")) toggleMic(idx);
+    });
 
-  onAuthStateChanged(auth, async (user)=>{
-    if (!user){ location.href="index.html"; return; }
-    CURRENT.me = user;
-    $("#youPill").textContent = "Kamu: " + (user.displayName || user.email || user.uid.slice(0,6));
+    leaveMySeatBtn.addEventListener("click", () => {
+      if (mySeatIndex == null) return alert("Anda belum duduk.");
+      leaveSeat(mySeatIndex);
+    });
 
-    let askedId = getQuery("room");
-    const finalId = await ensureRoom(askedId, user.uid);
-    if (!finalId) return; // redirect
-    CURRENT.roomId = finalId;
-    $("#roomIdPill").textContent = "Room: " + CURRENT.roomId;
-
-    // host info
-    const roomRef = doc(db,"rooms",CURRENT.roomId);
-    onSnapshot(roomRef, (snap)=>{
-      const data = snap.data()||{};
-      CURRENT.hostUid = data.hostUid || null;
-      const hostLabel = data.hostUid ? (data.hostUid===user.uid?"Kamu":data.hostUid.slice(0,6)) : "—";
-      $("#hostPill").textContent = "Host: " + hostLabel;
-      if (!data.hostUid){
-        updateDoc(roomRef,{ hostUid:user.uid }).catch(()=>{});
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        // lepas kursi dulu kalau ada
+        if (mySeatIndex != null) await leaveSeat(mySeatIndex);
+      } finally {
+        await signOut(auth);
+        location.href = "index.html";
       }
     });
 
-    await ensurePeerDoc();
-    subscribeInbox();
-    listenSeats(CURRENT.roomId, user.uid);
-  });
+    // ----------------- Auth & Live Seats -----------------
+    function startListeningSeats() {
+      // buat grid seat
+      seatsGrid.innerHTML = "";
+      for (let i = 0; i < NUM_SEATS; i++) seatsGrid.appendChild(makeSeatCard(i));
 
-  // Bersih saat keluar tab
-  window.addEventListener("beforeunload", async ()=>{
-    try{
-      closeAllConnections();
-      if (CURRENT.roomId && CURRENT.mySeat!=null && CURRENT.me){
-        await standUp(CURRENT.roomId, CURRENT.mySeat, CURRENT.me.uid);
+      // pasang listener per kursi
+      unsubscribers.forEach(u => u());
+      unsubscribers = [];
+      for (let i = 0; i < NUM_SEATS; i++) {
+        const un = onSnapshot(seatRef(i), (snap) => {
+          renderSeat(i, snap.exists() ? snap.data() : null);
+        });
+        unsubscribers.push(un);
       }
-      // hapus surat2 kadaluarsa di inbox-ku (optional, aman dilewati)
-      // (dilewati demi kesederhanaan)
-    }catch{}
-  });
-</script>
+
+      // restore kursi saya jika reload
+      const saved = sessionStorage.getItem("mySeatIndex:" + roomId);
+      mySeatIndex = saved != null ? Number(saved) : null;
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        location.href = "index.html";
+        return;
+      }
+      me = user;
+      startListeningSeats();
+      setupAutoRelease();
+    });
+  </script>
 </body>
 </html>
