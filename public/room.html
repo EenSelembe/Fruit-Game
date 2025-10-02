@@ -1,0 +1,457 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Room – Voice Chat</title>
+  <!--
+    IMPORTANT NOTE
+    ——————————————————————————————————————————————————————————————————
+    Ini UI bergaya “HelloYo‑style” (terinspirasi), BUKAN replika 1:1 aset/brand.
+    Hindari logo, ikon, dan aset berhak cipta HelloYo agar aman secara legal.
+    Fungsional: kursi (seat) klik untuk duduk/berbicara, chat teks, mic toggle,
+    multi‑user audio P2P (mesh) via WebRTC + Firebase Firestore signaling.
+  -->
+  <style>
+    :root{
+      --bg1:#0a0e1a; --bg2:#0b1022; --card:#0f1430; --line:#222a55;
+      --accent:#6ee7ff; --accent2:#a78bfa; --text:#e6f0ff; --muted:#9ab0d6;
+      --danger:#ff4d6d; --ok:#34d399; --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:radial-gradient(1200px 600px at 50% -10%, #16214a 0%, #0a0e1a 60%);color:var(--text);font:500 15px/1.5 system-ui,Segoe UI,Roboto,Arial}/* Top App Bar */
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(20,26,54,.9),rgba(12,16,36,.7));backdrop-filter:blur(8px)}
+.iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid #1d2550;background:#0c1230;color:#dfe8ff;display:inline-grid;place-items:center;cursor:pointer}
+.roomtitle{font-weight:800;letter-spacing:.3px}
+.sub{color:var(--muted);font-size:12px}
+.idpill{margin-left:auto;border:1px dashed #3552a0;background:#081132;border-radius:999px;padding:6px 10px;font-family:ui-monospace,Menlo,Consolas}
+
+/* Layout */
+.wrap{display:grid;grid-template-columns:1fr 320px;gap:12px;padding:12px;min-height:calc(100vh - 58px)}
+.stage{border:1px solid var(--line);background:linear-gradient(180deg,#0d1332,#0b1230);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:14px}
+.side{border:1px solid var(--line);background:linear-gradient(180deg,#0d1332,#0b1230);border-radius:16px;padding:14px;display:flex;flex-direction:column}
+@media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+
+/* Seats grid (Hello‑style) */
+.seats{display:grid;grid-template-columns:repeat(3, 140px);gap:18px;justify-content:center;padding:12px}
+@media (max-width: 520px){ .seats{grid-template-columns:repeat(3, 100px);gap:12px} }
+
+.seat{width:140px;height:170px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.avatar{width:108px;height:108px;border-radius:50%;position:relative;display:grid;place-items:center;background:linear-gradient(180deg,#0f1638,#0a1130);border:2px solid #27306a;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.avatar .ring{position:absolute;inset:-3px;border-radius:50%;border:3px solid transparent;background:conic-gradient(from 180deg at 50% 50%, var(--accent), var(--accent2));-webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:3px;opacity:.25;transition:.25s}
+.avatar.speaking .ring{opacity:1}
+.avatar .mic{position:absolute;right:6px;bottom:6px;background:#0b1230;border:1px solid #2b3574;border-radius:999px;padding:4px 6px;font-size:12px}
+.avatar .host{position:absolute;left:6px;top:6px;font-size:13px;background:#281a0e;border:1px solid #7a4d1a;color:#ffd48a;border-radius:999px;padding:2px 6px}
+
+.seat .name{font-weight:700;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seat .role{font-size:12px;color:var(--muted)}
+.seat.empty .avatar{border-style:dashed;opacity:.7}
+.seat.empty .name{color:var(--muted)}
+
+/* Bottom controls */
+.controls{display:flex;gap:12px;justify-content:center;align-items:center;padding:6px}
+.ctrl{display:grid;place-items:center;width:60px;height:60px;border-radius:16px;border:1px solid #243162;background:#0b1230;cursor:pointer}
+.ctrl.big{width:74px;height:74px;border:2px solid #3758a6}
+.ctrl.danger{border-color:#5a1d2e;background:linear-gradient(180deg,#231016,#2a0d1a)}
+
+/* Chat side */
+.chatlog{flex:1;overflow:auto;border:1px solid #233167;background:#0a112e;border-radius:12px;padding:10px}
+.msg{margin:6px 0}
+.msg .who{font-weight:700}
+.msg .time{font-size:11px;color:#9fb3d8;margin-left:6px}
+.footer{display:flex;gap:8px;margin-top:8px}
+input,button{border-radius:12px;border:1px solid #2a3562;background:#0c1332;color:#e9f1ff;padding:10px 12px}
+button{cursor:pointer}
+
+/* Status footer */
+.status{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:8px 6px;color:var(--muted)}
+.pill{border:1px solid #2f3a6a;background:#0a133a;border-radius:999px;padding:4px 10px}
+
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <button class="iconbtn" id="backBtn" title="Kembali">⟵</button>
+    <div>
+      <div class="roomtitle" id="roomTitle">Voice Room</div>
+      <div class="sub"><span id="onlineCount">0</span> online • host <span id="hostName">—</span></div>
+    </div>
+    <div class="idpill" id="roomIdPill">ID: —</div>
+  </header>  <main class="wrap">
+    <!-- Stage: seats + bottom controls  -->
+    <section class="stage">
+      <div class="seats" id="seats">
+        <!-- 9 seats layout (center is seat5) -->
+        <!-- seat1 seat2 seat3 -->
+        <!-- seat4 seat5 seat6 -->
+        <!-- seat7 seat8 seat9 -->
+      </div>
+      <div class="controls">
+        <div class="ctrl" id="giftBtn" title="Gifts">🎁</div>
+        <div class="ctrl big" id="micBtn" title="Mic">🎙️</div>
+        <div class="ctrl" id="chatBtn" title="Chat">💬</div>
+      </div>
+      <div class="status">
+        <div>
+          <span class="pill" id="lockState">Unlocked</span>
+          <span class="pill" id="seatState">Seat: none</span>
+        </div>
+        <div id="statusText">Idle</div>
+      </div>
+    </section><!-- Chat side -->
+<aside class="side">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="font-weight:800">Room Chat</div>
+    <div class="pill" id="meName">Guest</div>
+  </div>
+  <div class="chatlog" id="chatLog"></div>
+  <div class="footer">
+    <input id="chatInput" placeholder="Ketik pesan…" />
+    <button id="sendBtn">Kirim</button>
+  </div>
+</aside>
+
+  </main>  <script type="module">
+    // ===== Firebase v10 SDKs =====
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, addDoc, onSnapshot, collection, serverTimestamp, query, orderBy, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+    // ===== CONFIG (ISI DENGAN PUNYA KAMU) =====
+    const firebaseConfig = {
+      apiKey: "PASTE_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ===== Elements =====
+    const $ = (id)=>document.getElementById(id);
+    const seatsEl = $("seats");
+    const roomIdPill = $("roomIdPill");
+    const onlineCountEl = $("onlineCount");
+    const hostNameEl = $("hostName");
+    const statusText = $("statusText");
+    const seatState = $("seatState");
+    const lockState = $("lockState");
+    const micBtn = $("micBtn");
+    const chatLog = $("chatLog");
+    const chatInput = $("chatInput");
+    const meNamePill = $("meName");
+
+    // ===== State =====
+    let me = { uid:null, name:null };
+    let currentRoomId = null;
+    let isHost = false;
+    let mySeat = null; // 1..9 or null
+    let micOn = false;
+
+    // WebRTC Mesh state
+    const rtcConfig = {
+      iceServers: [ { urls:["stun:stun.l.google.com:19302","stun:global.stun.twilio.com:3478"] } ]
+    };
+    const pcs = new Map(); // pairId -> RTCPeerConnection
+    const remoteAudios = new Map(); // pairId -> <audio>
+    let localStream = null;
+
+    async function ensureMedia(){
+      if(localStream) return localStream;
+      localStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+      // mic default OFF
+      localStream.getAudioTracks().forEach(t=> t.enabled = false);
+      return localStream;
+    }
+
+    function pairIdOf(a,b){ return [a,b].sort().join('_'); }
+
+    function addRemoteAudio(pairId, stream){
+      let el = remoteAudios.get(pairId);
+      if(!el){ el = document.createElement('audio'); el.autoplay = true; el.controls = true; document.body.appendChild(el); remoteAudios.set(pairId, el); }
+      el.srcObject = stream;
+    }
+
+    function closePair(pairId){
+      const pc = pcs.get(pairId); if(pc){ pc.onicecandidate=null; pc.ontrack=null; try{pc.close();}catch(_){} pcs.delete(pairId); }
+      const a = remoteAudios.get(pairId); if(a){ a.remove(); remoteAudios.delete(pairId); }
+    }
+
+    // ===== UI Seats =====
+    const TOTAL_SEATS = 9; // seat5 = center (host)
+
+    function seatTemplate(i){
+      const isCenter = i===5;
+      const el = document.createElement('div'); el.className='seat empty'; el.id = `seat${i}`;
+      el.innerHTML = `
+        <div class="avatar" data-seat="${i}">
+          <div class="ring"></div>
+          ${isCenter? '<div class="host">👑 Host</div>':''}
+          <div class="mic">🔇</div>
+        </div>
+        <div class="name">Kursi ${i}</div>
+        <div class="role">${isCenter? 'Stage':'Tap untuk duduk'}</div>`;
+      el.addEventListener('click',()=>onSeatClick(i));
+      return el;
+    }
+
+    function renderSeats(snapshot){
+      seatsEl.innerHTML = '';
+      const data = snapshot || {};
+      for(let i=1;i<=TOTAL_SEATS;i++){
+        const sdata = data['seat'+i] || null;
+        const el = seatTemplate(i);
+        if(sdata && sdata.occupiedBy){
+          el.classList.remove('empty');
+          el.querySelector('.name').textContent = sdata.name || ('User ' + sdata.occupiedBy.slice(0,5));
+          const micBadge = el.querySelector('.mic');
+          micBadge.textContent = sdata.mic? '🎙️' : '🔇';
+          if(sdata.mic) el.querySelector('.avatar').classList.add('speaking');
+        }
+        seatsEl.appendChild(el);
+      }
+    }
+
+    async function onSeatClick(i){
+      if(!currentRoomId) return;
+      const seatRef = doc(db,'rooms',currentRoomId,'seats','seat'+i);
+      try{
+        await runTransaction(db, async (tx)=>{
+          const snap = await tx.get(seatRef);
+          const data = snap.exists()? snap.data(): {};
+          // Center seat reserved for host
+          if(i===5 && !isHost) throw new Error('Kursi host hanya untuk host');
+
+          if(!data.occupiedBy){
+            // If I already seated somewhere, free it first
+            if(mySeat && mySeat!==i){
+              const prevRef = doc(db,'rooms',currentRoomId,'seats','seat'+mySeat);
+              tx.delete(prevRef);
+            }
+            tx.set(seatRef, { occupiedBy: me.uid, name: me.name, mic: micOn, ts: serverTimestamp() });
+            mySeat = i;
+          } else if(data.occupiedBy === me.uid){
+            // stand up
+            tx.delete(seatRef);
+            mySeat = null;
+          } else {
+            throw new Error('Kursi sudah ditempati');
+          }
+        });
+        seatState.textContent = 'Seat: ' + (mySeat? mySeat:'none');
+      }catch(err){ alert(err.message); }
+    }
+
+    // ===== Chat =====
+    function addMsg({who,text,ts}){
+      const div = document.createElement('div'); div.className='msg';
+      const t = new Date(ts||Date.now()).toLocaleTimeString();
+      div.innerHTML = `<span class="who">${who}</span> <span class="time">${t}</span><div>${text}</div>`;
+      chatLog.appendChild(div); chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    async function sendMsg(){
+      if(!currentRoomId) return;
+      const text = chatInput.value.trim(); if(!text) return;
+      await addDoc(collection(db,'rooms',currentRoomId,'messages'), { who: me.name, text, ts: Date.now(), uid: me.uid });
+      chatInput.value = '';
+    }
+
+    // ===== Presence & listeners =====
+    let unsubSeats=null, unsubRoom=null, unsubMsg=null, unsubParticipants=null, unsubMesh=null;
+
+    function listenRoom(){
+      const rref = doc(db,'rooms',currentRoomId);
+      unsubRoom = onSnapshot(rref, (snap)=>{
+        if(!snap.exists()) return; const d = snap.data();
+        hostNameEl.textContent = d.hostName || '—';
+        lockState.textContent = d.locked? 'Locked':'Unlocked';
+      });
+    }
+
+    function listenSeats(){
+      const seatsRef = collection(db,'rooms',currentRoomId,'seats');
+      unsubSeats = onSnapshot(seatsRef, (snap)=>{
+        const all = {}; snap.forEach(docu=>{ all[docu.id] = docu.data(); });
+        renderSeats(all);
+        // Recompute online count via participants listener instead (more accurate)
+      });
+    }
+
+    function listenMessages(){
+      const qref = query(collection(db,'rooms',currentRoomId,'messages'), orderBy('ts','asc'));
+      unsubMsg = onSnapshot(qref, (snap)=>{ chatLog.innerHTML=''; snap.forEach(d=> addMsg(d.data())); });
+    }
+
+    function listenParticipants(){
+      const pref = collection(db,'rooms',currentRoomId,'participants');
+      unsubParticipants = onSnapshot(pref, (snap)=>{ onlineCountEl.textContent = snap.size; });
+    }
+
+    // ===== Mesh Signaling (pair‑wise) =====
+    const connectedPairs = new Set();
+
+    async function ensureLocalTrack(){ await ensureMedia(); return localStream.getAudioTracks()[0]; }
+
+    async function buildOffer(aUid, bUid){
+      const pairId = pairIdOf(aUid,bUid);
+      if(pcs.has(pairId)) return; // already exists
+      const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
+      pc.ontrack = (ev)=>{ addRemoteAudio(pairId, ev.streams[0]); };
+      pc.onicecandidate = async (e)=>{
+        if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), JSON.parse(JSON.stringify(e.candidate))); }
+      };
+
+      const track = await ensureLocalTrack();
+      pc.addTrack(track, localStream);
+      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+
+      await setDoc(doc(db,'rooms',currentRoomId,'mesh',pairId), { aUid, bUid, offer: JSON.parse(JSON.stringify(offer)), createdAt: serverTimestamp() }, { merge:true });
+
+      // Wait for answer
+      onSnapshot(doc(db,'rooms',currentRoomId,'mesh',pairId), async (snap)=>{
+        const d = snap.data(); if(d?.answer && !pc.currentRemoteDescription){
+          await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
+        }
+      });
+
+      // Listen ICE from B
+      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), (col)=>{
+        col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); } });
+      });
+    }
+
+    async function buildAnswer(pairId){
+      if(pcs.has(pairId)) return;
+      const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
+      pc.ontrack = (ev)=>{ addRemoteAudio(pairId, ev.streams[0]); };
+      pc.onicecandidate = async (e)=>{
+        if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), JSON.parse(JSON.stringify(e.candidate))); }
+      };
+
+      const docRef = doc(db,'rooms',currentRoomId,'mesh',pairId);
+      const snap = await getDoc(docRef); const d = snap.data(); if(!d?.offer) return;
+
+      await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
+      const track = await ensureLocalTrack(); pc.addTrack(track, localStream);
+      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+      await updateDoc(docRef, { answer: JSON.parse(JSON.stringify(answer)) });
+
+      // Listen ICE from A
+      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), (col)=>{
+        col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); } });
+      });
+    }
+
+    function listenMesh(){
+      const mref = collection(db,'rooms',currentRoomId,'mesh');
+      unsubMesh = onSnapshot(mref, async (snap)=>{
+        const peers = [];
+        snap.forEach(d=>{ const x=d.data(); if(!x.aUid||!x.bUid) return; if(x.aUid===me.uid||x.bUid===me.uid) peers.push({id:d.id,...x}); });
+        for(const p of peers){
+          const pairId = p.id; const [minUid,maxUid] = pairId.split('_');
+          if(minUid===me.uid){ // I am A → caller
+            if(!pcs.has(pairId)) await buildOffer(minUid,maxUid);
+          } else if(maxUid===me.uid){ // I am B → callee
+            if(p.offer && !p.answer && !pcs.has(pairId)) await buildAnswer(pairId);
+          }
+        }
+      });
+    }
+
+    // Create mesh links when seated peers change
+    async function meshForSeated(){
+      if(!currentRoomId) return;
+      // Collect list of seated UIDs
+      const seatsSnap = await onSnapshot(collection(db,'rooms',currentRoomId,'seats'), ()=>{});
+    }
+
+    // ===== Room lifecycle (create/join) =====
+    async function createRoom(){
+      const rref = doc(collection(db,'rooms'));
+      currentRoomId = rref.id; isHost = true;
+      await setDoc(rref, { createdBy: me.uid, hostName: me.name, locked:false, createdAt: serverTimestamp() });
+      roomIdPill.textContent = 'ID: ' + currentRoomId;
+      // auto set seat5 for host
+      await setDoc(doc(db,'rooms',currentRoomId,'seats','seat5'), { occupiedBy: me.uid, name: me.name, mic:false, ts: serverTimestamp() });
+      mySeat = 5; seatState.textContent = 'Seat: 5';
+      afterJoin();
+    }
+
+    async function joinRoom(id){
+      const rref = doc(db,'rooms',id); const s = await getDoc(rref);
+      if(!s.exists()) return alert('Room tidak ditemukan');
+      currentRoomId = id; isHost = false; roomIdPill.textContent = 'ID: ' + id;
+      afterJoin();
+    }
+
+    async function afterJoin(){
+      // presence
+      await setDoc(doc(db,'rooms',currentRoomId,'participants',me.uid), { uid:me.uid, name:me.name, ts: serverTimestamp() }, { merge:true });
+      listenRoom(); listenSeats(); listenMessages(); listenParticipants(); listenMesh();
+      statusText.textContent = 'Connected';
+    }
+
+    async function leaveRoom(){
+      try{
+        if(currentRoomId){
+          // free my seat
+          if(mySeat){ await deleteDoc(doc(db,'rooms',currentRoomId,'seats','seat'+mySeat)); mySeat=null; }
+          await deleteDoc(doc(db,'rooms',currentRoomId,'participants',me.uid));
+        }
+      }catch(_){ }
+      if(unsubSeats) unsubSeats(); if(unsubRoom) unsubRoom(); if(unsubMsg) unsubMsg(); if(unsubParticipants) unsubParticipants(); if(unsubMesh) unsubMesh();
+      unsubSeats=unsubRoom=unsubMsg=unsubParticipants=unsubMesh=null;
+      for(const k of Array.from(pcs.keys())) closePair(k);
+      currentRoomId=null; statusText.textContent='Left'; roomIdPill.textContent='ID: —';
+    }
+
+    // ===== Build mesh links from current seated users (simple approach) =====
+    async function rebuildMeshLinks(){
+      if(!currentRoomId) return;
+      const col = collection(db,'rooms',currentRoomId,'seats');
+      let seated = [];
+      await new Promise((res)=>{
+        const unsub = onSnapshot(col, (snap)=>{ seated = []; snap.forEach(d=>{ const x=d.data(); if(x.occupiedBy) seated.push(x.occupiedBy); }); res(); unsub(); });
+      });
+      seated = Array.from(new Set(seated));
+      // For every other seated user, create a mesh doc pairId (only once globally)
+      for(const uid of seated){ if(uid===me.uid) continue; const pairId = pairIdOf(me.uid, uid); await setDoc(doc(db,'rooms',currentRoomId,'mesh',pairId), { aUid: pairId.split('_')[0], bUid: pairId.split('_')[1], createdAt: serverTimestamp() }, { merge:true }); }
+    }
+
+    // ===== Auth flow =====
+    function getQuery(id){ return new URL(location.href).searchParams.get(id); }
+
+    onAuthStateChanged(auth, async (u)=>{
+      if(!u){ await signInAnonymously(auth); return; }
+      me.uid = u.uid; me.name = u.displayName || ('Guest-'+u.uid.slice(0,5)); meNamePill.textContent = me.name;
+
+      // Room by URL param ?id=xxxxx else create new
+      const rid = getQuery('id');
+      if(rid) await joinRoom(rid); else await createRoom();
+    });
+
+    // ===== Controls =====
+    $("backBtn").onclick = ()=>{ leaveRoom(); history.back(); };
+
+    $("micBtn").onclick = async ()=>{
+      if(!mySeat) return alert('Duduk di kursi dulu untuk menyalakan mic');
+      await ensureMedia();
+      micOn = !micOn; localStream.getAudioTracks().forEach(t=> t.enabled = micOn);
+      micBtn.textContent = micOn? '🎙️' : '🔇';
+      statusText.textContent = micOn? 'Mic ON' : 'Mic OFF';
+      // update seat state
+      await setDoc(doc(db,'rooms',currentRoomId,'seats','seat'+mySeat), { mic: micOn }, { merge:true });
+      // rebuild mesh links so newcomers connect
+      await rebuildMeshLinks();
+    };
+
+    $("chatBtn").onclick = ()=>{ chatInput.focus(); };
+    $("sendBtn").onclick = sendMsg; chatInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') sendMsg(); });
+
+    window.addEventListener('beforeunload', leaveRoom);
+  </script></body>
+</html>
