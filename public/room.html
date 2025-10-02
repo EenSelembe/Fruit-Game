@@ -2,7 +2,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Room – Voice Chat</title>
+  <title>Room – Voice Chat (Debug)</title>
   <style>
     body {margin:0; font-family:Arial, sans-serif; background:#0a0e1a; color:#fff;}
     h2 {text-align:center; margin:16px 0 6px}
@@ -24,6 +24,12 @@
 .btn{border:1px solid #2a3562;background:#0c1332;color:#e9f1ff;padding:8px 12px;border-radius:10px;cursor:pointer}
 .btn.on{border-color:#34d399}
 
+/* Debug panel */
+#dbg{display:none;position:fixed;right:8px;bottom:8px;width:min(92vw,480px);max-height:46vh;overflow:auto;background:#0b122e;border:1px solid #2a3a6a;border-radius:10px;padding:8px 10px;font:12px/1.45 ui-monospace,Menlo,Consolas;color:#d7e3ff;z-index:99999}
+#dbg .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#dbg button{border:1px solid #31407a;background:#0d1540;color:#eaf1ff;border-radius:6px;padding:2px 8px;cursor:pointer}
+#dbg pre{white-space:pre-wrap;margin:0}
+
   </style>
 </head>
 <body>
@@ -32,12 +38,23 @@
   <div id="status" class="info" style="margin-top:6px"></div>
   <div class="controls">
     <button id="micBtn" class="btn">🎙️ Mic OFF</button>
+    <button id="resumeBtn" class="btn" title="Paksa play semua audio">▶️ Resume Audio</button>
   </div>
   <div class="seats" id="seats"></div>
-  <div id="errBanner"></div>  <script type="module">
-    // ==== Helpers UI ====
-    function showStatus(msg){ const el = document.getElementById('status'); if(el) el.textContent = msg; }
-    function showError(msg){ const el = document.getElementById('errBanner'); if(!el) return; el.textContent = 'Error: ' + msg; el.style.display='block'; console.error(msg); }
+  <div id="errBanner"></div>
+  <div id="dbg"><div class="head"><b>Debug Log</b><div><button id="clearDbg">Clear</button></div></div><pre id="dbgLog"></pre></div>  <script type="module">
+    // ==== Debug helpers ====
+    const DEBUG = location.hash.includes('log');
+    const dbgEl = document.getElementById('dbg');
+    const dbgLogEl = document.getElementById('dbgLog');
+    if(DEBUG){ dbgEl.style.display='block'; }
+    function dlog(...args){ console.log('[DBG]', ...args); if(!DEBUG) return; dbgLogEl.textContent += args.map(a=> typeof a==='string'? a : JSON.stringify(a)).join(' ') + '
+'; dbgEl.scrollTop = dbgEl.scrollHeight; }
+    document.getElementById('clearDbg').onclick = ()=>{ dbgLogEl.textContent=''; };
+
+    // ==== UI helpers ====
+    function showStatus(msg){ const el = document.getElementById('status'); if(el) el.textContent = msg; dlog('STATUS:', msg); }
+    function showError(msg){ const el = document.getElementById('errBanner'); if(!el) return; el.textContent = 'Error: ' + msg; el.style.display='block'; console.error(msg); dlog('ERROR:', msg); }
 
     // ==== Firebase ====
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
@@ -63,6 +80,7 @@
     const roomIdEl = document.getElementById("roomId");
     const copyBtn = document.getElementById("copyBtn");
     const micBtn = document.getElementById("micBtn");
+    const resumeBtn = document.getElementById("resumeBtn");
 
     // ==== State ====
     const TOTAL_SEATS = 9;
@@ -198,7 +216,9 @@
     async function ensureMedia(){
       if(localStream) return localStream;
       try{
-        localStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+        dlog('getUserMedia OK. tracks=', stream.getTracks().map(t=>({kind:t.kind,enabled:t.enabled,ready:t.readyState})));
+        localStream = stream;
         // default OFF
         localStream.getAudioTracks().forEach(t=> t.enabled = false);
         return localStream;
@@ -206,13 +226,17 @@
     }
 
     function addRemoteAudio(pairId, stream){
+      dlog('ontrack -> pair', pairId, 'streams:', stream.getTracks().length);
       let el = audioEls.get(pairId);
-      if(!el){ el = document.createElement('audio'); el.autoplay = true; el.controls = true; document.body.appendChild(el); audioEls.set(pairId, el); }
-      el.srcObject = stream; el.play().catch(()=>{});
+      if(!el){ el = document.createElement('audio'); el.autoplay = true; el.controls = true; el.playsInline = true; el.setAttribute('playsinline',''); el.muted = false; el.volume = 1.0; document.body.appendChild(el); audioEls.set(pairId, el); }
+      el.srcObject = stream;
+      const play = ()=> el.play().then(()=> dlog('audio.play OK for', pairId)).catch(err=> dlog('audio.play blocked for', pairId, err.message||err));
+      play();
     }
     function closePair(pairId){
       const pc = pcs.get(pairId); if(pc){ try{pc.close();}catch(_){} pcs.delete(pairId); }
       const el = audioEls.get(pairId); if(el){ el.remove(); audioEls.delete(pairId); }
+      dlog('closed pair', pairId);
     }
 
     async function ensureLocalTrack(){ await ensureMedia(); return localStream.getAudioTracks()[0]; }
@@ -221,30 +245,29 @@
 
     async function ensureOffer(pairId){
       if(pcs.has(pairId)) return;
+      dlog('ensureOffer for', pairId);
       const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
       pc.ontrack = (ev)=> addRemoteAudio(pairId, ev.streams[0]);
-      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), JSON.parse(JSON.stringify(e.candidate))); } };
-      const track = await ensureLocalTrack(); pc.addTrack(track, localStream);
-      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), JSON.parse(JSON.stringify(e.candidate))); dlog('ICE A ->', pairId); } };
+      const track = await ensureLocalTrack(); pc.addTrack(track, localStream); dlog('addTrack(A)');
+      const offer = await pc.createOffer(); await pc.setLocalDescription(offer); dlog('setLocalDescription(offer)');
       await setDoc(doc(db,'rooms',currentRoomId,'mesh',pairId), { aUid: pairId.split('_')[0], bUid: pairId.split('_')[1], offer: JSON.parse(JSON.stringify(offer)), createdAt: serverTimestamp() }, { merge:true });
-      // wait for answer
-      onSnapshot(doc(db,'rooms',currentRoomId,'mesh',pairId), async (snap)=>{ const d=snap.data(); if(d?.answer && !pc.currentRemoteDescription){ await pc.setRemoteDescription(new RTCSessionDescription(d.answer)); } });
-      // read ICE from B
-      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); } }); });
+      onSnapshot(doc(db,'rooms',currentRoomId,'mesh',pairId), async (snap)=>{ const d=snap.data(); if(d?.answer && !pc.currentRemoteDescription){ await pc.setRemoteDescription(new RTCSessionDescription(d.answer)); dlog('setRemoteDescription(answer) for', pairId); } });
+      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); dlog('ICE from B applied', pairId); } }); });
     }
 
     async function ensureAnswer(pairId){
       if(pcs.has(pairId)) return;
       const docRef = doc(db,'rooms',currentRoomId,'mesh',pairId); const snap = await getDoc(docRef); const d = snap.data(); if(!d?.offer) return; // wait for offer
+      dlog('ensureAnswer for', pairId);
       const pc = new RTCPeerConnection(rtcConfig); pcs.set(pairId, pc);
       pc.ontrack = (ev)=> addRemoteAudio(pairId, ev.streams[0]);
-      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), JSON.parse(JSON.stringify(e.candidate))); } };
-      await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-      const track = await ensureLocalTrack(); pc.addTrack(track, localStream);
-      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+      pc.onicecandidate = async (e)=>{ if(e.candidate){ await addDoc(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_b'), JSON.parse(JSON.stringify(e.candidate))); dlog('ICE B ->', pairId); } };
+      await pc.setRemoteDescription(new RTCSessionDescription(d.offer)); dlog('setRemoteDescription(offer)');
+      const track = await ensureLocalTrack(); pc.addTrack(track, localStream); dlog('addTrack(B)');
+      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); dlog('setLocalDescription(answer)');
       await updateDoc(docRef, { answer: JSON.parse(JSON.stringify(answer)) });
-      // read ICE from A
-      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); } }); });
+      onSnapshot(collection(db,'rooms',currentRoomId,'mesh',pairId,'ice_a'), (col)=>{ col.docChanges().forEach(c=>{ if(c.type==='added'){ pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); dlog('ICE from A applied', pairId); } }); });
     }
 
     function listenMesh(){
@@ -266,9 +289,8 @@
       }
       const others = new Set();
       for(let k=1;k<=TOTAL_SEATS;k++){ const uid = latestSeating[String(k)]; if(uid && uid!==me.uid) others.add(uid); }
-      // buat pair doc untuk setiap peer yang diperlukan
+      dlog('rebuildMesh -> peers', Array.from(others));
       for(const uid of others){ const pid = pairIdOf(me.uid, uid); await setDoc(doc(db,'rooms',currentRoomId,'mesh',pid), { aUid: pid.split('_')[0], bUid: pid.split('_')[1], createdAt: serverTimestamp() }, { merge:true }); }
-      // tutup koneksi yang tidak perlu
       for(const pid of Array.from(pcs.keys())){
         const [a,b] = pid.split('_'); const peer = (a===me.uid)? b : (b===me.uid? a : null);
         if(peer && !others.has(peer)) closePair(pid);
@@ -283,7 +305,7 @@
           try{ await signInAnonymously(auth); return; }
           catch(e){ showError('Login anonymous gagal. Aktifkan Anonymous di Firebase Auth, atau login di home.html. ('+ (e.code||e.message) +')'); return; }
         }
-        me.uid = user.uid; showStatus('Akun: '+me.uid.slice(0,6)+'…');
+        me.uid = user.uid; showStatus('Akun: '+me.uid.slice(0,6)+'…'); dlog('UID', me.uid);
         const prof = await fetchUserProfile(me.uid); me.name = prof.name;
 
         const rid = getQuery('id');
@@ -313,14 +335,20 @@
         await ensureMedia();
         micOn = !micOn;
         localStream.getAudioTracks().forEach(t=> t.enabled = micOn);
+        dlog('Mic toggled ->', micOn);
         micBtn.classList.toggle('on', micOn);
         micBtn.textContent = micOn ? '🎙️ Mic ON' : '🎙️ Mic OFF';
         renderSeats(latestSeating);
-        // beberapa browser butuh interaksi user sebelum bisa play audio
-        for(const el of audioEls.values()){ try{ await el.play(); }catch(_){} }
+        for(const el of audioEls.values()){ try{ await el.play(); }catch(e){ dlog('resume play fail', e.message||e); } }
         rebuildMeshLinks();
       }catch(e){ showError(e.message||String(e)); }
     });
+
+    resumeBtn.addEventListener('click', async ()=>{
+      for(const el of audioEls.values()){ try{ await el.play(); }catch(e){ dlog('resume click play fail', e.message||e); } }
+    });
+
+    document.addEventListener('visibilitychange', async ()=>{ if(!document.hidden){ for(const el of audioEls.values()){ try{ await el.play(); }catch(_){} } } });
 
     window.addEventListener('error', (e)=> showError(e.error?.message || e.message));
     window.addEventListener('unhandledrejection', (e)=> showError(e.reason?.message || String(e.reason)) );
