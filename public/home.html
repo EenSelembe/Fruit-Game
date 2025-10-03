@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home - Fruit Game</title>
-  <!-- ⬇️ Tambahan: css notif -->
   <link rel="stylesheet" href="notif.css">
   <style>
     body {
@@ -25,8 +24,7 @@
       background: linear-gradient(90deg, gold, orange, red);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 
-                   0 0 20px rgba(255, 140, 0, 0.6);
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 140, 0, 0.6);
       animation: glow 2s infinite alternate;
     }
     @keyframes glow {
@@ -98,17 +96,10 @@
     .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
     .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }
     .dot.active { background: gold; }
-
-    /* animasi neon */
-    @keyframes neonAnim {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+    @keyframes neonAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
   </style>
 </head>
 <body>
-  <!-- ⬇️ Tambahan: container notif -->
   <div id="notifContainer"></div>
 
   <h1>FRUIT GAME</h1>
@@ -126,7 +117,6 @@
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
 
-  <!-- Card Games -->
   <div class="games-container" id="gamesContainer">
     <div class="game-card">
       <h2>Fruit Game</h2>
@@ -162,8 +152,7 @@
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, onSnapshot, collection, query, where, getCountFromServer } 
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -179,10 +168,9 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ✅ Fungsi hitung level baru
   function calcLevel(consumedSaldo) {
     let level = 0;
-    let nextNeed = 100000; // Level 1 butuh 100rb
+    let nextNeed = 100000;
     while (consumedSaldo >= nextNeed) {
       consumedSaldo -= nextNeed;
       level++;
@@ -194,23 +182,11 @@
   onAuthStateChanged(auth, (user) => {
     if (user) {
       const userRef = doc(db, "users", user.uid);
-      onSnapshot(userRef, async (snap) => {
+      onSnapshot(userRef, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
           const usernameEl = document.getElementById("username");
 
-          // hitung rank user
-          const usersRef = collection(db, "users");
-          const qAbove = query(usersRef, where("saldo", ">", data.saldo || 0));
-          const above = await getCountFromServer(qAbove);
-          const myRank = (above.data().count || 0) + 1;
-
-          let emblem = "";
-          if (myRank === 1) emblem = "🥇 ";
-          else if (myRank === 2) emblem = "🥈 ";
-          else if (myRank === 3) emblem = "🥉 ";
-
-          // background nickname
           let bg = data.bgColor || 'transparent';
           let extraAnim = '';
           if (data.bgGradient) {
@@ -218,56 +194,47 @@
             extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
           }
 
-          // border nickname
           let border = `1px solid ${data.borderColor || '#000'}`;
           let extraBorder = '';
           if (data.borderGradient) {
             const baseBg = data.bgColor || 'transparent';
             border = '3px solid transparent';
-            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient};
-                           background-origin: border-box;
-                           background-clip: padding-box, border-box;`;
+            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient}; background-origin: border-box; background-clip: padding-box, border-box;`;
           }
 
-          const style = `
-            color:${data.color || '#fff'};
-            background:${bg};
-            ${extraAnim}
-            border:${border};
-            ${extraBorder}
-          `;
+          const style = `color:${data.color || '#fff'}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;
 
-          // tampilkan nickname
-          usernameEl.innerHTML = `
-            <span class="nickname" style="${style}">
-              ${emblem}${data.name || data.username || "Anonim"}
-            </span>
-          `;
+          usernameEl.innerHTML = `<span class="nickname" style="${style}">${data.name || data.username || "Anonim"}</span>`;
 
-          // ganti UID ini dengan UID admin kamu
-const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
+          const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
+          const rpSpan = document.querySelector(".saldo-box span:first-child");
 
-if (user.uid === ADMIN_UID) {
-  // admin → saldo & level unlimited
-  document.getElementById("saldo").textContent = "∞";
-  document.getElementById("level").textContent = "∞";
-} else {
-  // user biasa
-  document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
-  document.getElementById("level").textContent = calcLevel(data.consumedSaldo || 0);
-}
+          if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+            if (rpSpan) rpSpan.style.display = "none";
+            document.getElementById("saldo").textContent = "∞";
+            document.getElementById("level").textContent = "∞";
+          } else {
+            if (rpSpan) rpSpan.style.display = "";
+            const saldoVal = typeof data.saldo === "number" ? data.saldo : 0;
+            const consumedVal = typeof data.consumedSaldo === "number" ? data.consumedSaldo : 0;
+            document.getElementById("saldo").textContent = saldoVal.toLocaleString("id-ID");
+            document.getElementById("level").textContent = calcLevel(consumedVal);
+          }
+        } else {
+          document.getElementById("username").textContent = "User tidak ditemukan";
+          document.getElementById("saldo").textContent = "0";
+          document.getElementById("level").textContent = "0";
+        }
       });
     } else {
       window.location.href = "index.html";
     }
   });
 
-  // logout
   document.getElementById("logoutBtn").addEventListener("click", () => {
     signOut(auth).then(() => window.location.href = "index.html");
   });
 
-  // dots indicator
   const gamesContainer = document.getElementById("gamesContainer");
   const dotsContainer = document.getElementById("dots");
   const cards = gamesContainer.querySelectorAll(".game-card");
@@ -286,29 +253,28 @@ if (user.uid === ADMIN_UID) {
     dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
   });
 </script>
+
 <div id="chatContainer"></div>
 <script type="module">
   fetch("chat.html")
     .then(r => r.text())
     .then(html => {
       document.getElementById("chatContainer").innerHTML = html;
-      import("./chat.js").then(mod => mod.initChat()); // ⬅️ ini yang kurang
+      import("./chat.js").then(mod => mod.initChat());
     });
 </script>
+
 <script type="module">
   import { initDM } from "./dm.js";
   initDM();
 </script>
 
-<!-- ⬇️ NOTIF GLOBAL: versi hemat (polling 60s, tanpa deleteDoc, hanya amount ≥ 1jt) -->
 <script type="module">
   import { showWinNotif } from "./notif.js";
-  import { getFirestore, collection, query, orderBy, limit, getDocs }
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  const db = getFirestore(); // gunakan default app yang sudah di-init di script sebelumnya
+  const db = getFirestore();
 
-  // Pastikan container ada (fallback kalau elemen belum ada)
   if (!document.getElementById('notifContainer')) {
     const el = document.createElement('div');
     el.id = 'notifContainer';
@@ -318,22 +284,18 @@ if (user.uid === ADMIN_UID) {
   const LS_KEY = "notif:lastId";
   let lastId = localStorage.getItem(LS_KEY) || null;
   let firstPoll = true;
-  const INTERVAL_MS = 60000;           // 60 detik (hemat)
-  const TTL_FALLBACK_MS = 5 * 60 * 1000; // 5 menit (jaga-jaga kalau belum set expiredAt)
+  const INTERVAL_MS = 60000;
+  const TTL_FALLBACK_MS = 5 * 60 * 1000;
 
   function isExpired(d) {
     const now = Date.now();
-    if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') {
-      return d.expiredAt.toMillis() <= now;
-    }
-    if (d?.createdAt && typeof d.createdAt.toMillis === 'function') {
-      return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
-    }
+    if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') return d.expiredAt.toMillis() <= now;
+    if (d?.createdAt && typeof d.createdAt.toMillis === 'function') return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;
     return false;
   }
 
   async function pollNotifs() {
-    if (document.hidden) return; // skip saat tab tidak aktif (hemat)
+    if (document.hidden) return;
     try {
       const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));
       const snap = await getDocs(qNotifs);
@@ -342,7 +304,6 @@ if (user.uid === ADMIN_UID) {
       const docu = snap.docs[0];
       const data = docu.data();
 
-      // Lewati histori pada load awal
       if (firstPoll) {
         firstPoll = false;
         lastId = docu.id;
@@ -350,25 +311,20 @@ if (user.uid === ADMIN_UID) {
         return;
       }
 
-      // Sudah ditampilkan
       if (docu.id === lastId) return;
 
       const name = String(data?.nickname || "Player");
       const amount = Number(data?.amount || 0);
 
-      // Tampilkan hanya jika ≥ 1jt dan belum expired
       if (amount >= 1000000 && !isExpired(data)) {
         showWinNotif(name, amount);
       }
 
       lastId = docu.id;
       localStorage.setItem(LS_KEY, lastId);
-    } catch (e) {
-      // diamkan agar UX tidak terganggu
-    }
+    } catch (e) {}
   }
 
-  // jalan pertama + interval
   pollNotifs();
   setInterval(pollNotifs, INTERVAL_MS);
   document.addEventListener("visibilitychange", () => {
@@ -376,4 +332,4 @@ if (user.uid === ADMIN_UID) {
   });
 </script>
 </body>
-  </html>
+</html>
