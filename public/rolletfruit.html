@@ -215,7 +215,7 @@
     if(historyDiv.children.length>6)historyDiv.removeChild(historyDiv.firstChild);
   }
 
-  const multiplierChances={5:40,6:20,7:10,8:8,9:6,10:5,30:4,50:4,99:3};
+  const multiplierChances={5:50,6:30,7:15,8:10,9:8,10:5,20:4,30:3,50:2,99:1};
   function weightedRandom(chances){
     const total=Object.values(chances).reduce((a,b)=>a+b,0);
     let r=Math.random()*total;
