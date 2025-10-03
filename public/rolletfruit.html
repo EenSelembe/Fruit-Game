@@ -272,7 +272,7 @@
           setSaldo(saldo+win);
           if(win>=NOTIF_THRESHOLD){
             window.showWinNotif(nickname,win);
-            addDoc(collection(db,"notifs"),{nickname:nickname,amount:win,createdAt:serverTimestamp()}).catch(()=>{});
+            addDoc(collection(db,"notifs"),{nickname:nickname,amount:win,uid:userId,createdAt:serverTimestamp()}).catch(()=>{});
           }
           recordWinRolet(win);
         }
@@ -328,7 +328,8 @@
       if(change.type==="added"){
         const d=change.doc.data();
         const amount=Number(d?.amount||0);
-        if(amount>=NOTIF_THRESHOLD){window.showWinNotif(String(d?.nickname||"Player"),amount);}
+        const me=auth.currentUser?.uid||userId;
+        if(amount>=NOTIF_THRESHOLD && d?.uid!==me){window.showWinNotif(String(d?.nickname||"Player"),amount);}
       }
     });
   });
@@ -343,4 +344,4 @@
     window.showWinNotif=showWinNotif;
   </script>
 </body>
-</html>
+  </html>
