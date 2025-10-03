@@ -244,9 +244,18 @@
             </span>
           `;
 
-          document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
-          document.getElementById("level").textContent = calcLevel(data.consumedSaldo || 0);
-        }
+          // ganti UID ini dengan UID admin kamu
+const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
+
+if (user.uid === ADMIN_UID) {
+  // admin → saldo & level unlimited
+  document.getElementById("saldo").textContent = "∞";
+  document.getElementById("level").textContent = "∞";
+} else {
+  // user biasa
+  document.getElementById("saldo").textContent = data.saldo?.toLocaleString("id-ID") || "0";
+  document.getElementById("level").textContent = calcLevel(data.consumedSaldo || 0);
+}
       });
     } else {
       window.location.href = "index.html";
@@ -367,4 +376,4 @@
   });
 </script>
 </body>
-</html>
+  </html>
