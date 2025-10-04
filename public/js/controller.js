@@ -1,132 +1,99 @@
-// controller.js — pengendali utama Snake.io
-// Menggabungkan: Firebase (profil/saldo), picker (warna), game-core, dan mp-firestore
-
+// /public/js/controller.js — Orchestrator UI (fix: admin bisa start tanpa pilih warna)
 import "./firebase-boot.js";
 import "./picker.js";
 
-// ==== Variabel dasar ====
 let saldo = 0;
 let isAdmin = false;
 
-// Harga tetap
 const PRICE_COLOR = 10000;
-const PRICE_LEN = 5000;
+const PRICE_LEN   = 5000;
 
-// Ambil elemen UI
-const startBtn = document.getElementById("startBtn");
+const startBtn      = document.getElementById("startBtn");
 const startLenInput = document.getElementById("startLenInput");
-const costColorEl = document.getElementById("costColor");
-const costLenEl = document.getElementById("costLen");
-const costTotalEl = document.getElementById("costTotal");
-const configPanel = document.getElementById("configPanel");
-const resetBtn = document.getElementById("reset");
+const costColorEl   = document.getElementById("costColor");
+const costLenEl     = document.getElementById("costLen");
+const costTotalEl   = document.getElementById("costTotal");
+const configPanel   = document.getElementById("configPanel");
 
-// Ambil data dari ColorPicker
-let palette = window.ColorPicker?.palette || ['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'];
+let palette  = window.ColorPicker?.palette  || ['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'];
 let selected = window.ColorPicker?.selected || [false,false,false,false,false];
 
-// ==== Fungsi bantu ====
-function formatRp(n) {
-  n = Math.max(0, Math.floor(Number(n) || 0));
+function formatRp(n){
+  n = Math.max(0, Math.floor(Number(n)||0));
   return "Rp " + n.toLocaleString("id-ID");
 }
-
-function calcCosts() {
-  const len = Math.max(1, Math.min(300, parseInt(startLenInput.value || '3', 10)));
+function calcCosts(){
+  const len = Math.max(1, Math.min(300, parseInt(startLenInput?.value || '3', 10)));
   const colorCount = selected.filter(Boolean).length;
   const cColor = colorCount * PRICE_COLOR;
-  const cLen = len * PRICE_LEN;
+  const cLen   = len * PRICE_LEN;
   return { len, colorCount, cColor, cLen, total: cColor + cLen };
 }
-
-function refreshCostUI() {
+function refreshCostUI(){
   const { cColor, cLen, total } = calcCosts();
-  costColorEl.textContent = formatRp(cColor);
-  costLenEl.textContent = formatRp(cLen);
-  costTotalEl.textContent = formatRp(total);
+  if (costColorEl) costColorEl.textContent = formatRp(cColor);
+  if (costLenEl)   costLenEl.textContent   = formatRp(cLen);
+  if (costTotalEl) costTotalEl.textContent = formatRp(total);
 }
-
-function refreshStartState() {
+function refreshStartState(){
   const { total, colorCount } = calcCosts();
   const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
-  const can = colorCount > 0 && total <= saldoCheck;
-  startBtn.disabled = !can;
+  // ✅ Admin boleh start tanpa memilih warna
+  const can = (isAdmin || colorCount > 0) && total <= saldoCheck;
+  if (startBtn) startBtn.disabled = !can;
 }
-
-function refreshCostsAndStart() {
+function refreshCostsAndStart(){
   refreshCostUI();
   refreshStartState();
 }
 
-// ==== Event dari picker ====
-window.addEventListener("color:update", (e) => {
-  palette = e.detail.palette;
+window.addEventListener("color:update", (e)=>{
+  palette  = e.detail.palette;
   selected = e.detail.selected;
   refreshCostsAndStart();
 });
 
-// ==== Event dari Firebase (saldo realtime) ====
-window.addEventListener("user:saldo", (e) => {
-  saldo = Number(e.detail.saldo || 0);
-  isAdmin = e.detail.isAdmin;
+window.addEventListener("user:saldo", (e)=>{
+  saldo   = Number(e.detail.saldo || 0);
+  isAdmin = !!e.detail.isAdmin;
   refreshCostsAndStart();
 });
 
-// ==== Sinkron nama/warna head-plate ke Game (dari firebase-boot) ====
-window.addEventListener("user:profile", (e) => {
-  if (window.Game && typeof window.Game.applyProfileStyle === "function") {
-    window.Game.applyProfileStyle(e.detail);
-  }
+window.addEventListener("user:profile", (e)=>{
+  if (window.Game?.applyProfileStyle) window.Game.applyProfileStyle(e.detail);
 });
 
-// ==== Tombol start ====
-startLenInput.addEventListener("input", refreshCostsAndStart);
+startLenInput?.addEventListener("input", refreshCostsAndStart);
 
-startBtn.addEventListener("click", async () => {
+startBtn?.addEventListener("click", async ()=>{
   const { len, colorCount, total } = calcCosts();
-  if (colorCount <= 0) {
+
+  // ✅ Admin skip validasi “harus pilih warna”
+  if (!isAdmin && colorCount <= 0) {
     alert("Pilih minimal satu warna dulu!");
     return;
   }
+
   const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
   if (total > saldoCheck) {
     alert("Saldo tidak cukup!");
     return;
   }
 
-  const colors = palette.filter((_, idx) => selected[idx]);
-  if (!colors.length) colors.push("#58ff9b");
+  // Ambil warna (admin tak butuh; game-core akan override jadi pelangi)
+  const colors = isAdmin ? [] : palette.filter((_, idx)=> selected[idx]);
+  if (!colors.length && !isAdmin) colors.push("#58ff9b");
 
-  // potong saldo (kalau bukan admin)
   if (!isAdmin && window.Saldo?.charge) {
     await window.Saldo.charge(total);
   }
 
-  // Mulai game lokal
-  if (window.Game && typeof window.Game.start === "function") {
-    window.Game.start(colors, len);
-  }
-
-  // Mulai multiplayer (publish & subscribe)
-  if (window.MP && typeof window.MP.start === "function") {
-    window.MP.start(colors, len);
-  }
-
-  // Tutup panel konfigurasi
-  configPanel.style.display = "none";
+  if (window.Game?.start) window.Game.start(colors, len);
+  if (configPanel) configPanel.style.display = "none";
 });
 
-// ==== Reset tombol ====
-resetBtn?.addEventListener("click", () => {
-  if (window.Game && typeof window.Game.quickReset === "function") {
-    window.Game.quickReset();
-  }
-});
-
-// ==== Inisialisasi ====
-document.addEventListener("DOMContentLoaded", () => {
+// Init
+document.addEventListener("DOMContentLoaded", ()=>{
   refreshCostsAndStart();
-  if (window.Game && typeof window.Game.init === "function") {
-    window.Game.init();  // inisialisasi canvas + kamera + loop
-  }
+  if (window.Game?.init) window.Game.init();
 });
