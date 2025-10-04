@@ -5,7 +5,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, onSnapshot, updateDoc, increment
+  getFirestore, doc, getDoc, onSnapshot, updateDoc, increment,
+  setDoc, collection, serverTimestamp, deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 /* ====== CONFIG ====== */
@@ -26,24 +27,26 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Expose dasar
-window.Firebase = { app, auth, db, doc, getDoc, onSnapshot, updateDoc, increment, onAuthStateChanged, signOut };
+window.Firebase = {
+  app, auth, db,
+  doc, getDoc, onSnapshot, updateDoc, increment,
+  setDoc, collection, serverTimestamp, deleteDoc,
+  onAuthStateChanged, signOut
+};
 window.App = window.App || {};
 window.App.ADMIN_UID = ADMIN_UID;
 window.App.profile = null;           // dokumen users/<uid>
 window.App.profileStyle = null;      // subset untuk UI/canvas
 window.App.userRef = null;
 window.App.isAdmin = false;
+window.App.uid = null;
 
 /* ====== UTIL ====== */
 function formatRp(n){ n = Math.max(0, Math.floor(Number(n)||0)); return n.toLocaleString("id-ID"); }
 function buildDomNicknameStyle(u){
-  // sama persis seperti home.html (bgColor/bgGradient, borderColor/borderGradient, color)
   let bg = u.bgColor || 'transparent';
   let extraAnim = '';
-  if (u.bgGradient) {
-    bg = u.bgGradient;
-    extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';
-  }
+  if (u.bgGradient) { bg = u.bgGradient; extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;'; }
   let border = `1px solid ${u.borderColor || '#000'}`;
   let extraBorder = '';
   if (u.borderGradient) {
@@ -67,24 +70,20 @@ function updateHeaderNickname(u){
 /* ====== AUTH FLOW ====== */
 onAuthStateChanged(auth, async (user)=>{
   if(!user){
-    // kalau dipakai di game, redirect ke login
     try { window.location.href = "index.html"; } catch(_) {}
     return;
   }
 
-  // state dasar
+  window.App.uid = user.uid;
   window.App.isAdmin = (user.uid === ADMIN_UID);
   const userRef = doc(db, "users", user.uid);
   window.App.userRef = userRef;
 
-  // snapshot realtime
   onSnapshot(userRef, (snap)=>{
     if(!snap.exists()) return;
     const data = snap.data() || {};
-    // simpan profil mentah
     window.App.profile = { id:user.uid, ...data };
 
-    // style untuk canvas (dipakai game-core.js)
     window.App.profileStyle = {
       name: data.name || data.username || "Anonim",
       color: data.color || "#fff",
@@ -94,27 +93,22 @@ onAuthStateChanged(auth, async (user)=>{
       borderGradient: data.borderGradient || null
     };
 
-    // update header DOM pill biar sama dengan home.html
     updateHeaderNickname(data);
 
-    // broadcast profile
     window.dispatchEvent(new CustomEvent("user:profile", { detail: window.App.profileStyle }));
 
-    // saldo
     let saldo = Number(data.saldo || 0);
     if (window.App.isAdmin) saldo = Number.POSITIVE_INFINITY; // ∞
-    // update DOM saldo bila ada
     const elSaldo = document.getElementById("saldo");
     const elSaldo2 = document.getElementById("saldoInModal");
     if (elSaldo)  elSaldo.textContent  = (saldo === Number.POSITIVE_INFINITY) ? "∞" : ("Rp " + formatRp(saldo));
     if (elSaldo2) elSaldo2.textContent = (saldo === Number.POSITIVE_INFINITY) ? "∞" : ("Rp " + formatRp(saldo));
 
-    // broadcast saldo
     window.dispatchEvent(new CustomEvent("user:saldo", { detail: { saldo, isAdmin: window.App.isAdmin } }));
   });
 });
 
-/* ====== OPTIONAL: helper charge (dipakai modul lain kalau belum punya) ====== */
+/* ====== OPTIONAL: helper charge ====== */
 if (!window.Saldo) window.Saldo = {};
 if (!window.Saldo.charge) {
   window.Saldo.charge = async function(amount){
@@ -128,6 +122,6 @@ if (!window.Saldo.charge) {
         saldo: newSaldo,
         consumedSaldo: increment(amount)
       });
-    }catch(e){ /* diamkan supaya UX tidak terganggu */ }
+    }catch(e){ /* diamkan */ }
   };
-}
+             }
