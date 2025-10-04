@@ -76,14 +76,60 @@ boostBtn.addEventListener('pointerdown',()=>{ boostHold=true; });
 boostBtn.addEventListener('pointerup',()=>{ boostHold=false; });
 boostBtn.addEventListener('pointercancel',()=>{ boostHold=false; });
 
-// nameplate style (disinkron dari saldo.js)
+// ===== Nameplate style (dari saldo.js) =====
 let playerName = "USER";
 let playerTextColor = "#ffffff";
-let playerBorderColor = "#000000";
-export function setNameStyle({name, color, borderColorCanvas}){
-  playerName = name || 'USER';
-  playerTextColor = color || '#fff';
-  playerBorderColor = borderColorCanvas || '#000';
+// background & border utk canvas:
+let nameBg = { mode:'solid', color:'rgba(0,0,0,.35)' };
+let nameBorder = { mode:'solid', color:'#000' };
+
+export function setNameStyle(nick){
+  // nick: { name, color, borderColorCanvas, bgCanvas?, borderCanvas? }
+  playerName = nick?.name || 'USER';
+  playerTextColor = nick?.color || '#fff';
+  if (nick?.bgCanvas) nameBg = nick.bgCanvas;
+  if (nick?.borderCanvas) nameBorder = nick.borderCanvas;
+  // fallback kalau kosong
+  if (nameBg.mode==='solid' && (!nameBg.color || nameBg.color==='transparent')) {
+    nameBg = { mode:'solid', color:'rgba(0,0,0,.35)' };
+  }
+  if (nameBorder.mode==='solid' && !nameBorder.color) {
+    nameBorder = { mode:'solid', color:'#000' };
+  }
+}
+
+// util: bikin linear gradient berdasarkan sudut
+function makeLinearGradient(ctx, x, y, w, h, angleRad, colors){
+  const cx = x + w/2, cy = y + h/2;
+  // panjang radius proyeksi ke sudut
+  const r = (Math.abs(w*Math.cos(angleRad)) + Math.abs(h*Math.sin(angleRad))) / 2;
+  const x0 = cx - Math.cos(angleRad)*r;
+  const y0 = cy - Math.sin(angleRad)*r;
+  const x1 = cx + Math.cos(angleRad)*r;
+  const y1 = cy + Math.sin(angleRad)*r;
+  const g = ctx.createLinearGradient(x0,y0,x1,y1);
+  const n = Math.max(2, colors.length);
+  colors.forEach((c,i)=> g.addColorStop(i/(n-1), c));
+  return g;
+}
+
+function drawNameplate(x, y, w, h){
+  // background
+  if (nameBg.mode === 'gradient') {
+    ctx.fillStyle = makeLinearGradient(ctx, x, y, w, h, nameBg.angle || 0, nameBg.colors || ['#fff','#000']);
+  } else {
+    ctx.fillStyle = nameBg.color || 'rgba(0,0,0,.35)';
+  }
+  ctx.fillRect(x, y, w, h);
+
+  // border
+  if (nameBorder.mode === 'gradient') {
+    ctx.strokeStyle = makeLinearGradient(ctx, x, y, w, h, nameBorder.angle || 0, nameBorder.colors || ['#000','#333']);
+  } else {
+    ctx.strokeStyle = nameBorder.color || '#000';
+  }
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x, y, w, h);
 }
 
 function updateSnake(s,dt){
@@ -300,15 +346,20 @@ function drawSnake(sn){
   ctx.beginPath(); ctx.arc(headS.x, headS.y, rr, 0, Math.PI*2); ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=2; ctx.stroke();
   ctx.beginPath(); ctx.arc(headS.x+rr*0.25, headS.y-rr*0.15, rr*0.35, 0, Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
 
+  // ===== nameplate =====
   const nscr=worldToScreen(sn.x,sn.y);
   const padX=34, padY=16*camera.zoom;
+  const rectX = nscr.x - padX;
+  const rectY = nscr.y - 22*camera.zoom;
+  const rectW = padX*2;
+  const rectH = padY;
+
   ctx.save();
-  ctx.fillStyle='rgba(0,0,0,.35)';
-  ctx.fillRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-  ctx.strokeStyle = playerBorderColor || '#000';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-  ctx.font=`${12*camera.zoom}px system-ui,Segoe UI`; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  drawNameplate(rectX, rectY, rectW, rectH);
+
+  ctx.font=`${12*camera.zoom}px system-ui,Segoe UI`; 
+  ctx.textAlign='center'; 
+  ctx.textBaseline='bottom';
   ctx.fillStyle=playerTextColor || '#fff';
   ctx.fillText(playerName || 'USER', nscr.x, nscr.y-10*camera.zoom);
   ctx.restore();
@@ -370,9 +421,7 @@ export function resetMatch(){
   startMatch(colors, len);
 }
 
-if (resetBtn) resetBtn.addEventListener('click', resetMatch);
-
 export function setJoyInteractive(enabled){
   const joyEl=document.getElementById('joy');
   if (joyEl) joyEl.style.pointerEvents = enabled ? 'auto' : 'none';
-}
+    }
