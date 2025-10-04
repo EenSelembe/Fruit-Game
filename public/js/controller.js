@@ -70,14 +70,6 @@ window.addEventListener("user:saldo", (e) => {
   refreshCostsAndStart();
 });
 
-// ==== Event dari Firebase (profil) ====
-window.addEventListener("user:profile", (e) => {
-  const style = e.detail;
-  if (window.Game && typeof window.Game.applyProfileStyle === "function") {
-    window.Game.applyProfileStyle(style);
-  }
-});
-
 // ==== Tombol start ====
 startLenInput.addEventListener("input", () => {
   refreshCostsAndStart();
