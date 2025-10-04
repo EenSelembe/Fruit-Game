@@ -30,7 +30,7 @@
   .btn-start.danger{background:#e74c3c}
   .btn-start[disabled]{opacity:.6;cursor:not-allowed;filter:grayscale(.3)}
 
-  /* ⬇️ Hanya papan yang punya box background */
+  /* Hanya papan yang punya box background */
   .board-wrap{
     position:relative;flex:1;min-height:0;
     background:linear-gradient(180deg,#0f1530,#0a1024);
@@ -46,7 +46,7 @@
   @keyframes explode{0%{transform:translate(var(--dx,0),var(--dy,0)) scale(1);opacity:1}60%{transform:translate(calc(var(--dx,0)*1.2),calc(var(--dy,0)*1.2)) scale(1.18)}100%{transform:translate(calc(var(--dx,0)*1.6),calc(var(--dy,0)*1.6)) scale(.7);opacity:0}}
   .cell.explode{animation:explode .26s ease-out forwards}
 
-  /* ⬇️ Dipindah ke luar board-wrap supaya tidak ikut box background */
+  /* Dock & tombol SPIN di luar board-wrap */
   .piece-dock{position:relative;margin-top:8px;height:var(--dock-h);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px}
   .piecebox{width:var(--tray-size);aspect-ratio:1/1;height:auto;background:rgba(0,0,0,.45);border:1px solid #243a7a;border-radius:14px;padding:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.05);touch-action:none;cursor:grab;position:relative;overflow:hidden}
   .piecebox *{-webkit-user-drag:none}
@@ -115,12 +115,12 @@
     <button class="btn-start" id="btnStart">MULAI</button>
   </div>
 
-  <!-- ⬇️ Box background hanya untuk papan -->
+  <!-- Box background hanya untuk papan -->
   <div class="board-wrap" id="boardWrap">
     <div id="grid" class="grid" aria-label="Papan 10x10"></div>
   </div>
 
-  <!-- ⬇️ Dock & tombol SPIN di luar board-wrap -->
+  <!-- Dock & tombol SPIN di luar board-wrap -->
   <div class="piece-dock">
     <div class="piecebox" id="pieceBox"><div style="opacity:.7;font-weight:800">Tekan MULAI</div></div>
     <div class="spinbar">
@@ -141,14 +141,33 @@
   </div>
 </div>
 
-<audio id="backsound" loop autoplay>
+<!-- AUDIO -->
+<audio id="backsound" loop>
   <source src="sonds/blockpuzzle.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfxSpin">
+  <source src="sonds/roll.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfxClear">
+  <source src="sonds/pecah.mp3" type="audio/mpeg">
 </audio>
 
 <script>
   const backsound=document.getElementById("backsound");
-  backsound.volume=0.4;
-  document.addEventListener("click",()=>{if(backsound.paused){backsound.play().catch(()=>{});}}, {once:true});
+  const sfxSpin=document.getElementById("sfxSpin");
+  const sfxClear=document.getElementById("sfxClear");
+
+  backsound.volume=0.35;
+  sfxSpin.volume=0.6;
+  sfxClear.volume=0.85;
+
+  document.addEventListener("click",()=>{
+    backsound.play().catch(()=>{});
+    [sfxSpin,sfxClear].forEach(a=>{
+      a.muted=true;
+      a.play().then(()=>{a.pause();a.currentTime=0;a.muted=false;}).catch(()=>{});
+    });
+  },{once:true});
 </script>
 
 <script type="module">
@@ -171,8 +190,11 @@ const saldoNum=document.getElementById('saldoNum'),betNum=document.getElementByI
 const btnStart=document.getElementById('btnStart'),btnBetPlus=document.getElementById('btnBetPlus'),btnBetMinus=document.getElementById('btnBetMinus'),btnSpin=document.getElementById('btnSpin');
 const pieceBox=document.getElementById('pieceBox'),boardWrap=document.getElementById('boardWrap');
 
+const sfxSpin=document.getElementById("sfxSpin");
+const sfxClear=document.getElementById("sfxClear");
+
 const fmt=n=>n.toLocaleString("id-ID");
-function log(s){} // status dihilangkan
+function log(s){} /* status dihilangkan */
 function updateMoneyUI(){saldoNum.textContent=fmt(saldo);betNum.textContent=fmt(bet);spinNum.textContent=fmt(bet)}
 function clampBet(v){v=Math.round(v/STEP)*STEP;return Math.max(MIN_BET,Math.min(v,Math.max(MIN_BET,saldo)))}
 
@@ -306,7 +328,21 @@ btnSpin.addEventListener('click',async()=>{
   await setSaldo(saldo-bet);
   spinning=true;
   btnSpin.disabled=true;
+
+  /* SFX: spin mulai */
+  try{
+    sfxSpin.loop=true;
+    sfxSpin.currentTime=0;
+    await sfxSpin.play();
+  }catch(_){}
+
   await playSlotAnimation(850);
+
+  /* SFX: spin stop */
+  sfxSpin.pause();
+  sfxSpin.currentTime=0;
+  sfxSpin.loop=false;
+
   const p=pickPlaceableOrNull();
   currentPiece=p;
   spinning=false;
@@ -486,6 +522,7 @@ async function placePiece(piece,gx,gy){
   renderBoard();
   const res=markClears();
   if(res.lines>0){
+    try{ sfxClear.currentTime=0; await sfxClear.play(); }catch(_){}
     for(const k of res.cells){
       const[x,y]=k.split(',').map(Number);
       const c=cellAt(x,y);
@@ -585,4 +622,4 @@ onSnap(qNotifs,(snapshot)=>{
   window.showWinNotif=showWinNotif;
 </script>
 </body>
-                                                       </html>
+</html>
