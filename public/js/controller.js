@@ -1,5 +1,5 @@
 // controller.js — pengendali utama Snake.io
-// Menggabungkan: Firebase (profil/saldo), picker (warna), dan game-core
+// Versi stabil + sinkron nickname profil Firebase
 
 import "./firebase-boot.js";
 import "./picker.js";
@@ -71,7 +71,7 @@ window.addEventListener("user:saldo", (e) => {
   refreshCostsAndStart();
 });
 
-// ==== Tambahan penting: sinkron profil ke game ====
+// ==== 🔥 Tambahan penting agar nickname sinkron ====
 window.addEventListener("user:profile", (e) => {
   const style = e.detail;
   if (window.Game && typeof window.Game.applyProfileStyle === "function") {
@@ -115,6 +115,6 @@ startBtn.addEventListener("click", async () => {
 document.addEventListener("DOMContentLoaded", () => {
   refreshCostsAndStart();
   if (window.Game && typeof window.Game.init === "function") {
-    window.Game.init(); // inisialisasi canvas + kamera (penting agar ular muncul)
+    window.Game.init();  // inisialisasi canvas + kamera (agar ular muncul)
   }
 });
