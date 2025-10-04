@@ -4,6 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
 <title>Snake.io — Smooth + Rank + Buah + Custom Color + Saldo + Profil</title>
+
+<!-- CSS utama -->
 <link rel="stylesheet" href="./css/snackio.css">
 </head>
 <body>
@@ -11,7 +13,8 @@
   <header>
     <div style="display:flex;gap:8px;align-items:center;">
       <span id="usernamePill" class="pill">
-        <span class="nickname" id="usernameSpan" style="color:#fff;border:1px solid #000;background:transparent;">USER</span>
+        <span class="nickname" id="usernameSpan"
+          style="color:#fff;border:1px solid #000;background:transparent;">USER</span>
       </span>
       <span class="pill stat">Panjang: <span id="len">3</span></span>
       <span class="pill">User: <span id="userCount">0</span></span>
@@ -22,17 +25,20 @@
     </div>
   </header>
 
+  <!-- Panel Rank -->
   <div id="rankPanel">
     <h3>RANK</h3>
     <div id="rankRows"></div>
   </div>
 
+  <!-- Game canvas -->
   <canvas id="game"></canvas>
   <div class="overlay"></div>
 
   <!-- Joystick -->
   <div class="joy" id="joy"><div class="knob" id="knob"></div></div>
 
+  <!-- Tombol boost -->
   <footer><button id="boostBtn" class="btn">BOOST</button></footer>
 </div>
 
@@ -44,7 +50,10 @@
       <div class="chip">Saldo: <span id="saldoInModal">...</span></div>
       <div class="chip">Harga: Warna Rp10.000 | Panjang Rp5.000</div>
     </div>
-    <div class="sub">Klik kotak untuk pilih warna (maks 5). Jika pilih banyak, ular akan <b>belang</b> dari <b>kepala (warna 1) → ekor</b>.</div>
+    <div class="sub">
+      Klik kotak untuk pilih warna (maks 5). Jika pilih banyak, ular akan <b>belang</b>
+      dari <b>kepala (warna 1) → ekor</b>.
+    </div>
 
     <div class="palette" id="palette">
       <div class="colorBox" data-i="0" style="background:#ffffff">Warna 1</div>
@@ -97,7 +106,12 @@
 
 <div class="toast" id="toast" style="display:none"></div>
 
-<!-- ===== Controller tunggal (yang mengimpor file2 lain) ===== -->
+<!-- ===== URUTAN SCRIPT ===== -->
+<script type="module" src="./js/firebase-boot.js"></script>
+<script type="module" src="./js/helpers.js"></script>
+<script type="module" src="./js/picker.js"></script>
+<script type="module" src="./js/saldo.js"></script>
+<script type="module" src="./js/game-core.js"></script>
 <script type="module" src="./js/controller.js"></script>
 </body>
-</html>
+  </html>
