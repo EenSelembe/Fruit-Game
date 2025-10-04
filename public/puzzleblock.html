@@ -3,14 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Block Puzzle — Spin v12 (compact & responsif)</title>
+<title>Block Puzzle — Spin</title>
+<link rel="stylesheet" href="notif.css">
 <style>
   :root{--gap:6px;--cell:34px;--piece:18px;--text:#eaf3ff;--tray-size:clamp(110px,28vmin,190px);--dock-h:calc(var(--tray-size) + 84px);--rpw:34px;--numw:9ch}
   *{box-sizing:border-box}
   html,body{height:100%;overscroll-behavior:none}
-  body{margin:0;
-background:#0d1430;
-       color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial;user-select:none}
+  body{margin:0;background:#0d1430;color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial;user-select:none}
   .app{height:100vh;height:100dvh;height:100svh;display:flex;flex-direction:column;gap:8px;padding:8px}
   .moneygrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(92px,24vw);gap:8px;align-items:stretch}
   .moneycard{background:rgba(0,0,0,.45);border:1px solid #243a7a;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.05)}
@@ -57,16 +56,22 @@ background:#0d1430;
   .win-pop .small .num{font-variant-numeric:tabular-nums;text-align:right}
   @keyframes winPop{0%{opacity:0;transform:translate(-50%,-40%) scale(.6)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.02)}60%{opacity:1;transform:translate(-50%,-58%) scale(.96)}100%{opacity:0;transform:translate(-50%,-70%) scale(.92)}}
   .status{font-size:12px;opacity:.85;text-align:center;margin-top:4px}
+  .rank-panel{position:fixed;bottom:10px;left:10px;z-index:2500;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:8px 10px;border-radius:8px;font-family:inherit;pointer-events:none}
+  .rank-panel h3{margin:0 0 4px 0;font-size:.9rem;font-weight:800}
+  .rank-panel ol{margin:0;padding-left:18px}
+  .rank-panel li{font-size:.8rem;font-weight:700;line-height:1.15rem;margin-bottom:4px}
+  .winAmount{font-size:.6rem;font-weight:500;color:#ffd54f}
   @media (max-width:430px){.moneygrid{grid-template-columns:1fr 1fr;gap:8px}.btn-start{grid-column:1/-1;height:42px;font-size:12.5px}.moneycard{padding:8px}.amount{font-size:clamp(15px,4.2vw,18px)}:root{--tray-size:clamp(104px,28vmin,180px);--dock-h:calc(var(--tray-size) + 80px)}}
   @media (max-width:360px){.amount{font-size:clamp(14px,4vw,17px)}.btn-ghost{min-width:30px;min-height:30px;font-size:13px}.btn-start{height:40px;font-size:12px}:root{--tray-size:clamp(98px,27vmin,170px);--dock-h:calc(var(--tray-size) + 78px)}}
 </style>
 </head>
 <body>
+<div id="notifContainer"></div>
 <div class="app">
   <div class="moneygrid">
     <div class="moneycard">
       <div class="head">Saldo :</div>
-      <div class="amount"><span class="rp">Rp.</span><span class="num" id="saldoNum">1.000.000</span></div>
+      <div class="amount"><span class="rp">Rp.</span><span class="num" id="saldoNum">0</span></div>
     </div>
     <div class="moneycard">
       <div class="head">
@@ -74,7 +79,7 @@ background:#0d1430;
         <div>Bet</div>
         <button class="btn-ghost" id="btnBetMinus">−</button>
       </div>
-      <div class="amount"><span class="rp">Rp.</span><span class="num" id="betNum">10.000</span></div>
+      <div class="amount"><span class="rp">Rp.</span><span class="num" id="betNum">500</span></div>
     </div>
     <button class="btn-start" id="btnStart">MULAI</button>
   </div>
@@ -85,15 +90,244 @@ background:#0d1430;
       <div class="spinbar">
         <button class="btn-spin" id="btnSpin" disabled>
           <div class="label">SPIN</div>
-          <div class="cost"><span class="rp">Rp.</span><span class="num" id="spinNum">10.000</span></div>
+          <div class="cost"><span class="rp">Rp.</span><span class="num" id="spinNum">500</span></div>
         </button>
       </div>
     </div>
   </div>
   <div class="status" id="status">Status: tekan MULAI untuk memulai.</div>
 </div>
+
+<div id="rankPanel" class="rank-panel">
+  <h3>🏆RANK🏆</h3>
+  <ol id="rankList">
+    <li>username<br><span class="winAmount">Rp. 0</span></li>
+    <li>username<br><span class="winAmount">Rp. 0</span></li>
+    <li>username<br><span class="winAmount">Rp. 0</span></li>
+  </ol>
+</div>
+
+<audio id="backsound" loop autoplay>
+  <source src="sonds/blockpuzzle.mp3" type="audio/mpeg">
+</audio>
+
 <script>
-(()=>{let saldo=1000000,bet=10000;const MIN_BET=1000,STEP=10000,MULTI=3;let roundActive=false,spinning=false,totalWin=0;const saldoNum=document.getElementById('saldoNum'),betNum=document.getElementById('betNum'),spinNum=document.getElementById('spinNum');const btnStart=document.getElementById('btnStart'),btnBetPlus=document.getElementById('btnBetPlus'),btnBetMinus=document.getElementById('btnBetMinus'),btnSpin=document.getElementById('btnSpin');const pieceBox=document.getElementById('pieceBox'),statusEl=document.getElementById('status'),boardWrap=document.getElementById('boardWrap');const fmtNum=n=>n.toLocaleString("id-ID"),pick=a=>a[Math.floor(Math.random()*a.length)];function log(s){statusEl.textContent="Status: "+s}function updateMoneyUI(){saldoNum.textContent=fmtNum(saldo);betNum.textContent=fmtNum(bet);spinNum.textContent=fmtNum(bet)}function clampBet(v){return Math.max(MIN_BET,Math.min(v,Math.max(MIN_BET,saldo)))}btnBetPlus.onclick=()=>{if(!roundActive){bet=clampBet(bet+STEP);updateMoneyUI()}};btnBetMinus.onclick=()=>{if(!roundActive){bet=clampBet(bet-STEP);updateMoneyUI()}};function setActive(a){roundActive=a;btnStart.textContent=a?"MENYERAH":"MULAI";btnStart.classList.toggle('danger',a);btnSpin.disabled=!a||spinning;btnBetPlus.disabled=a;btnBetMinus.disabled=a}btnStart.addEventListener('click',()=>{if(!roundActive){totalWin=0;newGame(false);setActive(true);log("Ronde dimulai. Bet dikunci. Tekan SPIN untuk mendapatkan puzzle.");renderTrayEmpty("Tekan SPIN")}else{newGame(false);setActive(false);log("Papan direset. Bet bisa diubah lagi.")}});const SIZE=10,GAP=6,ANIM_MS=260;const COLORS=[["#78e7ff","#3bb7ff"],["#ffd166","#ff9f2f"],["#b28cff","#7c65e6"],["#7cffb2","#3ed28e"],["#ff9bd1","#f259ad"],["#9dffb0","#4bdc7a"]];const BASE_SHAPES=[[[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[1,0],[2,0],[3,0],[4,0]],[[0,0],[1,0],[0,1],[1,1]],[[0,0],[0,1],[1,1]],[[0,0],[0,1],[0,2],[1,2]],[[0,0],[1,0],[2,0],[1,1]],[[0,0],[1,0],[1,1],[2,1]],[[1,0],[0,1],[1,1],[2,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[1,0],[2,0],[0,1]],[[0,0],[1,0],[0,1]]];function normalize(s){let minx=1e9,miny=1e9;for(const [x,y] of s){if(x<minx)minx=x;if(y<miny)miny=y}const n=s.map(([x,y])=>[x-minx,y-miny]);n.sort((a,b)=>a[1]-b[1]||a[0]-b[0]);return n}function bounds(s){let mx=0,my=0;for(const [x,y] of s){if(x>mx)mx=x;if(y>my)my=y}return{w:mx+1,h:my+1}}function rot(s){const{w,h}=bounds(s);return normalize(s.map(([x,y])=>[h-1-y,x]))}function key(s){return JSON.stringify(normalize(s))}function uniqOrients(s){const s0=normalize(s),s1=rot(s0),s2=rot(s1),s3=rot(s2),all=[s0,s1,s2,s3],out=[],seen=new Set();for(const t of all){const k=key(t);if(!seen.has(k)){seen.add(k);out.push(t)}}return out}const ORIENTED_SHAPES=(()=>{const seen=new Set(),out=[];for(const b of BASE_SHAPES){for(const o of uniqOrients(b)){const k=key(o);if(!seen.has(k)){seen.add(k);out.push(o)}}}return out})();const gridEl=document.getElementById('grid'),cells=[];for(let y=0;y<SIZE;y++){for(let x=0;x<SIZE;x++){const d=document.createElement('div');d.className='cell';d.dataset.x=x;d.dataset.y=y;gridEl.appendChild(d);cells.push(d)}}function cellAt(x,y){return cells[y*SIZE+x]}function inBounds(x,y){return x>=0&&x<SIZE&&y>=0&&y<SIZE}function colorStyle(c){return `linear-gradient(180deg, ${c[0]}, ${c[1]})`}function fitCells(){const r=gridEl.getBoundingClientRect();const cw=Math.floor((r.width-GAP*(SIZE-1))/SIZE);const ch=Math.floor((r.height-GAP*(SIZE-1))/SIZE);const px=Math.max(22,Math.min(56,Math.min(cw,ch)));document.documentElement.style.setProperty('--cell',px+'px');document.documentElement.style.setProperty('--piece',Math.max(12,Math.round(px*.5))+'px')}window.addEventListener('resize',fitCells);let board,currentPiece=null;function renderBoard(){for(let y=0;y<SIZE;y++){for(let x=0;x<SIZE;x++){const c=cellAt(x,y);if(board[y][x]){c.classList.add('filled');c.style.backgroundImage=colorStyle(board[y][x])}else{c.classList.remove('filled','ghost','explode');c.style.backgroundImage='';c.style.removeProperty('--dx');c.style.removeProperty('--dy')}}}}function renderTrayEmpty(t='Tekan SPIN'){pieceBox.classList.remove('dragging');pieceBox.innerHTML='';const d=document.createElement('div');d.style.opacity='.7';d.style.fontWeight='800';d.textContent=t;pieceBox.appendChild(d)}function renderTrayPiece(){pieceBox.classList.remove('dragging');pieceBox.innerHTML='';if(!currentPiece){renderTrayEmpty();return}const {w,h}=bounds(currentPiece.shape);const mini=document.createElement('div');mini.className='mini';mini.style.gridTemplateColumns=`repeat(${w}, var(--piece))`;const grid=Array.from({length:h},()=>Array(w).fill(0));currentPiece.shape.forEach(([x,y])=>grid[y][x]=1);const grad=colorStyle(currentPiece.color);mini.style.setProperty('--grad',grad);for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const d=document.createElement('div');d.className='mcell'+(grid[yy][xx]?' fill':'');if(grid[yy][xx])d.style.backgroundImage=grad;mini.appendChild(d)}pieceBox.appendChild(mini);addDragSource(pieceBox)}btnSpin.addEventListener('click',async()=>{if(!roundActive||spinning)return;if(saldo<bet){log("Saldo tidak cukup untuk SPIN.");return}saldo-=bet;updateMoneyUI();spinning=true;btnSpin.disabled=true;await playSlotAnimation(850);const p=pickPlaceableOrNull();currentPiece=p;spinning=false;btnSpin.disabled=!roundActive;if(p){renderTrayPiece();log("Piece baru siap.")}else{renderTrayEmpty("Buntu — tekan MENYERAH");log("Tidak ada langkah. Silakan MENYERAH untuk reset.")}});function playSlotAnimation(dur=800){return new Promise(res=>{pieceBox.classList.remove('dragging');pieceBox.innerHTML='';const slot=document.createElement('div');slot.className='slot';for(let i=0;i<3;i++){const reel=document.createElement('div');reel.className='reel';const strip=document.createElement('div');strip.className='strip rolling';for(let j=0;j<7;j++){const s=document.createElement('div');s.className='symbol';const col=pick(COLORS);s.style.backgroundImage=`linear-gradient(180deg, ${col[0]}, ${col[1]})`;strip.appendChild(s)}reel.appendChild(strip);slot.appendChild(reel)}pieceBox.appendChild(slot);setTimeout(res,dur)})}function pickPlaceableOrNull(){let t=0;while(t<ORIENTED_SHAPES.length*3){const shape=normalize(pick(ORIENTED_SHAPES));if(hasAnyPlacement(shape))return{shape,color:pick(COLORS)};t++}return null}const supportsPointer='PointerEvent'in window;let drag=null,dragEl=null,activePointerId=null,captureEl=null;function getXY(e){if(e.touches&&e.touches[0])return{x:e.touches[0].clientX,y:e.touches[0].clientY};if(e.changedTouches&&e.changedTouches[0])return{x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY};return{x:e.clientX,y:e.clientY}}function addDragSource(el){if(el.__dragBound)return;el.__dragBound=true;const onDown=e=>{if(!roundActive||!currentPiece)return;e.preventDefault();pieceBox.classList.add('dragging');pieceBox.innerHTML='';const{ x,y }=getXY(e);startDrag(x,y);if(e.pointerId!=null&&e.target.setPointerCapture){activePointerId=e.pointerId;captureEl=e.target;captureEl.setPointerCapture(activePointerId)}};if(supportsPointer)el.addEventListener('pointerdown',onDown,{passive:false});else{el.addEventListener('touchstart',onDown,{passive:false});el.addEventListener('mousedown',onDown,{passive:false})}el.addEventListener('contextmenu',e=>e.preventDefault())}function bindMoveUp(){if(supportsPointer){window.addEventListener('pointermove',onMove,{passive:false});window.addEventListener('pointerup',onUp,{passive:false});window.addEventListener('pointercancel',onUp,{passive:false})}else{window.addEventListener('touchmove',onMove,{passive:false});window.addEventListener('touchend',onUp,{passive:false});window.addEventListener('touchcancel',onUp,{passive:false});window.addEventListener('mousemove',onMove,{passive:false});window.addEventListener('mouseup',onUp,{passive:false})}window.addEventListener('blur',cancelDrag,{passive:true});document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelDrag()},{passive:true})}function unbindMoveUp(){if(supportsPointer){window.removeEventListener('pointermove',onMove);window.removeEventListener('pointerup',onUp);window.removeEventListener('pointercancel',onUp)}else{window.removeEventListener('touchmove',onMove);window.removeEventListener('touchend',onUp);window.removeEventListener('touchcancel',onUp);window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)}window.removeEventListener('blur',cancelDrag)}function cancelDrag(){clearGhost();drag=null;if(captureEl&&activePointerId!=null&&captureEl.releasePointerCapture){try{captureEl.releasePointerCapture(activePointerId)}catch(_){}}activePointerId=null;captureEl=null;if(dragEl){dragEl.remove();dragEl=null}if(roundActive&&currentPiece){renderTrayPiece()}unbindMoveUp()}function startDrag(cx,cy){drag={piece:JSON.parse(JSON.stringify(currentPiece))};dragEl=document.createElement('div');dragEl.className='drag';const{w,h}=bounds(drag.piece.shape);dragEl.style.gridTemplateColumns=`repeat(${w}, var(--cell))`;const grad=colorStyle(drag.piece.color);for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const d=document.createElement('div');d.className='cell';if(drag.piece.shape.some(([x,y])=>x===xx&&y===yy)){d.classList.add('filled');d.style.backgroundImage=grad}else{d.style.opacity=.15}dragEl.appendChild(d)}dragEl.style.zIndex='9999';document.body.appendChild(dragEl);moveDrag(cx,cy);hoverGhost(cx,cy);bindMoveUp()}function moveDrag(x,y){if(dragEl){dragEl.style.left=x+'px';dragEl.style.top=y+'px'}}function onMove(e){if(activePointerId!=null&&e.pointerId!=null&&e.pointerId!==activePointerId)return;e.preventDefault();if(!drag)return;const{ x,y }=getXY(e);moveDrag(x,y);hoverGhost(x,y)}function onUp(e){if(activePointerId!=null&&e.pointerId!=null&&e.pointerId!==activePointerId)return;e.preventDefault();if(!drag)return;const{ x,y }=getXY(e);clearGhost();const pos=originFromPointer(x,y,drag.piece.shape);if(pos&&canPlace(drag.piece.shape,pos.gx,pos.gy)){placePiece(drag.piece,pos.gx,pos.gy);currentPiece=null;renderTrayEmpty("Tekan SPIN")}cancelDrag()}function hoverGhost(cx,cy){clearGhost();const pos=originFromPointer(cx,cy,drag.piece.shape);if(!pos)return;drag.piece.shape.forEach(([px,py])=>{const x=pos.gx+px,y=pos.gy+py;if(inBounds(x,y))cellAt(x,y).classList.add('ghost')})}function clearGhost(){cells.forEach(c=>c.classList.remove('ghost'))}function originFromPointer(cx,cy,shape){const r=gridEl.getBoundingClientRect();if(cx<r.left||cy<r.top||cx>r.right||cy>r.bottom)return null;const a=cellAt(0,0).getBoundingClientRect(),b=cellAt(1,0).getBoundingClientRect();const stepX=b.left-a.left,stepY=cellAt(0,1).getBoundingClientRect().top-a.top;if(stepX<=0||stepY<=0)return null;let gx=Math.floor((cx-r.left)/stepX),gy=Math.floor((cy-r.top)/stepY);const{w,h}=bounds(shape);gx-=Math.floor(w/2);gy-=Math.floor(h/2);return{gx:Math.max(0,Math.min(SIZE-1,gx)),gy:Math.max(0,Math.min(SIZE-1,gy))}}function canPlace(shape,gx,gy){for(const[px,py]of shape){const x=gx+px,y=gy+py;if(!inBounds(x,y)||board[y][x])return false}return true}function hasAnyPlacement(shape){for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){if(canPlace(shape,x,y))return true}return false}function showWinOverlay(add,total){const d=document.createElement('div');d.className='win-pop';d.innerHTML=`<div class="big"><span class="rp">Rp.</span><span class="num">${fmtNum(add)}</span></div><div class="small" style="justify-items:center;margin-top:4px">Total</div><div class="small"><span class="rp">Rp.</span><span class="num">${fmtNum(total)}</span></div>`;boardWrap.appendChild(d);setTimeout(()=>d.remove(),1300)}function placePiece(piece,gx,gy){piece.shape.forEach(([px,py])=>{const x=gx+px,y=gy+py;board[y][x]=piece.color});renderBoard();const res=markClears();if(res.lines>0){for(const k of res.cells){const[x,y]=k.split(',').map(Number);const c=cellAt(x,y);c.style.setProperty('--dx',(Math.random()*10-5)+'px');c.style.setProperty('--dy',(Math.random()*10-5)+'px');c.classList.add('explode')}const reward=res.lines*bet*MULTI;saldo+=reward;totalWin+=reward;updateMoneyUI();log(`Hapus ${res.lines} line (+Rp. ${fmtNum(reward)})`);showWinOverlay(reward,totalWin);setTimeout(()=>{for(const k of res.cells){const[x,y]=k.split(',').map(Number);board[y][x]=null}renderBoard()},ANIM_MS)}}function markClears(){const s=new Set();let lines=0;for(let y=0;y<SIZE;y++){let full=true;for(let x=0;x<SIZE;x++){if(!board[y][x]){full=false;break}}if(full){lines++;for(let x=0;x<SIZE;x++)s.add(`${x},${y}`)}}for(let x=0;x<SIZE;x++){let full=true;for(let y=0;y<SIZE;y++){if(!board[y][x]){full=false;break}}if(full){lines++;for(let y=0;y<SIZE;y++)s.add(`${x},${y}`)}}return{cells:s,lines}}function newGame(spawn){board=Array.from({length:SIZE},()=>Array(SIZE).fill(null));renderBoard();currentPiece=null;renderTrayEmpty(spawn?"Tekan SPIN":"Tekan MULAI");fitCells()}updateMoneyUI();newGame(false);setActive(false);fitCells();})();
+  const backsound=document.getElementById("backsound");backsound.volume=0.4;document.addEventListener("click",()=>{if(backsound.paused){backsound.play().catch(()=>{});}},{once:true});
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp, query, orderBy, limit, increment, getDocs, onSnapshot as onSnap } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { initOnlineStatus } from "./online.js";
+
+const firebaseConfig={apiKey:"AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",authDomain:"fruit-game-5e4a8.firebaseapp.com",projectId:"fruit-game-5e4a8",storageBucket:"fruit-game-5e4a8.appspot.com",messagingSenderId:"936228678997",appId:"1:936228678997:web:9dab2fa0d9a019161bd3dc",measurementId:"G-EPTSQQPM4D"};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+initOnlineStatus();
+
+let userId=null,nickname="Player";
+let saldo=0,bet=500;
+const MIN_BET=500,STEP=500,MULTI=3,NOTIF_THRESHOLD=1000000;
+
+const saldoNum=document.getElementById('saldoNum'),betNum=document.getElementById('betNum'),spinNum=document.getElementById('spinNum');
+const btnStart=document.getElementById('btnStart'),btnBetPlus=document.getElementById('btnBetPlus'),btnBetMinus=document.getElementById('btnBetMinus'),btnSpin=document.getElementById('btnSpin');
+const pieceBox=document.getElementById('pieceBox'),statusEl=document.getElementById('status'),boardWrap=document.getElementById('boardWrap');
+
+const fmt=n=>n.toLocaleString("id-ID");
+function log(s){statusEl.textContent="Status: "+s}
+function updateMoneyUI(){saldoNum.textContent=fmt(saldo);betNum.textContent=fmt(bet);spinNum.textContent=fmt(bet)}
+function clampBet(v){v=Math.round(v/STEP)*STEP;return Math.max(MIN_BET,Math.min(v,Math.max(MIN_BET,saldo)))}
+
+async function setSaldo(newSaldo){
+  if(!userId) return;
+  const ref=doc(db,"users",userId);
+  const diff=saldo-newSaldo;
+  if(diff>0){await updateDoc(ref,{saldo:newSaldo,consumedSaldo:increment(diff)});}
+  else{await updateDoc(ref,{saldo:newSaldo});}
+  saldo=newSaldo;updateMoneyUI();
+}
+
+async function addGameWin(amount){
+  if(!userId) return;
+  const ref=doc(db,"users",userId);
+  await updateDoc(ref,{winsAmount_block:increment(Math.floor(amount||0))});
+}
+
+onAuthStateChanged(auth,(user)=>{
+  if(user){
+    userId=user.uid;
+    const ref=doc(db,"users",user.uid);
+    onSnapshot(ref,(snap)=>{
+      if(snap.exists()){
+        const d=snap.data();
+        saldo=d.saldo||0;
+        nickname=d.name||d.username||"Player";
+        updateMoneyUI();
+      }
+    });
+  }else{
+    window.location.href="index.html";
+  }
+});
+
+btnBetPlus.onclick=()=>{if(!roundActive){bet=clampBet(bet+STEP);updateMoneyUI()}};
+btnBetMinus.onclick=()=>{if(!roundActive){bet=clampBet(bet-STEP);updateMoneyUI()}};
+
+let roundActive=false,spinning=false,totalWin=0;
+function setActive(a){
+  roundActive=a;
+  btnStart.textContent=a?"MENYERAH":"MULAI";
+  btnStart.classList.toggle('danger',a);
+  btnSpin.disabled=!a||spinning;
+  btnBetPlus.disabled=a;
+  btnBetMinus.disabled=a;
+}
+
+btnStart.addEventListener('click',()=>{
+  if(!roundActive){
+    totalWin=0;
+    newGame(false);
+    setActive(true);
+    log("Ronde dimulai. Bet dikunci. Tekan SPIN untuk mendapatkan puzzle.");
+    renderTrayEmpty("Tekan SPIN");
+  }else{
+    newGame(false);
+    setActive(false);
+    log("Papan direset. Bet bisa diubah lagi.");
+  }
+});
+
+const SIZE=10,GAP=6,ANIM_MS=260;
+const COLORS=[["#78e7ff","#3bb7ff"],["#ffd166","#ff9f2f"],["#b28cff","#7c65e6"],["#7cffb2","#3ed28e"],["#ff9bd1","#f259ad"],["#9dffb0","#4bdc7a"]];
+const BASE_SHAPES=[[[0,0]],[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[1,0],[2,0],[3,0],[4,0]],[[0,0],[1,0],[0,1],[1,1]],[[0,0],[0,1],[1,1]],[[0,0],[0,1],[0,2],[1,2]],[[0,0],[1,0],[2,0],[1,1]],[[0,0],[1,0],[1,1],[2,1]],[[1,0],[0,1],[1,1],[2,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[1,0],[2,0],[0,1]],[[0,0],[1,0],[0,1]]];
+function normalize(s){let minx=1e9,miny=1e9;for(const [x,y] of s){if(x<minx)minx=x;if(y<miny)miny=y}const n=s.map(([x,y])=>[x-minx,y-miny]);n.sort((a,b)=>a[1]-b[1]||a[0]-b[0]);return n}
+function bounds(s){let mx=0,my=0;for(const [x,y] of s){if(x>mx)mx=x;if(y>my)my=y}return{w:mx+1,h:my+1}}
+function rot(s){const{w,h}=bounds(s);return normalize(s.map(([x,y])=>[h-1-y,x]))}
+function key(s){return JSON.stringify(normalize(s))}
+function uniqOrients(s){const s0=normalize(s),s1=rot(s0),s2=rot(s1),s3=rot(s2),all=[s0,s1,s2,s3],out=[],seen=new Set();for(const t of all){const k=key(t);if(!seen.has(k)){seen.add(k);out.push(t)}}return out}
+const ORIENTED_SHAPES=(()=>{const seen=new Set(),out=[];for(const b of BASE_SHAPES){for(const o of uniqOrients(b)){const k=key(o);if(!seen.has(k)){seen.add(k);out.push(o)}}}return out})();
+const gridEl=document.getElementById('grid'),cells=[];
+for(let y=0;y<SIZE;y++){for(let x=0;x<SIZE;x++){const d=document.createElement('div');d.className='cell';d.dataset.x=x;d.dataset.y=y;gridEl.appendChild(d);cells.push(d)}}
+function cellAt(x,y){return cells[y*SIZE+x]}
+function inBounds(x,y){return x>=0&&x<SIZE&&y>=0&&y<SIZE}
+function colorStyle(c){return `linear-gradient(180deg, ${c[0]}, ${c[1]})`}
+function fitCells(){const r=gridEl.getBoundingClientRect();const cw=Math.floor((r.width-GAP*(SIZE-1))/SIZE);const ch=Math.floor((r.height-GAP*(SIZE-1))/SIZE);const px=Math.max(22,Math.min(56,Math.min(cw,ch)));document.documentElement.style.setProperty('--cell',px+'px');document.documentElement.style.setProperty('--piece',Math.max(12,Math.round(px*.5))+'px')}
+window.addEventListener('resize',fitCells);
+
+let board,currentPiece=null;
+function renderBoard(){for(let y=0;y<SIZE;y++){for(let x=0;x<SIZE;x++){const c=cellAt(x,y);if(board[y][x]){c.classList.add('filled');c.style.backgroundImage=colorStyle(board[y][x])}else{c.classList.remove('filled','ghost','explode');c.style.backgroundImage='';c.style.removeProperty('--dx');c.style.removeProperty('--dy')}}}}
+function renderTrayEmpty(t='Tekan SPIN'){pieceBox.classList.remove('dragging');pieceBox.innerHTML='';const d=document.createElement('div');d.style.opacity='.7';d.style.fontWeight='800';d.textContent=t;pieceBox.appendChild(d)}
+function renderTrayPiece(){pieceBox.classList.remove('dragging');pieceBox.innerHTML='';if(!currentPiece){renderTrayEmpty();return}const {w,h}=bounds(currentPiece.shape);const mini=document.createElement('div');mini.className='mini';mini.style.gridTemplateColumns=`repeat(${w}, var(--piece))`;const grid=Array.from({length:h},()=>Array(w).fill(0));currentPiece.shape.forEach(([x,y])=>grid[y][x]=1);const grad=colorStyle(currentPiece.color);mini.style.setProperty('--grad',grad);for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const d=document.createElement('div');d.className='mcell'+(grid[yy][xx]?' fill':'');if(grid[yy][xx])d.style.backgroundImage=grad;mini.appendChild(d)}pieceBox.appendChild(mini);addDragSource(pieceBox)}
+
+btnSpin.addEventListener('click',async()=>{
+  if(!roundActive||spinning)return;
+  if(saldo<bet){log("Saldo tidak cukup untuk SPIN.");return}
+  await setSaldo(saldo-bet);
+  spinning=true;
+  btnSpin.disabled=true;
+  await playSlotAnimation(850);
+  const p=pickPlaceableOrNull();
+  currentPiece=p;
+  spinning=false;
+  btnSpin.disabled=!roundActive;
+  if(p){renderTrayPiece();log("Piece baru siap.")}else{renderTrayEmpty("Buntu — tekan MENYERAH");log("Tidak ada langkah. Silakan MENYERAH untuk reset.")}
+});
+
+function playSlotAnimation(dur=800){return new Promise(res=>{pieceBox.classList.remove('dragging');pieceBox.innerHTML='';const slot=document.createElement('div');slot.className='slot';for(let i=0;i<3;i++){const reel=document.createElement('div');reel.className='reel';const strip=document.createElement('div');strip.className='strip rolling';for(let j=0;j<7;j++){const s=document.createElement('div');s.className='symbol';const col=pick(COLORS);s.style.backgroundImage=`linear-gradient(180deg, ${col[0]}, ${col[1]})`;strip.appendChild(s)}reel.appendChild(strip);slot.appendChild(reel)}pieceBox.appendChild(slot);setTimeout(res,dur)})}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function pickPlaceableOrNull(){let t=0;while(t<ORIENTED_SHAPES.length*3){const shape=normalize(pick(ORIENTED_SHAPES));if(hasAnyPlacement(shape))return{shape,color:pick(COLORS)};t++}return null}
+
+const supportsPointer='PointerEvent'in window;let drag=null,dragEl=null,activePointerId=null,captureEl=null;
+function getXY(e){if(e.touches&&e.touches[0])return{x:e.touches[0].clientX,y:e.touches[0].clientY};if(e.changedTouches&&e.changedTouches[0])return{x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY};return{x:e.clientX,y:e.clientY}}
+function addDragSource(el){
+  if(el.__dragBound)return;el.__dragBound=true;
+  const onDown=e=>{if(!roundActive||!currentPiece)return;e.preventDefault();pieceBox.classList.add('dragging');pieceBox.innerHTML='';const{ x,y }=getXY(e);startDrag(x,y);if(e.pointerId!=null&&e.target.setPointerCapture){activePointerId=e.pointerId;captureEl=e.target;captureEl.setPointerCapture(activePointerId)}};
+  if(supportsPointer)el.addEventListener('pointerdown',onDown,{passive:false});else{el.addEventListener('touchstart',onDown,{passive:false});el.addEventListener('mousedown',onDown,{passive:false})}
+  el.addEventListener('contextmenu',e=>e.preventDefault())
+}
+function bindMoveUp(){if(supportsPointer){window.addEventListener('pointermove',onMove,{passive:false});window.addEventListener('pointerup',onUp,{passive:false});window.addEventListener('pointercancel',onUp,{passive:false})}else{window.addEventListener('touchmove',onMove,{passive:false});window.addEventListener('touchend',onUp,{passive:false});window.addEventListener('touchcancel',onUp,{passive:false});window.addEventListener('mousemove',onMove,{passive:false});window.addEventListener('mouseup',onUp,{passive:false})}window.addEventListener('blur',cancelDrag,{passive:true});document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelDrag()},{passive:true})}
+function unbindMoveUp(){if(supportsPointer){window.removeEventListener('pointermove',onMove);window.removeEventListener('pointerup',onUp);window.removeEventListener('pointercancel',onUp)}else{window.removeEventListener('touchmove',onMove);window.removeEventListener('touchend',onUp);window.removeEventListener('touchcancel',onUp);window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)}window.removeEventListener('blur',cancelDrag)}
+function cancelDrag(){clearGhost();drag=null;if(captureEl&&activePointerId!=null&&captureEl.releasePointerCapture){try{captureEl.releasePointerCapture(activePointerId)}catch(_){}}activePointerId=null;captureEl=null;if(dragEl){dragEl.remove();dragEl=null}if(roundActive&&currentPiece){renderTrayPiece()}unbindMoveUp()}
+function startDrag(cx,cy){drag={piece:JSON.parse(JSON.stringify(currentPiece))};dragEl=document.createElement('div');dragEl.className='drag';const{w,h}=bounds(drag.piece.shape);dragEl.style.gridTemplateColumns=`repeat(${w}, var(--cell))`;const grad=colorStyle(drag.piece.color);for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const d=document.createElement('div');d.className='cell';if(drag.piece.shape.some(([x,y])=>x===xx&&y===yy)){d.classList.add('filled');d.style.backgroundImage=grad}else{d.style.opacity=.15}dragEl.appendChild(d)}dragEl.style.zIndex='9999';document.body.appendChild(dragEl);moveDrag(cx,cy);hoverGhost(cx,cy);bindMoveUp()}
+function moveDrag(x,y){if(dragEl){dragEl.style.left=x+'px';dragEl.style.top=y+'px'}}
+function onMove(e){if(activePointerId!=null&&e.pointerId!=null&&e.pointerId!==activePointerId)return;e.preventDefault();if(!drag)return;const{ x,y }=getXY(e);moveDrag(x,y);hoverGhost(x,y)}
+function onUp(e){if(activePointerId!=null&&e.pointerId!=null&&e.pointerId!==activePointerId)return;e.preventDefault();if(!drag)return;const{ x,y }=getXY(e);clearGhost();const pos=originFromPointer(x,y,drag.piece.shape);if(pos&&canPlace(drag.piece.shape,pos.gx,pos.gy)){placePiece(drag.piece,pos.gx,pos.gy);currentPiece=null;renderTrayEmpty("Tekan SPIN")}cancelDrag()}
+function hoverGhost(cx,cy){clearGhost();const pos=originFromPointer(cx,cy,drag.piece.shape);if(!pos)return;drag.piece.shape.forEach(([px,py])=>{const x=pos.gx+px,y=pos.gy+py;if(inBounds(x,y))cellAt(x,y).classList.add('ghost')})}
+function clearGhost(){cells.forEach(c=>c.classList.remove('ghost'))}
+function originFromPointer(cx,cy,shape){const r=gridEl.getBoundingClientRect();if(cx<r.left||cy<r.top||cx>r.right||cy>r.bottom)return null;const a=cellAt(0,0).getBoundingClientRect(),b=cellAt(1,0).getBoundingClientRect();const stepX=b.left-a.left,stepY=cellAt(0,1).getBoundingClientRect().top-a.top;if(stepX<=0||stepY<=0)return null;let gx=Math.floor((cx-r.left)/stepX),gy=Math.floor((cy-r.top)/stepY);const{w,h}=bounds(shape);gx-=Math.floor(w/2);gy-=Math.floor(h/2);return{gx:Math.max(0,Math.min(SIZE-1,gx)),gy:Math.max(0,Math.min(SIZE-1,gy))}}
+function canPlace(shape,gx,gy){for(const[px,py]of shape){const x=gx+px,y=gy+py;if(!inBounds(x,y)||board[y][x])return false}return true}
+function hasAnyPlacement(shape){for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){if(canPlace(shape,x,y))return true}return false}
+
+function showWinOverlay(add,total){const d=document.createElement('div');d.className='win-pop';d.innerHTML=`<div class="big"><span class="rp">Rp.</span><span class="num">${fmt(add)}</span></div><div class="small" style="justify-items:center;margin-top:4px">Total</div><div class="small"><span class="rp">Rp.</span><span class="num">${fmt(total)}</span></div>`;boardWrap.appendChild(d);setTimeout(()=>d.remove(),1300)}
+
+async function placePiece(piece,gx,gy){
+  piece.shape.forEach(([px,py])=>{const x=gx+px,y=gy+py;board[y][x]=piece.color});
+  renderBoard();
+  const res=markClears();
+  if(res.lines>0){
+    for(const k of res.cells){const[x,y]=k.split(',').map(Number);const c=cellAt(x,y);c.style.setProperty('--dx',(Math.random()*10-5)+'px');c.style.setProperty('--dy',(Math.random()*10-5)+'px');c.classList.add('explode')}
+    const reward=res.lines*bet*MULTI;
+    await setSaldo(saldo+reward);
+    totalWin+=reward;
+    updateMoneyUI();
+    log(`Hapus ${res.lines} line (+Rp. ${fmt(reward)})`);
+    showWinOverlay(reward,totalWin);
+    await addGameWin(reward);
+    if(reward>=NOTIF_THRESHOLD){
+      window.showWinNotif(nickname,reward);
+      await addDoc(collection(db,"notifs"),{nickname,amount:reward,uid:userId,createdAt:serverTimestamp()});
+    }
+    setTimeout(()=>{for(const k of res.cells){const[x,y]=k.split(',').map(Number);board[y][x]=null}renderBoard()},ANIM_MS)
+  }
+}
+
+function markClears(){const s=new Set();let lines=0;for(let y=0;y<SIZE;y++){let full=true;for(let x=0;x<SIZE;x++){if(!board[y][x]){full=false;break}}if(full){lines++;for(let x=0;x<SIZE;x++)s.add(`${x},${y}`)}}for(let x=0;x<SIZE;x++){let full=true;for(let y=0;y<SIZE;y++){if(!board[y][x]){full=false;break}}if(full){lines++;for(let y=0;y<SIZE;y++)s.add(`${x},${y}`)}}return{cells:s,lines}}
+
+function newGame(spawn){board=Array.from({length:SIZE},()=>Array(SIZE).fill(null));renderBoard();currentPiece=null;renderTrayEmpty(spawn?"Tekan SPIN":"Tekan MULAI");fitCells()}
+updateMoneyUI();newGame(false);setActive(false);fitCells();
+
+const listEl=document.getElementById("rankList");
+const fmtRp=n=>"Rp. "+Number(n||0).toLocaleString('id-ID');
+async function loadTopWinsBlock(){
+  try{
+    const qTop=query(collection(db,"users"),orderBy("winsAmount_block","desc"),limit(3));
+    const snap=await getDocs(qTop);
+    const list=[];snap.forEach(d=>list.push(d.data()));
+    listEl.innerHTML="";
+    list.forEach(u=>{
+      const li=document.createElement("li");
+      li.innerHTML=`${u.username||u.name||"Player"}<br><span class="winAmount">${fmtRp(u.winsAmount_block)}</span>`;
+      listEl.appendChild(li);
+    });
+  }catch(e){}
+}
+loadTopWinsBlock();
+setInterval(loadTopWinsBlock,60000);
+
+const qNotifs=query(collection(db,"notifs"),orderBy("createdAt","desc"),limit(1));
+let firstSnapshot=true;
+onSnap(qNotifs,(snapshot)=>{
+  if(firstSnapshot){firstSnapshot=false;return;}
+  snapshot.docChanges().forEach((change)=>{
+    if(change.type==="added"){
+      const d=change.doc.data();
+      const amount=Number(d?.amount||0);
+      const me=auth.currentUser?.uid||userId;
+      if(amount>=NOTIF_THRESHOLD && d?.uid!==me){window.showWinNotif(String(d?.nickname||"Player"),amount);}
+    }
+  });
+});
+</script>
+
+<div id="chatContainer"></div>
+<script type="module">
+  fetch("chat.html").then(r=>r.text()).then(html=>{document.getElementById("chatContainer").innerHTML=html;import("./chat.js").then(mod=>mod.initChat());});
+</script>
+<script type="module">
+  import { showWinNotif } from "./notif.js";
+  window.showWinNotif=showWinNotif;
 </script>
 </body>
 </html>
