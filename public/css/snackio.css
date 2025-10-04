@@ -1,0 +1,77 @@
+:root{ --bg:#070b1a; --grid:#0c1430; --ui:#eaf3ff; --ui-dim:#9fb3d9; }
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ui);font-family:system-ui,Segoe UI,Roboto,Arial}
+#wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 12px;background:linear-gradient(180deg,#0b1228,transparent);z-index:5}
+.pill{display:inline-flex;gap:6px;align-items:center;background:rgba(255,255,255,.06);padding:6px 10px;border-radius:999px;font-size:14px;border:1px solid rgba(255,255,255,.12)}
+.stat{font-weight:600}
+#game{flex:1;display:block;width:100%;height:100%}
+.overlay{position:fixed;inset:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.35));pointer-events:none}
+footer{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:flex-end;align-items:center;padding:14px;z-index:5}
+.joy{ position:fixed; left:50%; transform:translateX(-50%);
+  bottom:calc(84px + env(safe-area-inset-bottom)); z-index:20;
+  width:112px;height:112px;border-radius:50%;
+  background:radial-gradient(100px 100px at 50% 50%,rgba(255,255,255,.08),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.12); touch-action:none; user-select:none; }
+.joy .knob{ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:52px;height:52px;border-radius:50%;
+  background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.2);backdrop-filter: blur(2px) }
+.btn{min-width:92px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.08);color:var(--ui);font-weight:700;letter-spacing:.5px;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:not-allowed} .btn:active{transform:scale(.98)}
+.toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:10px;font-size:14px;color:var(--ui-dim);z-index:50}
+
+.nickname{ display:inline-block; padding:2px 6px; border-radius:6px; }
+@keyframes neonAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+#rankPanel{
+  position:fixed; left:12px; bottom:10px; right:auto; top:auto;
+  height:180px; width:min(100px,20vw);
+  background:rgba(12,20,48,.88); border:1px solid rgba(255,255,255,.12);
+  border-radius:14px; padding:6px 8px; z-index:6; backdrop-filter: blur(3px);
+}
+#rankPanel h3{ margin:2px 0 4px; font-size:11px; text-align:center; opacity:.9; letter-spacing:.3px }
+#rankPanel .rrow{ display:flex; flex-direction:column; align-items:flex-start; padding:3px 4px; border-radius:8px; margin-bottom:-10px }
+#rankPanel .rrow.me{ background:rgba(88,255,155,.12) }
+#rankPanel .title{ font-size:10px; font-weight:700; letter-spacing:.2px; margin-bottom:0 }
+#rankPanel .sub{ font-size:9px; opacity:.85; margin-top:1px }
+
+.modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:1000 }
+.card{ width:min(760px,92vw); background:rgba(12,20,48,.96); border:1px solid rgba(255,255,255,.12);
+  border-radius:18px; padding:18px 18px 16px; box-shadow:0 20px 80px rgba(0,0,0,.45) }
+.card h1{ margin:0 0 12px; font-size:24px; text-align:center; text-shadow:0 0 18px #00ffc8 }
+.sub{ opacity:.9; text-align:center; margin-bottom:14px }
+
+.money{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px auto 10px; width:min(520px,92%) }
+.money .chip{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15); padding:10px 12px; border-radius:12px; font-weight:700 }
+.cost{ width:min(520px,92%); margin:6px auto 0; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:10px 12px }
+.cost .row{ display:flex; justify-content:space-between; align-items:center; margin:4px 0; font-size:14px }
+.cost .total{ font-weight:800; font-size:15px; margin-top:6px }
+
+.palette{ display:grid; grid-template-columns:1fr; gap:12px; justify-items:center; margin:12px auto 8px; width:min(420px,92%) }
+.colorBox{ width:100%; height:64px; border-radius:14px; background:#ffffff;
+  border:2px solid rgba(255,255,255,.25); cursor:pointer; position:relative;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.05); display:flex; align-items:center; justify-content:center;
+  color:#000; font-weight:700; letter-spacing:.4px; text-transform:uppercase; user-select:none; pointer-events:auto; }
+.colorBox::after{ content:'Pilih warna'; position:absolute; font-size:12px; opacity:.7; top:8px; right:10px; color:#000;
+  background:rgba(255,255,255,.6); padding:3px 6px; border-radius:10px; border:1px solid rgba(0,0,0,.08); pointer-events:none; }
+.colorBox.selected{ outline:3px solid #00ffc8; box-shadow:0 0 16px rgba(0,255,200,.55), inset 0 0 0 1px rgba(0,0,0,.05) }
+
+.row{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.input{ display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);
+  padding:10px 12px;border-radius:12px }
+.input input{width:90px;background:transparent;border:none;outline:none;color:var(--ui);font-size:16px}
+.hint{font-size:12px;opacity:.75;margin-top:6px;text-align:center}
+
+#colorModal{ z-index:1100 }
+#colorModal .card{width:min(540px,92vw)}
+.pickerGrid{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}
+.preview{width:100%;aspect-ratio:1/1;border-radius:14px;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
+.sl{display:flex;flex-direction:column;gap:8px}
+.sl label{font-size:13px;opacity:.9;display:flex;gap:8px;align-items:center}
+.sl input[type=range]{width:100%}
+.hexRow{display:flex;gap:8px;align-items:center}
+.hexRow input{flex:1; padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff}
+.swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:8px}
+.swatch{height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.25);cursor:pointer}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
