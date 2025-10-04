@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<title>Snake.io — Smooth + Rank + Buah + Custom Color + Saldo</title>
+<style>
+  :root{ --bg:#070b1a; --grid:#0c1430; --ui:#eaf3ff; --ui-dim:#9fb3d9; }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ui);font-family:system-ui,Segoe UI,Roboto,Arial}
+  #wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 12px;background:linear-gradient(180deg,#0b1228,transparent);z-index:5}
+  .pill{display:inline-flex;gap:6px;align-items:center;background:rgba(255,255,255,.06);padding:6px 10px;border-radius:999px;font-size:14px}
+  .stat{font-weight:600}
+  #game{flex:1;display:block;width:100%;height:100%}
+  .overlay{position:fixed;inset:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.35));pointer-events:none}
+  footer{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:flex-end;align-items:center;padding:14px;z-index:5}
+  .joy{ position:fixed; left:50%; transform:translateX(-50%);
+        bottom:calc(84px + env(safe-area-inset-bottom)); z-index:20;
+        width:112px;height:112px;border-radius:50%;
+        background:radial-gradient(100px 100px at 50% 50%,rgba(255,255,255,.08),rgba(255,255,255,.02));
+        border:1px solid rgba(255,255,255,.12); touch-action:none; user-select:none; }
+  .joy .knob{ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+              width:52px;height:52px;border-radius:50%;
+              background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.2);backdrop-filter: blur(2px) }
+  .btn{min-width:92px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);
+       background:rgba(255,255,255,.08);color:var(--ui);font-weight:700;letter-spacing:.5px;cursor:pointer}
+  .btn:disabled{opacity:.55;cursor:not-allowed} .btn:active{transform:scale(.98)}
+  .toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(0,0,0,.55);
+         border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:10px;font-size:14px;color:var(--ui-dim);z-index:50}
+
+  /* ===== Rank Panel — kiri bawah (ringkas) ===== */
+  #rankPanel{
+    position:fixed; left:12px; bottom:10px; right:auto; top:auto;
+    height:180px; width:min(100px,20vw);
+    background:rgba(12,20,48,.88); border:1px solid rgba(255,255,255,.12);
+    border-radius:14px; padding:6px 8px; z-index:6; backdrop-filter: blur(3px);
+  }
+  #rankPanel h3{ margin:2px 0 4px; font-size:11px; text-align:center; opacity:.9; letter-spacing:.3px }
+  #rankPanel .rrow{ display:flex; flex-direction:column; align-items:flex-start; padding:3px 4px; border-radius:8px; margin-bottom:-10px }
+  #rankPanel .rrow.me{ background:rgba(88,255,155,.12) }
+  #rankPanel .title{ font-size:10px; font-weight:700; letter-spacing:.2px; margin-bottom:0 }
+  #rankPanel .sub{ font-size:9px; opacity:.85; margin-top:1px }
+
+  /* ===== Start Menu ===== */
+  .modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:1000 }
+  .card{ width:min(760px,92vw); background:rgba(12,20,48,.96); border:1px solid rgba(255,255,255,.12);
+         border-radius:18px; padding:18px 18px 16px; box-shadow:0 20px 80px rgba(0,0,0,.45) }
+  .card h1{ margin:0 0 12px; font-size:24px; text-align:center; text-shadow:0 0 18px #00ffc8 }
+  .sub{ opacity:.9; text-align:center; margin-bottom:14px }
+
+  /* Saldo & Biaya */
+  .money{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px auto 10px; width:min(520px,92%) }
+  .money .chip{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15); padding:10px 12px; border-radius:12px; font-weight:700 }
+  .cost{ width:min(520px,92%); margin:6px auto 0; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:10px 12px }
+  .cost .row{ display:flex; justify-content:space-between; align-items:center; margin:4px 0; font-size:14px }
+  .cost .total{ font-weight:800; font-size:15px; margin-top:6px }
+
+  /* Kotak warna: vertikal */
+  .palette{ display:grid; grid-template-columns:1fr; gap:12px; justify-items:center; margin:12px auto 8px; width:min(420px,92%) }
+  .colorBox{ width:100%; height:64px; border-radius:14px; background:#ffffff;
+    border:2px solid rgba(255,255,255,.25); cursor:pointer; position:relative;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.05); display:flex; align-items:center; justify-content:center;
+    color:#000; font-weight:700; letter-spacing:.4px; text-transform:uppercase; user-select:none; pointer-events:auto; }
+  .colorBox::after{ content:'Pilih warna'; position:absolute; font-size:12px; opacity:.7; top:8px; right:10px; color:#000;
+    background:rgba(255,255,255,.6); padding:3px 6px; border-radius:10px; border:1px solid rgba(0,0,0,.08); pointer-events:none; }
+  .colorBox.selected{ outline:3px solid #00ffc8; box-shadow:0 0 16px rgba(0,255,200,.55), inset 0 0 0 1px rgba(0,0,0,.05) }
+
+  .row{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:12px;flex-wrap:wrap}
+  .input{ display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);
+    padding:10px 12px;border-radius:12px }
+  .input input{width:90px;background:transparent;border:none;outline:none;color:var(--ui);font-size:16px}
+  .hint{font-size:12px;opacity:.75;margin-top:6px;text-align:center}
+
+  /* ===== Color Picker Modal ===== */
+  #colorModal{ z-index:1100 }
+  #colorModal .card{width:min(540px,92vw)}
+  .pickerGrid{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}
+  .preview{width:100%;aspect-ratio:1/1;border-radius:14px;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
+  .sl{display:flex;flex-direction:column;gap:8px}
+  .sl label{font-size:13px;opacity:.9;display:flex;gap:8px;align-items:center}
+  .sl input[type=range]{width:100%}
+  .hexRow{display:flex;gap:8px;align-items:center}
+  .hexRow input{flex:1; padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff}
+  .swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:8px}
+  .swatch{height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.25);cursor:pointer}
+  .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <div>
+      <span class="pill stat">Panjang: <span id="len">3</span></span>
+      <span class="pill">User: <span id="userCount">0</span></span>
+    </div>
+    <div>
+      <span class="pill stat">Saldo: <span id="saldo">Rp 0</span></span>
+      <button id="reset" class="btn" title="Mulai Ulang (R)">Reset</button>
+    </div>
+  </header>
+
+  <div id="rankPanel">
+    <h3>RANK</h3>
+    <div id="rankRows"></div>
+  </div>
+
+  <canvas id="game"></canvas>
+  <div class="overlay"></div>
+
+  <!-- Joystick -->
+  <div class="joy" id="joy"><div class="knob" id="knob"></div></div>
+
+  <footer><button id="boostBtn" class="btn">BOOST</button></footer>
+</div>
+
+<!-- ===== START MENU / CONFIG ===== -->
+<div id="configPanel" class="modal" aria-modal="true" role="dialog">
+  <div class="card">
+    <h1>Pengaturan Awal</h1>
+    <div class="money">
+      <div class="chip">Saldo: <span id="saldoInModal">Rp 0</span></div>
+      <div class="chip">Harga: Warna Rp10.000 | Panjang Rp5.000</div>
+    </div>
+    <div class="sub">Klik kotak untuk pilih warna (maks 5). Jika pilih banyak, ular akan <b>belang</b> dari <b>kepala (warna 1) → ekor</b>.</div>
+
+    <div class="palette" id="palette">
+      <div class="colorBox" data-i="0" style="background:#ffffff">Warna 1</div>
+      <div class="colorBox" data-i="1" style="background:#ffffff">Warna 2</div>
+      <div class="colorBox" data-i="2" style="background:#ffffff">Warna 3</div>
+      <div class="colorBox" data-i="3" style="background:#ffffff">Warna 4</div>
+      <div class="colorBox" data-i="4" style="background:#ffffff">Warna 5</div>
+    </div>
+
+    <div class="row">
+      <div class="input">
+        <span>Panjang awal</span>
+        <input id="startLenInput" type="number" min="1" max="300" step="1" value="3" />
+      </div>
+      <button id="startBtn" class="btn" disabled>Mulai</button>
+    </div>
+
+    <div class="cost" id="costBox">
+      <div class="row"><span>Biaya warna</span><strong id="costColor">Rp 0</strong></div>
+      <div class="row"><span>Biaya panjang</span><strong id="costLen">Rp 0</strong></div>
+      <div class="row total"><span>Total</span><span id="costTotal">Rp 0</span></div>
+    </div>
+
+    <div class="hint">Start aktif jika minimal satu warna dipilih & saldo cukup.</div>
+  </div>
+</div>
+
+<!-- ===== CUSTOM COLOR PICKER MODAL ===== -->
+<div id="colorModal" class="modal" style="display:none">
+  <div class="card">
+    <h1>Pilih Warna</h1>
+    <div class="pickerGrid">
+      <div class="preview" id="prevBox"></div>
+      <div class="sl">
+        <label>Hue <input id="hue" type="range" min="0" max="360" value="160"></label>
+        <label>Saturation <input id="sat" type="range" min="0" max="100" value="85"></label>
+        <label>Lightness <input id="lit" type="range" min="0" max="100" value="55"></label>
+        <div class="hexRow">
+          <span>#</span><input id="hex" type="text" value="58ff9b" maxlength="6">
+        </div>
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="cancelPick" class="btn">Batal</button>
+      <button id="okPick" class="btn">Pilih</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+(() => {
+  /* ========= Helpers ========= */
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const rand=(a,b)=>Math.random()*(b-a)+a, lerp=(a,b,t)=>a+(b-a)*t, angNorm=a=>((a+Math.PI*3)%(Math.PI*2))-Math.PI;
+  const PRICE_COLOR = 10000, PRICE_LEN = 5000;
+  const DEFAULT_SALDO = 50000;
+
+  function formatRupiah(n){
+    n = Math.max(0, Math.floor(n||0));
+    return 'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  /* ========= Color Utils ========= */
+  function hexToRgb(hex){
+    hex = (hex||'').replace('#','').trim();
+    if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+    if(!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+    const n=parseInt(hex,16);
+    return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
+  }
+  function rgbToHsl(r, g, b){
+    r/=255; g/=255; b/=255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b);
+    let h,s,l=(max+min)/2;
+    if(max===min){ h=s=0; }
+    else{
+      const d=max-min;
+      s=l>0.5 ? d/(2-max-min) : d/(max+min);
+      switch(max){
+        case r: h=(g-b)/d + (g<b?6:0); break;
+        case g: h=(b-r)/d + 2; break;
+        case b: h=(r-g)/d + 4; break;
+      }
+      h*=60;
+    }
+    return {h, s:s*100, l:l*100};
+  }
+  function hslToRgb(h, s, l){
+    h/=360; s/=100; l/=100;
+    const hue2rgb=(p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+    let r,g,b;
+    if(s===0){ r=g=b=l; }
+    else{
+      const q=l<0.5 ? l*(1+s) : l+s-l*s;
+      const p=2*l-q;
+      r=hue2rgb(p,q,h+1/3);
+      g=hue2rgb(p,q,h);
+      b=hue2rgb(p,q,h-1/3);
+    }
+    return {r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255)};
+  }
+  function hslToHex(h,s,l){ const {r,g,b}=hslToRgb(h,s,l); const h2=v=>('0'+v.toString(16)).slice(-2); return '#'+h2(r)+h2(g)+h2(b); }
+
+  /* ========= Canvas & World ========= */
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  let vw=0, vh=0, dpr=Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  function resize(){ vw=innerWidth; vh=innerHeight; canvas.width=vw*dpr; canvas.height=vh*dpr; canvas.style.width=vw+'px'; canvas.style.height=vh+'px'; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  addEventListener('resize', resize, {passive:true}); resize();
+
+  const WORLD={w:4200,h:4200,grid:90};
+  function wrapPos(p){ if(p.x<0)p.x+=WORLD.w; else if(p.x>=WORLD.w)p.x-=WORLD.w; if(p.y<0)p.y+=WORLD.h; else if(p.y>=WORLD.h)p.y-=WORLD.h; }
+  const camera={x:WORLD.w/2,y:WORLD.h/2,zoom:1};
+  function worldToScreen(x,y){ return {x:(x-camera.x)*camera.zoom+vw/2, y:(y-camera.y)*camera.zoom+vh/2}; }
+
+  /* ========= Foods ========= */
+  const foods=[]; let FOOD_COUNT=1400;
+  const FRUITS=['apple','orange','grape','watermelon','strawberry','lemon','blueberry','starfruit'];
+  function spawnFood(x=rand(0,WORLD.w),y=rand(0,WORLD.h)){
+    const kind=FRUITS[Math.floor(rand(0,FRUITS.length))];
+    foods.push({kind,x,y,pulse:Math.random()*6.283});
+  }
+  function ensureFood(){ while(foods.length<FOOD_COUNT) spawnFood(); }
+
+  /* ========= Snakes ========= */
+  function bodyRadius(s){ return 4 + 2*Math.sqrt(Math.max(0, s.length-3)); }
+  const BASE_SEG_SPACE=6;
+  function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
+
+  let userIdCounter=1;
+  function createSnake(colors,x,y,isBot=false,len=3){
+    const tag=`User ${userIdCounter++}`;
+    const s={
+      id:Math.random().toString(36).slice(2),
+      label:'USER', rankName:tag,
+      colors,
+      x,y,dir:Math.random()*Math.PI*2 - Math.PI,
+      speedBase:120,speedMax:220,v:0,boost:false,energy:1,
+      length:len, baseLen:len, fruitProgress:0,
+      path:[], _pathAcc:0, alive:true, isBot,
+      aiTarget:{x:Math.random()*WORLD.w,y:Math.random()*WORLD.h}
+    };
+    s.path.unshift({x:s.x,y:s.y});
+    return s;
+  }
+  function needForNext(s){ return 10 + Math.max(0, (s.length - s.baseLen)) * 2; }
+
+  let player=null; const snakes=[]; const BOT_NUM=12;
+  function spawnBots(n=BOT_NUM){ for(let i=0;i<n;i++){ snakes.push(createSnake(['#79a7ff'],Math.random()*WORLD.w,Math.random()*WORLD.h,true,3+Math.floor(Math.random()*8))); } }
+
+  /* ========= Input ========= */
+  const keys={}; addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.key==='r'||e.key==='R') quickReset(); });
+  addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+  const pointer={x:vw/2,y:vh/2,down:false}; addEventListener('pointerdown',e=>{ pointer.down=true; pointer.x=e.clientX; pointer.y=e.clientY; });
+  addEventListener('pointermove',e=>{ pointer.x=e.clientX; pointer.y=e.clientY; }); addEventListener('pointerup',()=>{ pointer.down=false; }); addEventListener('pointercancel',()=>{ pointer.down=false; });
+
+  // Joystick
+  const joy=document.getElementById('joy'), knob=document.getElementById('knob'); let joyState={ax:0,ay:0,active:false};
+  function setKnob(cx,cy){ knob.style.left=cx+'%'; knob.style.top=cy+'%'; } setKnob(50,50);
+  function handleJoy(e,type){
+    const r=joy.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+    let x,y; if(e.touches&&e.touches[0]){ x=e.touches[0].clientX; y=e.touches[0].clientY; } else { x=e.clientX; y=e.clientY; }
+    const dx=x-cx, dy=y-cy, rad=r.width/2, mag=Math.hypot(dx,dy), cl=mag>rad?rad:mag;
+    const nx=mag?dx/mag*cl:0, ny=mag?dy/mag*cl:0; setKnob((nx/rad)*50+50,(ny/rad)*50+50);
+    joyState.ax=(nx/rad); joyState.ay=(ny/rad);
+    if(type==='end'){ joyState.ax=0; joyState.ay=0; setKnob(50,50); joyState.active=false; } else joyState.active=true;
+  }
+  joy.addEventListener('pointerdown',e=>{ joy.setPointerCapture(e.pointerId); handleJoy(e,'start'); });
+  joy.addEventListener('pointermove',e=>{ if(e.pressure>0) handleJoy(e,'move'); });
+  joy.addEventListener('pointerup',e=>{ handleJoy(e,'end'); });
+  joy.addEventListener('pointercancel',e=>{ handleJoy(e,'end'); });
+  const boostBtn=document.getElementById('boostBtn'); let boostHold=false;
+  boostBtn.addEventListener('pointerdown',()=>{ boostHold=true; });
+  boostBtn.addEventListener('pointerup',()=>{ boostHold=false; });
+  boostBtn.addEventListener('pointercancel',()=>{ boostHold=false; });
+
+  /* ========= UI ========= */
+  const elLen=document.getElementById('len');
+  const elUsers=document.getElementById('userCount');
+  const elSaldo=document.getElementById('saldo');
+  const elSaldoInModal=document.getElementById('saldoInModal');
+  const resetBtn=document.getElementById('reset'), toast=document.getElementById('toast');
+  resetBtn.addEventListener('click', quickReset);
+  function showToast(msg,t=1500){ toast.textContent=msg; toast.style.display='block'; clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.style.display='none',t); }
+
+  // Rank panel
+  const rankRowsEl=document.getElementById('rankRows');
+  function updateRankPanel(){
+    const top = snakes.filter(s=>s.alive).sort((a,b)=> b.length - a.length).slice(0,5);
+    rankRowsEl.innerHTML = top.map((s,i)=>{
+      const me = (s===player) ? ' me' : '';
+      return `<div class="rrow${me}"><div class="title">${i+1}. User</div><div class="sub">Len ${s.length}</div></div>`;
+    }).join('');
+  }
+
+  /* ========= Saldo storage ========= */
+  let saldo = parseInt(localStorage.getItem('snakeio_saldo')||'',10);
+  if(isNaN(saldo)) saldo = DEFAULT_SALDO;
+  function setSaldo(v){
+    saldo = Math.max(0, Math.floor(v));
+    localStorage.setItem('snakeio_saldo', String(saldo));
+    elSaldo.textContent = formatRupiah(saldo);
+    elSaldoInModal.textContent = formatRupiah(saldo);
+  }
+  setSaldo(saldo);
+
+  /* ========= Config Panel + Custom Color Picker ========= */
+  const configPanel=document.getElementById('configPanel');
+  const startBtn=document.getElementById('startBtn');
+  const startLenInput=document.getElementById('startLenInput');
+  const boxes=[...document.querySelectorAll('.colorBox')];
+
+  let palette=['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'];
+  let selected=[false,false,false,false,false];
+  let lastPlayerColors=['#58ff9b'];
+  let lastStartLen=3;
+
+  const costColorEl=document.getElementById('costColor');
+  const costLenEl=document.getElementById('costLen');
+  const costTotalEl=document.getElementById('costTotal');
+
+  function calcCosts(){
+    const len = clamp(parseInt(startLenInput.value||'3',10), 1, 300);
+    const colorCount = selected.filter(Boolean).length;
+    const cColor = colorCount * PRICE_COLOR;
+    const cLen = len * PRICE_LEN;
+    return { len, colorCount, cColor, cLen, total: cColor + cLen };
+  }
+  function refreshCostUI(){
+    const {cColor,cLen,total} = calcCosts();
+    costColorEl.textContent = formatRupiah(cColor);
+    costLenEl.textContent = formatRupiah(cLen);
+    costTotalEl.textContent = formatRupiah(total);
+  }
+  function refreshStartState(){
+    const {colorCount,total} = calcCosts();
+    const can = colorCount>0 && total <= saldo;
+    startBtn.disabled = !can;
+  }
+  function refreshCostsAndStart(){ refreshCostUI(); refreshStartState(); }
+
+  // Color picker elements
+  const colorModal=document.getElementById('colorModal');
+  const prevBox=document.getElementById('prevBox');
+  const hueEl=document.getElementById('hue'), satEl=document.getElementById('sat'), litEl=document.getElementById('lit'), hexEl=document.getElementById('hex');
+  const cancelPick=document.getElementById('cancelPick'), okPick=document.getElementById('okPick'), swatchesEl=document.getElementById('swatches');
+  const SWATCHES=['#ff5d73','#ff9f1a','#ffd84d','#58ff9b','#2ed573','#79a7ff','#4c6ef5','#b56eff','#ff4d6d','#e9ff70','#a06cff','#ffe066','#3bdc68','#00d1b2','#00ffff','#ffffff'];
+  SWATCHES.forEach(c=>{ const d=document.createElement('div'); d.className='swatch'; d.style.background=c; d.addEventListener('click',()=>setHex(c)); swatchesEl.appendChild(d); });
+
+  // Saat modal terbuka, matikan pointer events joystick
+  const joyEl=document.getElementById('joy');
+  function updateJoyInteractivity(){
+    const anyOpen = configPanel.style.display !== 'none' || colorModal.style.display !== 'none';
+    joyEl.style.pointerEvents = anyOpen ? 'none' : 'auto';
+  }
+
+  let currentBox=-1;
+  function setPreviewFromHSL(){ const h=+hueEl.value, s=+satEl.value, l=+litEl.value; const hex=hslToHex(h,s,l); prevBox.style.background=hex; hexEl.value=hex.replace('#',''); }
+  function setHSLFromHex(hex){
+    const rgb=hexToRgb(hex); if(!rgb) return;
+    const hsl=rgbToHsl(rgb.r,rgb.g,rgb.b);
+    hueEl.value=Math.round(hsl.h); satEl.value=Math.round(hsl.s); litEl.value=Math.round(hsl.l);
+    prevBox.style.background=hex; hexEl.value=hex.replace('#','');
+  }
+  function setHex(hex){ if(!hex.startsWith('#')) hex='#'+hex; setHSLFromHex(hex); }
+  hueEl.addEventListener('input', setPreviewFromHSL);
+  satEl.addEventListener('input', setPreviewFromHSL);
+  litEl.addEventListener('input', setPreviewFromHSL);
+  hexEl.addEventListener('input', ()=>{ const v=hexEl.value.replace(/[^0-9a-fA-F]/g,''); hexEl.value=v.slice(0,6); if(v.length===6) setHex('#'+v); });
+
+  function openPickerFor(i){
+    currentBox=i;
+    const cur = palette[i] || '#58ff9b';
+    setHex(cur);
+    colorModal.style.display='flex';
+    updateJoyInteractivity();
+  }
+  cancelPick.addEventListener('click', ()=>{ colorModal.style.display='none'; currentBox=-1; updateJoyInteractivity(); });
+  okPick.addEventListener('click', ()=>{
+    if(currentBox<0) return;
+    let hex = '#'+(hexEl.value||'').padEnd(6,'0');
+    if(!hexToRgb(hex)) hex = '#58ff9b';
+    palette[currentBox]=hex;
+    selected[currentBox]=true;
+    boxes[currentBox].style.background=hex;
+    boxes[currentBox].classList.add('selected');
+    colorModal.style.display='none';
+    currentBox=-1;
+    refreshCostsAndStart();
+    updateJoyInteractivity();
+  });
+
+  boxes.forEach((box,i)=>{
+    box.addEventListener('click', ()=>openPickerFor(i));
+    // Dblclick untuk on/off pilihan warna (tetap kena biaya jika ON)
+    box.addEventListener('dblclick', ()=>{
+      selected[i]=!selected[i];
+      box.classList.toggle('selected', selected[i]);
+      refreshCostsAndStart();
+    });
+  });
+
+  startLenInput.addEventListener('input', ()=>{ 
+    let v = clamp(parseInt(startLenInput.value||'3',10),1,300);
+    startLenInput.value = v;
+    refreshCostsAndStart();
+  });
+
+  startBtn.addEventListener('click', ()=>{
+    const { len, colorCount, total } = calcCosts();
+    if(colorCount<=0){ showToast('Pilih minimal satu warna.'); return; }
+    if(total > saldo){ showToast('Saldo tidak cukup!'); refreshStartState(); return; }
+
+    // Ambil warna sesuai pilihan (berurutan dari 1..5)
+    const colors = boxes.map((_, idx)=> selected[idx] ? (palette[idx] || '#ffffff') : null).filter(Boolean);
+    lastPlayerColors = colors.length ? colors : ['#58ff9b'];
+    lastStartLen = len;
+
+    // Potong saldo
+    setSaldo(saldo - total);
+
+    // Mulai game
+    startGame(lastPlayerColors, len);
+    configPanel.style.display='none';
+    updateJoyInteractivity();
+    const msg = `Mulai! Dipotong ${formatRupiah(total)} (${colorCount} warna + panjang ${len}).`;
+    showToast(msg, 1800);
+  });
+
+  /* ========= Game Logic ========= */
+  function updateSnake(s,dt){
+    if(!s.alive) return;
+    let targetAngle=s.dir, steerX=0,steerY=0;
+    if(keys['w']||keys['arrowup']) steerY-=1;
+    if(keys['s']||keys['arrowdown']) steerY+=1;
+    if(keys['a']||keys['arrowleft']) steerX-=1;
+    if(keys['d']||keys['arrowright']) steerX+=1;
+
+    if(s===player){
+      if(joyState.active&&(Math.abs(joyState.ax)+Math.abs(joyState.ay))>0.05) targetAngle=Math.atan2(joyState.ay,joyState.ax);
+      else if(pointer.down){ const head=worldToScreen(s.x,s.y); targetAngle=Math.atan2(pointer.y-head.y, pointer.x-head.x); }
+      else if(steerX||steerY) targetAngle=Math.atan2(steerY,steerX);
+      s.boost=boostHold||keys['shift'];
+    }else if(s.isBot){
+      const dx=s.aiTarget.x-s.x, dy=s.aiTarget.y-s.y;
+      if((dx*dx+dy*dy)<140*140){ s.aiTarget.x=Math.random()*WORLD.w; s.aiTarget.y=Math.random()*WORLD.h; }
+      targetAngle=Math.atan2(dy,dx)+(Math.random()*0.36-0.18);
+      s.boost=Math.random()<0.012;
+    }
+
+    const MAX_TURN=3.4, delta=angNorm(targetAngle-s.dir);
+    s.dir+=Math.max(-MAX_TURN*dt, Math.min(MAX_TURN*dt, delta));
+
+    const want=(s.boost&&s.energy>0.15)?s.speedMax:s.speedBase;
+    s.v=lerp(s.v||s.speedBase, want, (s.boost?0.35:0.18));
+    if(s.boost&&s.energy>0.15){ s.energy=Math.max(0, s.energy-0.28*dt); } else { s.energy=Math.min(1, s.energy+0.14*dt); }
+
+    const mv=s.v*dt; s.x+=Math.cos(s.dir)*mv; s.y+=Math.sin(s.dir)*mv; wrapPos(s);
+
+    const SP=segSpace(s); s._pathAcc+=mv; while(s._pathAcc>=SP){ s.path.unshift({x:s.x,y:s.y}); s._pathAcc-=SP; }
+    const maxPath=Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP)); if(s.path.length>maxPath) s.path.length=maxPath;
+
+    for(let i=foods.length-1;i>=0;i--){
+      const f=foods[i], dx=s.x-f.x, dy=s.y-f.y, eatR=bodyRadius(s)+10;
+      if(dx*dx+dy*dy<eatR*eatR){
+        foods.splice(i,1);
+        s.fruitProgress += 1;
+        if(s.fruitProgress >= needForNext(s)){
+          s.fruitProgress = 0;
+          s.length += 1;
+        }
+      }
+    }
+
+    for(const o of snakes){
+      if(!o.alive || o===s) continue;
+      const rS=bodyRadius(s), rO=bodyRadius(o), thresh=(rS+rO)*0.7, step=3;
+      for(let i=6;i<o.path.length;i+=step){
+        const p=o.path[i], dx=s.x-p.x, dy=s.y-p.y;
+        if(dx*dx+dy*dy < thresh*thresh){ killSnake(s,o); return; }
+      }
+    }
+  }
+
+  function killSnake(s){
+    if(!s.alive) return; s.alive=false;
+    for(let i=0;i<s.path.length;i+=Math.max(6, Math.floor(segSpace(s)))){ const p=s.path[i]; spawnFood(p.x+(Math.random()*12-6), p.y+(Math.random()*12-6)); }
+    if(s.isBot){
+      setTimeout(()=>{ const idx=snakes.indexOf(s); if(idx>=0) snakes.splice(idx,1);
+        snakes.push(createSnake(['#79a7ff'],Math.random()*WORLD.w,Math.random()*WORLD.h,true,3+Math.floor(Math.random()*8)));
+      },700);
+    }else{
+      showToast('Kamu tumbang! Tekan Reset untuk main lagi.');
+    }
+  }
+
+  /* ========= Rendering ========= */
+  function drawGrid(){
+    const step=WORLD.grid*camera.zoom; if(step<14) return;
+    const ox=-((camera.x*camera.zoom)%step), oy=-((camera.y*camera.zoom)%step);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1; ctx.beginPath();
+    for(let x=ox;x<vw;x+=step){ctx.moveTo(x,0);ctx.lineTo(x,vh);}
+    for(let y=oy;y<vh;y+=step){ctx.moveTo(0,y);ctx.lineTo(vw,y);}
+    ctx.stroke();
+  }
+
+  function drawFruit(f){
+    const s=worldToScreen(f.x,f.y);
+    if(s.x<-30||s.y<-30||s.x>vw+30||s.y>vh+30) return;
+    ctx.save();
+    ctx.translate(s.x,s.y);
+    ctx.scale(camera.zoom,camera.zoom);
+
+    switch(f.kind){
+      case 'apple':
+        ctx.fillStyle='#ff4d4d';
+        ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#3bdc68';
+        ctx.beginPath(); ctx.ellipse(6,-9,4,2,-0.6,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#6b3b12'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(0,-14); ctx.stroke();
+        break;
+      case 'orange':
+        ctx.fillStyle='#ffa94d';
+        ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1;
+        for(let a=0;a<6;a++){ ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a*Math.PI/3)*9,Math.sin(a*Math.PI/3)*9); ctx.stroke(); }
+        break;
+      case 'grape':
+        ctx.fillStyle='#a06cff';
+        for(let i=0;i<5;i++){ const ang=i*1.256, rx=Math.cos(ang)*6, ry=Math.sin(ang)*4; ctx.beginPath(); ctx.arc(rx,ry,4.5,0,Math.PI*2); ctx.fill(); }
+        ctx.fillStyle='#3bdc68'; ctx.beginPath(); ctx.ellipse(-2,-9,4,2,0.3,0,Math.PI*2); ctx.fill();
+        break;
+      case 'watermelon':
+        ctx.fillStyle='#ff5d73';
+        ctx.beginPath(); ctx.moveTo(-11,0); ctx.arc(0,0,11,Math.PI,0); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle='#2ed573'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,11,Math.PI,0); ctx.stroke();
+        ctx.fillStyle='#111'; for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.ellipse(i*3,-3,1.2,2.4,0,0,Math.PI*2); ctx.fill(); }
+        break;
+      case 'strawberry':
+        ctx.fillStyle='#ff4d6d';
+        ctx.beginPath();
+        ctx.moveTo(0,10); ctx.quadraticCurveTo(12,4,8,-6); ctx.quadraticCurveTo(0,-12,-8,-6); ctx.quadraticCurveTo(-12,4,0,10);
+        ctx.fill();
+        ctx.fillStyle='#3bdc68'; ctx.beginPath(); ctx.moveTo(-6,-8); ctx.lineTo(0,-14); ctx.lineTo(6,-8); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#fee440'; for(let i=-4;i<=4;i+=4){ for(let j=-2;j<=6;j+=4){ ctx.beginPath(); ctx.arc(i,j,1,0,Math.PI*2); ctx.fill(); } }
+        break;
+      case 'lemon':
+        ctx.fillStyle='#ffe066';
+        ctx.beginPath(); ctx.ellipse(0,0,12,8,0,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#fff385'; ctx.lineWidth=1; ctx.beginPath(); ctx.ellipse(0,0,8,5,0,0,Math.PI*2); ctx.stroke();
+        break;
+      case 'blueberry':
+        ctx.fillStyle='#4c6ef5';
+        ctx.beginPath(); ctx.arc(0,0,9,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#2b2d42';
+        ctx.beginPath(); ctx.moveTo(-3,-1); ctx.lineTo(0,-4); ctx.lineTo(3,-1); ctx.lineTo(0,2); ctx.closePath(); ctx.fill();
+        break;
+      case 'starfruit':
+        ctx.fillStyle='#e9ff70';
+        ctx.beginPath();
+        for(let i=0;i<5;i++){
+          const a=-Math.PI/2+i*2*Math.PI/5;
+          const x1=Math.cos(a)*11, y1=Math.sin(a)*11;
+          const x2=Math.cos(a+Math.PI/5)*5, y2=Math.sin(a+Math.PI/5)*5;
+          if(i===0) ctx.moveTo(x1,y1); else ctx.lineTo(x1,y1);
+          ctx.lineTo(x2,y2);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1; ctx.stroke();
+        break;
+    }
+
+    ctx.restore();
+  }
+
+  function drawFood(){ for(const f of foods) drawFruit(f); }
+
+  // Smoothing (Chaikin + Catmull–Rom→Bezier)
+  function moveWithBezier(ctx, pts, tension=0.75){
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=0;i<pts.length-1;i++){
+      const p0=i>0?pts[i-1]:pts[i], p1=pts[i], p2=pts[i+1], p3=(i!=pts.length-2)?pts[i+2]:p2, t=tension;
+      const cp1x=p1.x+(p2.x-p0.x)*t/6, cp1y=p1.y+(p2.y-p0.y)*t/6;
+      const cp2x=p2.x-(p3.x-p1.x)*t/6, cp2y=p2.y-(p3.y-p1.y)*t/6;
+      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2.x,p2.y);
+    }
+  }
+  function chaikinSmooth(pts, iterations=2){
+    let out=pts.slice();
+    for(let k=0;k<iterations;k++){
+      const res=[out[0]];
+      for(let i=0;i<out.length-1;i++){ const p=out[i], q=out[i+1];
+        const Q={x:p.x*0.75+q.x*0.25, y:p.y*0.75+q.y*0.25};
+        const R={x:p.x*0.25+q.x*0.75, y:p.y*0.25+q.y*0.75};
+        res.push(Q,R);
+      }
+      res.push(out[out.length-1]); out=res;
+    }
+    return out;
+  }
+  function screenSegmentsFromSnake(sn){
+    const pts=[]; for(let i=sn.path.length-1;i>=0;i--){ const p=sn.path[i]; const s=worldToScreen(p.x,p.y); pts.push({x:s.x,y:s.y}); }
+    const headNow=worldToScreen(sn.x,sn.y); pts.push({x:headNow.x,y:headNow.y});
+    const segs=[]; let cur=[pts[0]];
+    for(let i=1;i<pts.length;i++){
+      const a=pts[i-1], b=pts[i];
+      if(Math.abs(a.x-b.x)>vw*0.6 || Math.abs(a.y-b.y)>vh*0.6){ segs.push(cur); cur=[b]; } else cur.push(b);
+    }
+    if(cur.length>1) segs.push(cur); return segs;
+  }
+
+  function strokeStripedPath(pts, strokeWidth, colors, outlineWidth=0){
+    if(pts.length<2) return;
+    const smTailHead=chaikinSmooth(pts,2);
+    if(outlineWidth>0){ ctx.beginPath(); moveWithBezier(ctx, smTailHead, 0.75);
+      ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=strokeWidth+outlineWidth*2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); }
+    const cols=(colors&&colors.length)?colors:['#58ff9b'];
+    if(cols.length<=1){
+      ctx.beginPath(); moveWithBezier(ctx, smTailHead, 0.75);
+      ctx.strokeStyle=cols[0]; ctx.lineWidth=strokeWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
+    }else{
+      const smHeadTail=smTailHead.slice().reverse();
+      const stripeLen=Math.max(18, strokeWidth*1.4);
+      let acc=0, colorIdx=0, segStartIdx=0;
+      function strokeSegment(a,b,col){ if(b<=a) return; ctx.beginPath(); ctx.moveTo(smHeadTail[a].x,smHeadTail[a].y);
+        for(let j=a+1;j<=b;j++) ctx.lineTo(smHeadTail[j].x,smHeadTail[j].y);
+        ctx.strokeStyle=col; ctx.lineWidth=strokeWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); }
+      for(let i=1;i<smHeadTail.length;i++){
+        const dx=smHeadTail[i].x-smHeadTail[i-1].x, dy=smHeadTail[i].y-smHeadTail[i-1].y, d=Math.hypot(dx,dy);
+        acc+=d; if(acc>=stripeLen){ strokeSegment(segStartIdx,i,cols[colorIdx%cols.length]); segStartIdx=i; acc=0; colorIdx++; }
+      }
+      strokeSegment(segStartIdx, smHeadTail.length-1, cols[colorIdx%cols.length]);
+    }
+    ctx.globalAlpha=0.22; ctx.beginPath(); moveWithBezier(ctx, smTailHead, 0.75);
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=Math.max(1, strokeWidth*0.35); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); ctx.globalAlpha=1;
+  }
+
+  function drawSnake(sn){
+    if(sn.path.length<2) return;
+    const rPix=bodyRadius(sn)*camera.zoom, segs=screenSegmentsFromSnake(sn);
+    for(const seg of segs){ if(seg.length<2) continue; strokeStripedPath(seg, rPix*2, sn.colors, rPix*0.65); }
+    const headS=worldToScreen(sn.x,sn.y), rr=(6.5+0.1*Math.sqrt(sn.length))*camera.zoom;
+    ctx.beginPath(); ctx.arc(headS.x, headS.y, rr, 0, Math.PI*2); ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(headS.x+rr*0.25, headS.y-rr*0.15, rr*0.35, 0, Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
+
+    // nameplate: selalu "USER"
+    const nscr=worldToScreen(sn.x,sn.y);
+    ctx.font=`${12*camera.zoom}px system-ui,Segoe UI`; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(nscr.x-34, nscr.y-22*camera.zoom, 68, 16*camera.zoom);
+    ctx.fillStyle='#fff'; ctx.fillText('USER', nscr.x, nscr.y-10*camera.zoom);
+  }
+
+  /* ========= Loop ========= */
+  let last=performance.now();
+  function startGame(colors, startLen){
+    snakes.splice(0,snakes.length); foods.splice(0,foods.length);
+    userIdCounter=1;
+    ensureFood(); spawnBots(BOT_NUM);
+    player=createSnake(colors, Math.random()*WORLD.w*0.6+WORLD.w*0.2, Math.random()*WORLD.h*0.6+WORLD.h*0.2, false, startLen);
+    snakes.push(player);
+    camera.x=player.x; camera.y=player.y; camera.zoom=1;
+    document.getElementById('len').textContent=player.length;
+    elUsers.textContent=snakes.filter(s=>s.alive).length;
+    updateRankPanel();
+  }
+  function quickReset(){
+    // Reset tidak memotong saldo lagi (pakai setelan terakhir)
+    const colors=(lastPlayerColors&&lastPlayerColors.length)?lastPlayerColors:['#58ff9b'];
+    startGame(colors, lastStartLen||3);
+    showToast('Reset!');
+  }
+
+  function stepPhysics(dt){ const h=1/60; while(dt>0){ const step=Math.min(h,dt); for(const s of snakes) updateSnake(s, step); dt-=step; } }
+
+  let rankTimer=0;
+  function loop(now){
+    let frameDt=Math.min(0.1,(now-last)/1000); last=now; stepPhysics(frameDt);
+
+    if(player){
+      const zLen=Math.min(0.5, Math.log10(1+player.length/10)*0.35);
+      const zSpeed=Math.min(0.6,(player.v-player.speedBase)/(player.speedMax-player.speedBase+1e-6))*0.45;
+      const tZoom=clamp(1.15 - zSpeed - zLen, 0.35, 1.18);
+      camera.zoom=lerp(camera.zoom,tZoom,0.06); camera.x=lerp(camera.x,player.x,0.085); camera.y=lerp(camera.y,player.y,0.085);
+    }
+
+    ctx.clearRect(0,0,vw,vh);
+    drawGrid();
+    drawFood(); for(const s of snakes) drawSnake(s);
+
+    if(player){ elLen.textContent=player.length; elUsers.textContent=snakes.filter(s=>s.alive).length; }
+    rankTimer += frameDt; if(rankTimer>0.25){ updateRankPanel(); rankTimer=0; }
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ===== Init: pastikan joystick tak mengganggu saat modal awal tampil =====
+  updateJoyInteractivity();
+
+  // ===== Hitung biaya awal =====
+  refreshCostsAndStart();
+
+})();
+</script>
+</body>
+</html>
