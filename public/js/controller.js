@@ -1,56 +1,109 @@
-// Orkestrator: hubungkan saldo+profil ↔ picker ↔ game
-import { showToast, formatRupiah } from './helpers.js';
-import { initSaldo, charge, isAdmin } from './saldo.js';
-import { startMatch, resetMatch, setNameStyle } from './game-core.js';
-import { initPicker, setBudget, bindStart, openConfig, closeConfig } from './picker.js';
+// controller.js — pengendali utama Snake.io
+// Menggabungkan: Firebase (profil/saldo), picker (warna), dan game-core
 
-// Saat tidak login → balik ke index
-function redirectNoAuth(){
-  showToast("Silakan login dulu melalui Home.", 2500);
-  setTimeout(()=>window.location.href="index.html",1200);
+import "./firebase-boot.js";
+import "./picker.js";
+
+// ==== Variabel dasar ====
+let saldo = 0;
+let isAdmin = false;
+let colorCount = 0;
+let totalCost = 0;
+let startLen = 3;
+
+// Harga tetap
+const PRICE_COLOR = 10000;
+const PRICE_LEN = 5000;
+
+// Ambil elemen UI
+const startBtn = document.getElementById("startBtn");
+const startLenInput = document.getElementById("startLenInput");
+const costColorEl = document.getElementById("costColor");
+const costLenEl = document.getElementById("costLen");
+const costTotalEl = document.getElementById("costTotal");
+const configPanel = document.getElementById("configPanel");
+
+// Ambil data dari window.ColorPicker
+let palette = window.ColorPicker?.palette || ['#ffffff'];
+let selected = window.ColorPicker?.selected || [false,false,false,false,false];
+
+// ==== Fungsi bantu ====
+function formatRp(n) {
+  n = Math.max(0, Math.floor(Number(n) || 0));
+  return "Rp " + n.toLocaleString("id-ID");
+}
+function calcCosts() {
+  const len = Math.max(1, Math.min(300, parseInt(startLenInput.value || '3', 10)));
+  const colorCount = selected.filter(Boolean).length;
+  const cColor = colorCount * PRICE_COLOR;
+  const cLen = len * PRICE_LEN;
+  return { len, colorCount, cColor, cLen, total: cColor + cLen };
+}
+function refreshCostUI() {
+  const { cColor, cLen, total } = calcCosts();
+  costColorEl.textContent = formatRp(cColor);
+  costLenEl.textContent = formatRp(cLen);
+  costTotalEl.textContent = formatRp(total);
+}
+function refreshStartState() {
+  const { total, colorCount } = calcCosts();
+  const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
+  const can = colorCount > 0 && total <= saldoCheck;
+  startBtn.disabled = !can;
+}
+function refreshCostsAndStart() {
+  refreshCostUI();
+  refreshStartState();
 }
 
-// Inisialisasi picker (biaya) + tombol Start
-initPicker({
-  onChange: ()=>{} // tidak perlu apa2, hanya supaya biaya selalu update
+// ==== Event dari picker (update warna) ====
+window.addEventListener("color:update", (e) => {
+  palette = e.detail.palette;
+  selected = e.detail.selected;
+  refreshCostsAndStart();
 });
 
-// Sync saldo realtime → update badge & enable Start
-initSaldo({
-  onSaldoChange: (saldo, admin)=>{
-    const s = admin ? "∞" : formatRupiah(saldo);
-    const elSaldo = document.getElementById('saldo');
-    const elSaldoModal = document.getElementById('saldoInModal');
-    if (elSaldo) elSaldo.textContent = s;
-    if (elSaldoModal) elSaldoModal.textContent = s;
-    setBudget(saldo, admin);
-  },
-  onProfileChange: (nick)=>{
-    // nick: { name, color, styleString, borderColorCanvas }
-    const usernameSpan = document.getElementById('usernameSpan');
-    if (usernameSpan){
-      usernameSpan.setAttribute('style', nick.styleString);
-      usernameSpan.textContent = nick.name;
-    }
-    setNameStyle(nick); // untuk nameplate di canvas
-  },
-  onNoAuthRedirect: redirectNoAuth
+// ==== Event dari Firebase (saldo realtime) ====
+window.addEventListener("user:saldo", (e) => {
+  saldo = Number(e.detail.saldo || 0);
+  isAdmin = e.detail.isAdmin;
+  refreshCostsAndStart();
 });
 
-// Tampilkan config saat halaman dibuka
-openConfig();
+// ==== Tombol start ====
+startLenInput.addEventListener("input", () => {
+  refreshCostsAndStart();
+});
 
-// Klik Start → cek budget & potong saldo → mulai game
-bindStart(async ({ len, colorCount, total, colors })=>{
-  if (colorCount<=0){ showToast('Pilih minimal satu warna.'); return; }
-  if (!isAdmin() && document.getElementById('saldo').textContent !== '∞'){
-    // Safety tambahan: kalau saldo belum cukup
-    // (setBudget sudah mematikan tombol, tapi ini guard tambahan)
+startBtn.addEventListener("click", async () => {
+  const { len, colorCount, total } = calcCosts();
+  if (colorCount <= 0) {
+    alert("Pilih minimal satu warna dulu!");
+    return;
   }
-  await charge(total);
-  startMatch(colors.length?colors:['#58ff9b'], len);
-  closeConfig();
-  showToast(`Mulai! Dipotong ${formatRupiah(total)} (${colorCount} warna + panjang ${len}).`, 1800);
+  const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
+  if (total > saldoCheck) {
+    alert("Saldo tidak cukup!");
+    return;
+  }
+
+  const colors = palette.filter((_, idx) => selected[idx]);
+  if (!colors.length) colors.push("#58ff9b");
+
+  // potong saldo (kalau bukan admin)
+  if (!isAdmin && window.Saldo?.charge) {
+    await window.Saldo.charge(total);
+  }
+
+  // panggil game-core
+  if (window.Game && typeof window.Game.startGame === "function") {
+    window.Game.startGame(colors, len);
+  }
+
+  configPanel.style.display = "none";
 });
 
-// Reset button sudah di-handle di game-core (listener)
+// ==== Inisialisasi awal ====
+document.addEventListener("DOMContentLoaded", () => {
+  refreshCostsAndStart();
+});
