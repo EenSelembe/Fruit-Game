@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-<title>Snake.io — Smooth + Rank + Buah + Custom Color + Saldo + Profil</title>
+<title>Snake.io — Smooth + Rank + Buah + Custom Color + Saldo + Profil (Sinkron)</title>
 <style>
   :root{ --bg:#070b1a; --grid:#0c1430; --ui:#eaf3ff; --ui-dim:#9fb3d9; }
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ui);font-family:system-ui,Segoe UI,Roboto,Arial}
@@ -14,6 +14,8 @@
   #game{flex:1;display:block;width:100%;height:100%}
   .overlay{position:fixed;inset:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.35));pointer-events:none}
   footer{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:flex-end;align-items:center;padding:14px;z-index:5}
+
+  /* Joystick */
   .joy{ position:fixed; left:50%; transform:translateX(-50%);
         bottom:calc(84px + env(safe-area-inset-bottom)); z-index:20;
         width:112px;height:112px;border-radius:50%;
@@ -28,24 +30,24 @@
   .toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(0,0,0,.55);
          border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:10px;font-size:14px;color:var(--ui-dim);z-index:50}
 
-  /* Username pill (match home.html) */
+  /* Username pill (DOM) */
   .nickname{ display:inline-block; padding:2px 6px; border-radius:6px; }
   @keyframes neonAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 
-  /* ===== Rank Panel — kiri bawah (ringkas) ===== */
+  /* Rank kiri bawah */
   #rankPanel{
     position:fixed; left:12px; bottom:10px; right:auto; top:auto;
-    height:180px; width:min(100px,20vw);
+    height:180px; width:min(120px,24vw);
     background:rgba(12,20,48,.88); border:1px solid rgba(255,255,255,.12);
     border-radius:14px; padding:6px 8px; z-index:6; backdrop-filter: blur(3px);
   }
   #rankPanel h3{ margin:2px 0 4px; font-size:11px; text-align:center; opacity:.9; letter-spacing:.3px }
-  #rankPanel .rrow{ display:flex; flex-direction:column; align-items:flex-start; padding:3px 4px; border-radius:8px; margin-bottom:-10px }
+  #rankPanel .rrow{ display:flex; flex-direction:column; align-items:flex-start; padding:4px 4px; border-radius:8px; margin-bottom:-6px }
   #rankPanel .rrow.me{ background:rgba(88,255,155,.12) }
-  #rankPanel .title{ font-size:10px; font-weight:700; letter-spacing:.2px; margin-bottom:0 }
+  #rankPanel .title{ font-size:10px; font-weight:700; letter-spacing:.2px; margin-bottom:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #rankPanel .sub{ font-size:9px; opacity:.85; margin-top:1px }
 
-  /* ===== Start Menu ===== */
+  /* Start Menu */
   .modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:1000 }
   .card{ width:min(760px,92vw); background:rgba(12,20,48,.96); border:1px solid rgba(255,255,255,.12);
          border-radius:18px; padding:18px 18px 16px; box-shadow:0 20px 80px rgba(0,0,0,.45) }
@@ -59,7 +61,7 @@
   .cost .row{ display:flex; justify-content:space-between; align-items:center; margin:4px 0; font-size:14px }
   .cost .total{ font-weight:800; font-size:15px; margin-top:6px }
 
-  /* Kotak warna: vertikal */
+  /* Palet warna */
   .palette{ display:grid; grid-template-columns:1fr; gap:12px; justify-items:center; margin:12px auto 8px; width:min(420px,92%) }
   .colorBox{ width:100%; height:64px; border-radius:14px; background:#ffffff;
     border:2px solid rgba(255,255,255,.25); cursor:pointer; position:relative;
@@ -75,7 +77,7 @@
   .input input{width:90px;background:transparent;border:none;outline:none;color:var(--ui);font-size:16px}
   .hint{font-size:12px;opacity:.75;margin-top:6px;text-align:center}
 
-  /* ===== Color Picker Modal ===== */
+  /* Color Picker Modal */
   #colorModal{ z-index:1100 }
   #colorModal .card{width:min(540px,92vw)}
   .pickerGrid{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}
@@ -95,7 +97,7 @@
   <header>
     <div style="display:flex;gap:8px;align-items:center;">
       <span id="usernamePill" class="pill">
-        <span class="nickname" id="usernameSpan" style="color:#fff;border:1px solid #000;background:transparent;">USER</span>
+        <span class="nickname" id="usernameSpan">USER</span>
       </span>
       <span class="pill stat">Panjang: <span id="len">3</span></span>
       <span class="pill">User: <span id="userCount">0</span></span>
@@ -131,11 +133,11 @@
     <div class="sub">Klik kotak untuk pilih warna (maks 5). Jika pilih banyak, ular akan <b>belang</b> dari <b>kepala (warna 1) → ekor</b>.</div>
 
     <div class="palette" id="palette">
-      <div class="colorBox" data-i="0" style="background:#ffffff">Warna 1</div>
-      <div class="colorBox" data-i="1" style="background:#ffffff">Warna 2</div>
-      <div class="colorBox" data-i="2" style="background:#ffffff">Warna 3</div>
-      <div class="colorBox" data-i="3" style="background:#ffffff">Warna 4</div>
-      <div class="colorBox" data-i="4" style="background:#ffffff">Warna 5</div>
+      <div class="colorBox" data-i="0" style="background:#58ff9b">Warna 1</div>
+      <div class="colorBox" data-i="1" style="background:#79a7ff">Warna 2</div>
+      <div class="colorBox" data-i="2" style="background:#ffd84d">Warna 3</div>
+      <div class="colorBox" data-i="3" style="background:#ff5d73">Warna 4</div>
+      <div class="colorBox" data-i="4" style="background:#b56eff">Warna 5</div>
     </div>
 
     <div class="row">
@@ -181,11 +183,11 @@
 
 <div class="toast" id="toast" style="display:none"></div>
 
-<!-- ============ Firebase INIT (module #1) ============ -->
+<!-- ============ Firebase boot (module) ============ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -198,21 +200,15 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  getAuth(app);       // optional init
-  getFirestore(app);  // optional init
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // expose untuk script non-module
+  window.Firebase = { app, auth, db, doc, getDoc, updateDoc, onSnapshot, onAuthStateChanged, increment, collection, query, orderBy, limit, getDocs };
 </script>
 
-<!-- ============ GAME LOGIC (module #2) ============ -->
-<script type="module">
-  /* ========= Import Firebase from the same app ========= */
-  import { getApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-  const app = getApp();
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
-
+<script>
+(() => {
   /* ========= Config & Prices ========= */
   const PRICE_COLOR = 10000, PRICE_LEN = 5000;
   const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
@@ -220,6 +216,7 @@
   /* ========= Helpers ========= */
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const rand=(a,b)=>Math.random()*(b-a)+a, lerp=(a,b,t)=>a+(b-a)*t, angNorm=a=>((a+Math.PI*3)%(Math.PI*2))-Math.PI;
+  const escapeHtml = s => String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   function formatRupiah(n){ n=Math.max(0,Math.floor(n||0)); return 'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
 
   /* ========= Canvas & World ========= */
@@ -243,31 +240,10 @@
   }
   function ensureFood(){ while(foods.length<FOOD_COUNT) spawnFood(); }
 
-  /* ========= Snakes / Geometry ========= */
+  /* ========= Snake geometry ========= */
   function bodyRadius(s){ return 4 + 2*Math.sqrt(Math.max(0, s.length-3)); }
   const BASE_SEG_SPACE=6;
   function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
-
-  let userIdCounter=1;
-  function createSnake(colors,x,y,isBot=false,len=3){
-    const tag=`User ${userIdCounter++}`;
-    const s={
-      id:Math.random().toString(36).slice(2),
-      label:'USER', rankName:tag,
-      colors,
-      x,y,dir:Math.random()*Math.PI*2 - Math.PI,
-      speedBase:120,speedMax:220,v:0,boost:false,energy:1,
-      length:len, baseLen:len, fruitProgress:0,
-      path:[], _pathAcc:0, alive:true, isBot,
-      aiTarget:{x:Math.random()*WORLD.w,y:Math.random()*WORLD.h}
-    };
-    s.path.unshift({x:s.x,y:s.y});
-    return s;
-  }
-  function needForNext(s){ return 10 + Math.max(0, (s.length - s.baseLen)) * 2; }
-
-  let player=null; const snakes=[]; const BOT_NUM=12;
-  function spawnBots(n=BOT_NUM){ for(let i=0;i<n;i++){ snakes.push(createSnake(['#79a7ff'],Math.random()*WORLD.w,Math.random()*WORLD.h,true,3+Math.floor(Math.random()*8))); } }
 
   /* ========= Input ========= */
   const keys={}; addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.key==='r'||e.key==='R') quickReset(); });
@@ -307,23 +283,28 @@
 
   // Rank panel
   const rankRowsEl=document.getElementById('rankRows');
+  function sDisplayName(s){ return s===player ? (playerName||'USER') : (s.display?.name || s.rankName || 'User'); }
   function updateRankPanel(){
     const top = snakes.filter(s=>s.alive).sort((a,b)=> b.length - a.length).slice(0,5);
     rankRowsEl.innerHTML = top.map((s,i)=>{
       const me = (s===player) ? ' me' : '';
-      return `<div class="rrow${me}"><div class="title">${i+1}. User</div><div class="sub">Len ${s.length}</div></div>`;
+      return `<div class="rrow${me}"><div class="title">${i+1}. ${escapeHtml(sDisplayName(s))}</div><div class="sub">Len ${s.length}</div></div>`;
     }).join('');
   }
 
-  /* ========= Firebase sync (Saldo + Profil) ========= */
+  /* ========= Firebase sync ========= */
+  const { auth, db, doc, getDoc, updateDoc, onSnapshot, onAuthStateChanged, increment, collection, query, orderBy, limit, getDocs } = window.Firebase;
+
   let saldo = 0;
   let isAdmin = false;
   let userRef = null;
 
-  // Profil untuk canvas label
+  // Profil aktif (player)
   let playerName = "USER";
   let playerTextColor = "#ffffff";
   let playerBorderColor = "#000000";
+  // List profil untuk bot (user lain)
+  let botProfiles = []; // {name, color, bgColor, bgGradient, borderColor, borderGradient}
 
   function updateSaldoUI(){
     if(isAdmin){
@@ -335,8 +316,8 @@
     }
   }
 
-  function applyNicknameStyleFromData(data){
-    // Meniru home.html (bgColor/bgGradient, borderColor/borderGradient, color)
+  function applyDomNicknameStyleFromData(data){
+    // (DOM pill) samakan dengan home.html / rank.html
     let bg = data.bgColor || 'transparent';
     let extraAnim = '';
     if (data.bgGradient) {
@@ -349,20 +330,44 @@
       const baseBg = data.bgColor || 'transparent';
       border = '3px solid transparent';
       extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient}; background-origin: border-box; background-clip: padding-box, border-box;`;
-      const m = String(data.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8}))|rgba?\([^)]*\)/);
+      // fallback stroke untuk canvas: ambil color pertama dari gradient
+      const m = String(data.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8})|rgba?\([^)]*\))/);
       if (m) playerBorderColor = m[0];
     } else {
       playerBorderColor = data.borderColor || '#000';
     }
 
-    const color = data.color || '#fff';
-    playerTextColor = color;
+    // teks, nama
+    playerTextColor = data.color || '#fff';
+    playerName = data.name || data.username || "Anonim";
 
-    const style = `color:${color}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;
-    const nick = data.name || data.username || "Anonim";
-    playerName = nick;
+    const style = `color:${playerTextColor}; background:${bg}; ${extraAnim} border:${border}; border-radius:6px; padding:2px 6px; ${extraBorder}`;
     usernameSpan.setAttribute("style", style);
-    usernameSpan.textContent = nick;
+    usernameSpan.textContent = playerName;
+  }
+
+  async function loadBotProfiles(myUid){
+    try{
+      const qTop = query(collection(db,'users'), orderBy('saldo','desc'), limit(50));
+      const snap = await getDocs(qTop);
+      const arr = [];
+      snap.forEach(d=>{
+        if (d.id === ADMIN_UID) return;
+        if (d.id === myUid) return;
+        const u = d.data()||{};
+        arr.push({
+          name: u.name || u.username || 'User',
+          color: u.color || '#fff',
+          bgColor: u.bgColor || null,
+          bgGradient: u.bgGradient || null,
+          borderColor: u.borderColor || '#000',
+          borderGradient: u.borderGradient || null
+        });
+      });
+      botProfiles = arr;
+    }catch(e){
+      botProfiles = [];
+    }
   }
 
   onAuthStateChanged(auth, async (user)=>{
@@ -374,37 +379,80 @@
     isAdmin = (user.uid === ADMIN_UID);
     userRef = doc(db, "users", user.uid);
 
+    // load bot profiles (user lain)
+    loadBotProfiles(user.uid);
+
+    // snapshot profil+saldo aktif
     const snap = await getDoc(userRef);
     if(snap.exists()){
       const data = snap.data();
       saldo = Number(data.saldo||0);
       updateSaldoUI();
-      applyNicknameStyleFromData(data);
+      applyDomNicknameStyleFromData(data);
       refreshStartState();
     }
-
-    // realtime update
     onSnapshot(userRef, (snap)=>{
       if(!snap.exists()) return;
       const data = snap.data();
       saldo = Number(data.saldo||0);
       updateSaldoUI();
-      applyNicknameStyleFromData(data);
+      applyDomNicknameStyleFromData(data);
       refreshStartState();
     });
   });
 
-  // Potong saldo + naikkan consumedSaldo (biar Level di home jalan)
+  // Potong saldo + naikkan consumedSaldo
   async function charge(amount){
     amount = Math.max(0, Math.floor(amount||0));
-    if(isAdmin){ return; } // admin tidak dipotong
+    if(isAdmin) return; // admin gratis
     if(!userRef) return;
     const newSaldo = Math.max(0, saldo - amount);
     saldo = newSaldo;
     updateSaldoUI();
     try{
       await updateDoc(userRef, { saldo: newSaldo, consumedSaldo: increment(amount) });
-    }catch(e){ /* boleh tampilkan toast kalau perlu */ }
+    }catch(e){
+      // jika gagal write, saldo UI tetap, snapshot nanti akan sinkron kembali
+    }
+  }
+
+  /* ========= Snakes ========= */
+  let userIdCounter=1;
+  function createSnake(colors,x,y,isBot=false,len=3, profile=null){
+    const tag=`User ${userIdCounter++}`;
+    const s={
+      id:Math.random().toString(36).slice(2),
+      label:'USER',
+      rankName: profile?.name || tag,
+      display: profile ? { name: profile.name, style: profile } : null,
+      colors,
+      x,y,dir:Math.random()*Math.PI*2 - Math.PI,
+      speedBase:120,speedMax:220,v:0,boost:false,energy:1,
+      length:len, baseLen:len, fruitProgress:0,
+      path:[], _pathAcc:0, alive:true, isBot,
+      aiTarget:{x:Math.random()*WORLD.w,y:Math.random()*WORLD.h}
+    };
+    s.path.unshift({x:s.x,y:s.y});
+    return s;
+  }
+  function needForNext(s){ return 10 + Math.max(0, (s.length - s.baseLen)) * 2; }
+
+  let player=null; const snakes=[]; const BOT_NUM=12;
+  function pickBotProfile(i){
+    if (!botProfiles || botProfiles.length===0) return null;
+    return botProfiles[i % botProfiles.length] || null;
+  }
+  function botColorsFromProfile(p){
+    // warna badan bot mengikuti warna teks user + sedikit variasi
+    const base = p?.color || '#79a7ff';
+    return [base, '#58ff9b', base];
+  }
+  function spawnBots(n=BOT_NUM){
+    for(let i=0;i<n;i++){
+      const prof = pickBotProfile(i);
+      const cols = prof ? botColorsFromProfile(prof) : ['#79a7ff'];
+      snakes.push(createSnake(cols,Math.random()*WORLD.w,Math.random()*WORLD.h,true,3+Math.floor(Math.random()*8), prof));
+    }
   }
 
   /* ========= Config Panel + Custom Color Picker ========= */
@@ -413,8 +461,8 @@
   const startLenInput=document.getElementById('startLenInput');
   const boxes=[...document.querySelectorAll('.colorBox')];
 
-  let palette=['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'];
-  let selected=[false,false,false,false,false];
+  let palette=['#58ff9b','#79a7ff','#ffd84d','#ff5d73','#b56eff'];
+  let selected=[true,false,false,false,false];
   let lastPlayerColors=['#58ff9b'];
   let lastStartLen=3;
 
@@ -443,7 +491,7 @@
   }
   function refreshCostsAndStart(){ refreshCostUI(); refreshStartState(); }
 
-  // Color picker elements
+  // Color picker
   const colorModal=document.getElementById('colorModal');
   const prevBox=document.getElementById('prevBox');
   const hueEl=document.getElementById('hue'), satEl=document.getElementById('sat'), litEl=document.getElementById('lit'), hexEl=document.getElementById('hex');
@@ -451,7 +499,6 @@
   const SWATCHES=['#ff5d73','#ff9f1a','#ffd84d','#58ff9b','#2ed573','#79a7ff','#4c6ef5','#b56eff','#ff4d6d','#e9ff70','#a06cff','#ffe066','#3bdc68','#00d1b2','#00ffff','#ffffff'];
   SWATCHES.forEach(c=>{ const d=document.createElement('div'); d.className='swatch'; d.style.background=c; d.addEventListener('click',()=>setHex(c)); swatchesEl.appendChild(d); });
 
-  // Saat modal terbuka, matikan pointer events joystick
   const joyEl=document.getElementById('joy');
   function updateJoyInteractivity(){
     const anyOpen = configPanel.style.display !== 'none' || colorModal.style.display !== 'none';
@@ -535,7 +582,6 @@
 
   boxes.forEach((box,i)=>{
     box.addEventListener('click', ()=>openPickerFor(i));
-    // Dblclick untuk on/off pilihan warna (tetap kena biaya jika ON)
     box.addEventListener('dblclick', ()=>{
       selected[i]=!selected[i];
       box.classList.toggle('selected', selected[i]);
@@ -549,30 +595,7 @@
     refreshCostsAndStart();
   });
 
-  startBtn.addEventListener('click', async ()=>{
-    const { len, colorCount, total } = calcCosts();
-    if(colorCount<=0){ showToast('Pilih minimal satu warna.'); return; }
-
-    const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
-    if(total > saldoCheck){ showToast('Saldo tidak cukup!'); refreshStartState(); return; }
-
-    // Ambil warna sesuai pilihan (berurutan dari 1..5)
-    const colors = boxes.map((_, idx)=> selected[idx] ? (palette[idx] || '#ffffff') : null).filter(Boolean);
-    lastPlayerColors = colors.length ? colors : ['#58ff9b'];
-    lastStartLen = len;
-
-    // Potong saldo + naikkan consumedSaldo (skip untuk admin)
-    await charge(total);
-
-    // Mulai game
-    startGame(lastPlayerColors, len);
-    configPanel.style.display='none';
-    updateJoyInteractivity();
-    const msg = `Mulai! Dipotong ${formatRupiah(total)} (${colorCount} warna + panjang ${len}).`;
-    showToast(msg, 1800);
-  });
-
-  /* ========= Game Logic ========= */
+  /* ========= Game Loop & Logic ========= */
   function updateSnake(s,dt){
     if(!s.alive) return;
     let targetAngle=s.dir, steerX=0,steerY=0;
@@ -634,7 +657,9 @@
     for(let i=0;i<s.path.length;i+=Math.max(6, Math.floor(segSpace(s)))){ const p=s.path[i]; spawnFood(p.x+(Math.random()*12-6), p.y+(Math.random()*12-6)); }
     if(s.isBot){
       setTimeout(()=>{ const idx=snakes.indexOf(s); if(idx>=0) snakes.splice(idx,1);
-        snakes.push(createSnake(['#79a7ff'],Math.random()*WORLD.w,Math.random()*WORLD.h,true,3+Math.floor(Math.random()*8)));
+        const prof = pickBotProfile(Math.floor(Math.random()*9999));
+        const cols = prof ? botColorsFromProfile(prof) : ['#79a7ff'];
+        snakes.push(createSnake(cols,Math.random()*WORLD.w,Math.random()*WORLD.h,true,3+Math.floor(Math.random()*8), prof));
       },700);
     }else{
       showToast('Kamu tumbang! Tekan Reset untuk main lagi.');
@@ -723,7 +748,7 @@
 
   function drawFood(){ for(const f of foods) drawFruit(f); }
 
-  // Smoothing (Chaikin + Catmull–Rom→Bezier)
+  // Smooth path
   function moveWithBezier(ctx, pts, tension=0.75){
     ctx.moveTo(pts[0].x, pts[0].y);
     for(let i=0;i<pts.length-1;i++){
@@ -755,6 +780,34 @@
       if(Math.abs(a.x-b.x)>vw*0.6 || Math.abs(a.y-b.y)>vh*0.6){ segs.push(cur); cur=[b]; } else cur.push(b);
     }
     if(cur.length>1) segs.push(cur); return segs;
+  }
+
+  function getSnakeDisplay(sn){
+    if (sn === player) {
+      return {
+        name: playerName || 'USER',
+        textColor: playerTextColor || '#fff',
+        borderColor: playerBorderColor || '#000',
+        bg: 'rgba(0,0,0,.35)'
+      };
+    }
+    if (sn.display && sn.display.style) {
+      const st = sn.display.style;
+      // borderColor dari borderGradient (warna pertama) bila ada
+      let bCol = st.borderColor || '#000';
+      if (st.borderGradient) {
+        const m = String(st.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8})|rgba?\([^)]*\))/);
+        if (m) bCol = m[0];
+      }
+      return {
+        name: sn.display.name || 'User',
+        textColor: st.color || '#fff',
+        borderColor: bCol,
+        // bg pakai bgColor kalau ada, jika ada bgGradient kita pakai semi transparan agar kontras
+        bg: st.bgColor || (st.bgGradient ? 'rgba(0,0,0,.25)' : 'rgba(0,0,0,.25)')
+      };
+    }
+    return { name: sn.rankName || 'User', textColor:'#fff', borderColor:'rgba(0,0,0,.45)', bg:'rgba(0,0,0,.25)' };
   }
 
   function strokeStripedPath(pts, strokeWidth, colors, outlineWidth=0){
@@ -793,18 +846,24 @@
     ctx.beginPath(); ctx.arc(headS.x, headS.y, rr, 0, Math.PI*2); ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=2; ctx.stroke();
     ctx.beginPath(); ctx.arc(headS.x+rr*0.25, headS.y-rr*0.15, rr*0.35, 0, Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
 
-    // nameplate di atas kepala — pakai playerName + warna teks dari profil
+    // nameplate
+    const disp = getSnakeDisplay(sn);
     const nscr=worldToScreen(sn.x,sn.y);
-    const padX=34, padY=16*camera.zoom;
+    const w=68*camera.zoom, h=16*camera.zoom;
+    const x=nscr.x-w/2, y=nscr.y-22*camera.zoom;
+
     ctx.save();
-    ctx.fillStyle='rgba(0,0,0,.35)';
-    ctx.fillRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-    ctx.strokeStyle = playerBorderColor || '#000';
+    // background kotak
+    ctx.fillStyle = disp.bg;
+    ctx.fillRect(x,y,w,h);
+    // border
+    ctx.strokeStyle = disp.borderColor;
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-    ctx.font=`${12*camera.zoom}px system-ui,Segoe UI`; ctx.textAlign='center'; ctx.textBaseline='bottom';
-    ctx.fillStyle=playerTextColor || '#fff';
-    ctx.fillText(playerName || 'USER', nscr.x, nscr.y-10*camera.zoom);
+    ctx.strokeRect(x,y,w,h);
+    // teks
+    ctx.font=`${12*camera.zoom}px system-ui,Segoe UI`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=disp.textColor;
+    ctx.fillText(disp.name, nscr.x, y+h/2+0.2);
     ctx.restore();
   }
 
@@ -814,7 +873,7 @@
     snakes.splice(0,snakes.length); foods.splice(0,foods.length);
     userIdCounter=1;
     ensureFood(); spawnBots(BOT_NUM);
-    player=createSnake(colors, Math.random()*WORLD.w*0.6+WORLD.w*0.2, Math.random()*WORLD.h*0.6+WORLD.h*0.2, false, startLen);
+    player=createSnake(colors, Math.random()*WORLD.w*0.6+WORLD.w*0.2, Math.random()*WORLD.h*0.6+WORLD.h*0.2, false, startLen, {name:playerName, color:playerTextColor, borderColor:playerBorderColor});
     snakes.push(player);
     camera.x=player.x; camera.y=player.y; camera.zoom=1;
     document.getElementById('len').textContent=player.length;
@@ -822,6 +881,7 @@
     updateRankPanel();
   }
   function quickReset(){
+    // Reset tanpa biaya, pakai setelan terakhir
     const colors=(lastPlayerColors&&lastPlayerColors.length)?lastPlayerColors:['#58ff9b'];
     startGame(colors, lastStartLen||3);
     showToast('Reset!');
@@ -852,8 +912,35 @@
   requestAnimationFrame(loop);
 
   // ===== Init =====
+  function refreshCostsAndStart(){ refreshCostUI(); refreshStartState(); }
   updateJoyInteractivity();
   refreshCostsAndStart();
+
+  // Start button handler (pungut biaya + start)
+  startBtn.addEventListener('click', async ()=>{
+    const { len, colorCount, total } = calcCosts();
+    if(colorCount<=0){ showToast('Pilih minimal satu warna.'); return; }
+
+    const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
+    if(total > saldoCheck){ showToast('Saldo tidak cukup!'); refreshStartState(); return; }
+
+    const colors = boxes.map((b, idx)=> selected[idx] ? (palette[idx] || '#ffffff') : null).filter(Boolean);
+    lastPlayerColors = colors.length ? colors : ['#58ff9b'];
+    lastStartLen = len;
+
+    await charge(total);
+
+    startGame(lastPlayerColors, len);
+    configPanel.style.display='none';
+    updateJoyInteractivity();
+    const msg = `Mulai! Dipotong ${formatRupiah(total)} (${colorCount} warna + panjang ${len}).`;
+    showToast(msg, 1800);
+  });
+
+  // Saat load pertama, biarkan panel Config terbuka (menunggu saldo dari Firestore)
+  // Tombol Start otomatis enable setelah snapshot user masuk.
+
+})();
 </script>
 </body>
-        </html>
+  </html>
