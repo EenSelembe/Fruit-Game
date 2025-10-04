@@ -181,11 +181,11 @@
 
 <div class="toast" id="toast" style="display:none"></div>
 
-<!-- ============ Firebase boot (module) ============ -->
+<!-- ============ Firebase INIT (module #1) ============ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -198,17 +198,24 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  // expose for non-module script
-  window.Firebase = { app, auth, db, doc, getDoc, updateDoc, onSnapshot, onAuthStateChanged, increment };
+  getAuth(app);       // optional init
+  getFirestore(app);  // optional init
 </script>
 
-<script>
-(() => {
+<!-- ============ GAME LOGIC (module #2) ============ -->
+<script type="module">
+  /* ========= Import Firebase from the same app ========= */
+  import { getApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const app = getApp();
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
   /* ========= Config & Prices ========= */
   const PRICE_COLOR = 10000, PRICE_LEN = 5000;
+  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
   /* ========= Helpers ========= */
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -309,9 +316,6 @@
   }
 
   /* ========= Firebase sync (Saldo + Profil) ========= */
-  const { auth, db, doc, getDoc, updateDoc, onSnapshot, onAuthStateChanged, increment } = window.Firebase;
-  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
-
   let saldo = 0;
   let isAdmin = false;
   let userRef = null;
@@ -319,7 +323,7 @@
   // Profil untuk canvas label
   let playerName = "USER";
   let playerTextColor = "#ffffff";
-  let playerBorderColor = "#000000"; // dipakai untuk border nickname (DOM) dan stroke rect label canvas (fallback)
+  let playerBorderColor = "#000000";
 
   function updateSaldoUI(){
     if(isAdmin){
@@ -345,7 +349,6 @@
       const baseBg = data.bgColor || 'transparent';
       border = '3px solid transparent';
       extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient}; background-origin: border-box; background-clip: padding-box, border-box;`;
-      // ambil warna pertama dari gradient sebagai fallback stroke canvas
       const m = String(data.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8}))|rgba?\([^)]*\)/);
       if (m) playerBorderColor = m[0];
     } else {
@@ -377,6 +380,7 @@
       saldo = Number(data.saldo||0);
       updateSaldoUI();
       applyNicknameStyleFromData(data);
+      refreshStartState();
     }
 
     // realtime update
@@ -386,7 +390,7 @@
       saldo = Number(data.saldo||0);
       updateSaldoUI();
       applyNicknameStyleFromData(data);
-      if (typeof refreshStartState === "function") refreshStartState();
+      refreshStartState();
     });
   });
 
@@ -791,16 +795,13 @@
 
     // nameplate di atas kepala — pakai playerName + warna teks dari profil
     const nscr=worldToScreen(sn.x,sn.y);
-    const padX=34, padY=16*camera.zoom; // lebar kotak
+    const padX=34, padY=16*camera.zoom;
     ctx.save();
-    // background semi-transparan
     ctx.fillStyle='rgba(0,0,0,.35)';
     ctx.fillRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-    // border gunakan borderColor profil (fallback hitam)
     ctx.strokeStyle = playerBorderColor || '#000';
     ctx.lineWidth = 1.5;
     ctx.strokeRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-    // teks
     ctx.font=`${12*camera.zoom}px system-ui,Segoe UI`; ctx.textAlign='center'; ctx.textBaseline='bottom';
     ctx.fillStyle=playerTextColor || '#fff';
     ctx.fillText(playerName || 'USER', nscr.x, nscr.y-10*camera.zoom);
@@ -821,7 +822,6 @@
     updateRankPanel();
   }
   function quickReset(){
-    // Reset tidak memotong saldo lagi (pakai setelan terakhir)
     const colors=(lastPlayerColors&&lastPlayerColors.length)?lastPlayerColors:['#58ff9b'];
     startGame(colors, lastStartLen||3);
     showToast('Reset!');
@@ -852,12 +852,8 @@
   requestAnimationFrame(loop);
 
   // ===== Init =====
-  function refreshCostsAndStart(){ /* noop replaced by above; defined earlier */ }
   updateJoyInteractivity();
-  // Biaya awal
-  (function kick(){ /* tombol start akan aktif setelah auth snapshot pertama masuk */ })();
-
-})();
+  refreshCostsAndStart();
 </script>
 </body>
-</html>
+        </html>
