@@ -71,6 +71,14 @@ window.addEventListener("user:saldo", (e) => {
   refreshCostsAndStart();
 });
 
+// ==== Tambahan penting: sinkron profil ke game ====
+window.addEventListener("user:profile", (e) => {
+  const style = e.detail;
+  if (window.Game && typeof window.Game.applyProfileStyle === "function") {
+    window.Game.applyProfileStyle(style);
+  }
+});
+
 // ==== Tombol start ====
 startLenInput.addEventListener("input", refreshCostsAndStart);
 
@@ -94,7 +102,7 @@ startBtn.addEventListener("click", async () => {
     await window.Saldo.charge(total);
   }
 
-  // === ✅ Perbaikan utama ===
+  // Jalankan game
   if (window.Game && typeof window.Game.start === "function") {
     window.Game.start(colors, len);
   }
@@ -107,6 +115,6 @@ startBtn.addEventListener("click", async () => {
 document.addEventListener("DOMContentLoaded", () => {
   refreshCostsAndStart();
   if (window.Game && typeof window.Game.init === "function") {
-    window.Game.init();  // inisialisasi canvas + kamera
+    window.Game.init(); // inisialisasi canvas + kamera (penting agar ular muncul)
   }
 });
