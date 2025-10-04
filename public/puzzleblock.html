@@ -9,7 +9,8 @@
   :root{--gap:6px;--cell:34px;--piece:18px;--text:#eaf3ff;--tray-size:clamp(110px,28vmin,190px);--dock-h:calc(var(--tray-size) + 84px);--rpw:34px;--numw:9ch}
   *{box-sizing:border-box}
   html,body{height:100%;overscroll-behavior:none}
-  body{margin:0;background:url("public/image/backgrondpuzzleblock.jpg") no-repeat center center fixed;color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial;user-select:none}
+  body{margin:0;background:url("public/image/backgrondpuzzleblock.png") no-repeat center center fixed;
+background-size:cover;color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial;user-select:none}
   .app{height:100vh;height:100dvh;height:100svh;display:flex;flex-direction:column;gap:8px;padding:8px}
   .moneygrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(92px,24vw);gap:8px;align-items:stretch}
   .moneycard{background:rgba(0,0,0,.45);border:1px solid #243a7a;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.05)}
