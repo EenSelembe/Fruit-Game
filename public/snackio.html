@@ -26,15 +26,15 @@
        background:rgba(255,255,255,.08);color:var(--ui);font-weight:700;letter-spacing:.5px;cursor:pointer}
   .btn:disabled{opacity:.55;cursor:not-allowed} .btn:active{transform:scale(.98)}
   .toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(0,0,0,.55);
-         border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:10px;font-size:14px;color:var(--ui-dim);z-index:50}
+         border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:10px;font-size:14px;color:var(--ui-dim);z-index:2000}
 
   /* Username pill (match home.html) */
   .nickname{ display:inline-block; padding:2px 6px; border-radius:6px; }
   @keyframes neonAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 
-  /* ===== Rank Panel — kiri bawah (ringkas) ===== */
+  /* ===== Rank Panel ===== */
   #rankPanel{
-    position:fixed; left:12px; bottom:10px; right:auto; top:auto;
+    position:fixed; left:12px; bottom:10px;
     height:180px; width:min(100px,20vw);
     background:rgba(12,20,48,.88); border:1px solid rgba(255,255,255,.12);
     border-radius:14px; padding:6px 8px; z-index:6; backdrop-filter: blur(3px);
@@ -46,7 +46,7 @@
   #rankPanel .sub{ font-size:9px; opacity:.85; margin-top:1px }
 
   /* ===== Start Menu ===== */
-  .modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:1000 }
+  .modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:1500 }
   .card{ width:min(760px,92vw); background:rgba(12,20,48,.96); border:1px solid rgba(255,255,255,.12);
          border-radius:18px; padding:18px 18px 16px; box-shadow:0 20px 80px rgba(0,0,0,.45) }
   .card h1{ margin:0 0 12px; font-size:24px; text-align:center; text-shadow:0 0 18px #00ffc8 }
@@ -59,12 +59,12 @@
   .cost .row{ display:flex; justify-content:space-between; align-items:center; margin:4px 0; font-size:14px }
   .cost .total{ font-weight:800; font-size:15px; margin-top:6px }
 
-  /* Kotak warna: vertikal */
+  /* Kotak warna */
   .palette{ display:grid; grid-template-columns:1fr; gap:12px; justify-items:center; margin:12px auto 8px; width:min(420px,92%) }
   .colorBox{ width:100%; height:64px; border-radius:14px; background:#ffffff;
     border:2px solid rgba(255,255,255,.25); cursor:pointer; position:relative;
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.05); display:flex; align-items:center; justify-content:center;
-    color:#000; font-weight:700; letter-spacing:.4px; text-transform:uppercase; user-select:none; pointer-events:auto; }
+    color:#000; font-weight:700; letter-spacing:.4px; text-transform:uppercase; user-select:none; }
   .colorBox::after{ content:'Pilih warna'; position:absolute; font-size:12px; opacity:.7; top:8px; right:10px; color:#000;
     background:rgba(255,255,255,.6); padding:3px 6px; border-radius:10px; border:1px solid rgba(0,0,0,.08); pointer-events:none; }
   .colorBox.selected{ outline:3px solid #00ffc8; box-shadow:0 0 16px rgba(0,255,200,.55), inset 0 0 0 1px rgba(0,0,0,.05) }
@@ -76,7 +76,7 @@
   .hint{font-size:12px;opacity:.75;margin-top:6px;text-align:center}
 
   /* ===== Color Picker Modal ===== */
-  #colorModal{ z-index:1100 }
+  #colorModal{ z-index:1600 }
   #colorModal .card{width:min(540px,92vw)}
   .pickerGrid{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}
   .preview{width:100%;aspect-ratio:1/1;border-radius:14px;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
@@ -121,7 +121,7 @@
 </div>
 
 <!-- ===== START MENU / CONFIG ===== -->
-<div id="configPanel" class="modal" aria-modal="true" role="dialog">
+<div id="configPanel" class="modal" aria-modal="true" role="dialog" style="display:flex">
   <div class="card">
     <h1>Pengaturan Awal</h1>
     <div class="money">
@@ -184,8 +184,8 @@
 <!-- ============ Firebase boot (module) ============ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, onAuthStateChanged, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -206,22 +206,47 @@
 </script>
 
 <script>
-(() => {
-  /* ========= Config & Prices ========= */
-  const PRICE_COLOR = 10000, PRICE_LEN = 5000;
+window.addEventListener('DOMContentLoaded', () => {
+
+  /* ========= Safety: tunggu Firebase siap ========= */
+  async function waitFirebase(timeout=12000){
+    const t0=Date.now();
+    while(!(window.Firebase && window.Firebase.auth && window.Firebase.db)){
+      if(Date.now()-t0>timeout) throw new Error('Firebase tidak siap');
+      await new Promise(r=>setTimeout(r,50));
+    }
+    return window.Firebase;
+  }
 
   /* ========= Helpers ========= */
+  const PRICE_COLOR = 10000, PRICE_LEN = 5000;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const rand=(a,b)=>Math.random()*(b-a)+a, lerp=(a,b,t)=>a+(b-a)*t, angNorm=a=>((a+Math.PI*3)%(Math.PI*2))-Math.PI;
-  function formatRupiah(n){ n=Math.max(0,Math.floor(n||0)); return 'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+  const formatRupiah = (n)=>'Rp ' + Math.max(0,Math.floor(n||0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 
-  /* ========= Canvas & World ========= */
+  /* ========= DOM refs ========= */
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+  const elLen=document.getElementById('len');
+  const elUsers=document.getElementById('userCount');
+  const elSaldo=document.getElementById('saldo');
+  const elSaldoInModal=document.getElementById('saldoInModal');
+  const usernameSpan=document.getElementById('usernameSpan');
+  const resetBtn=document.getElementById('reset');
+  const toast=document.getElementById('toast');
+  const configPanel=document.getElementById('configPanel');
+  const colorModal=document.getElementById('colorModal');
+  const startBtn=document.getElementById('startBtn');
+  const startLenInput=document.getElementById('startLenInput');
+  const boxes=[...document.querySelectorAll('.colorBox')];
+  const costColorEl=document.getElementById('costColor');
+  const costLenEl=document.getElementById('costLen');
+  const costTotalEl=document.getElementById('costTotal');
+
+  /* ========= Canvas & World ========= */
   let vw=0, vh=0, dpr=Math.max(1, Math.min(2, window.devicePixelRatio||1));
   function resize(){ vw=innerWidth; vh=innerHeight; canvas.width=vw*dpr; canvas.height=vh*dpr; canvas.style.width=vw+'px'; canvas.style.height=vh+'px'; ctx.setTransform(dpr,0,0,dpr,0,0); }
   addEventListener('resize', resize, {passive:true}); resize();
-
   const WORLD={w:4200,h:4200,grid:90};
   function wrapPos(p){ if(p.x<0)p.x+=WORLD.w; else if(p.x>=WORLD.w)p.x-=WORLD.w; if(p.y<0)p.y+=WORLD.h; else if(p.y>=WORLD.h)p.y-=WORLD.h; }
   const camera={x:WORLD.w/2,y:WORLD.h/2,zoom:1};
@@ -236,7 +261,7 @@
   }
   function ensureFood(){ while(foods.length<FOOD_COUNT) spawnFood(); }
 
-  /* ========= Snakes / Geometry ========= */
+  /* ========= Snakes ========= */
   function bodyRadius(s){ return 4 + 2*Math.sqrt(Math.max(0, s.length-3)); }
   const BASE_SEG_SPACE=6;
   function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
@@ -288,17 +313,10 @@
   boostBtn.addEventListener('pointerup',()=>{ boostHold=false; });
   boostBtn.addEventListener('pointercancel',()=>{ boostHold=false; });
 
-  /* ========= UI ========= */
-  const elLen=document.getElementById('len');
-  const elUsers=document.getElementById('userCount');
-  const elSaldo=document.getElementById('saldo');
-  const elSaldoInModal=document.getElementById('saldoInModal');
-  const usernameSpan=document.getElementById('usernameSpan');
-  const resetBtn=document.getElementById('reset'), toast=document.getElementById('toast');
+  /* ========= UI helpers ========= */
   resetBtn.addEventListener('click', quickReset);
   function showToast(msg,t=1500){ toast.textContent=msg; toast.style.display='block'; clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.style.display='none',t); }
 
-  // Rank panel
   const rankRowsEl=document.getElementById('rankRows');
   function updateRankPanel(){
     const top = snakes.filter(s=>s.alive).sort((a,b)=> b.length - a.length).slice(0,5);
@@ -309,17 +327,15 @@
   }
 
   /* ========= Firebase sync (Saldo + Profil) ========= */
-  const { auth, db, doc, getDoc, updateDoc, onSnapshot, onAuthStateChanged, increment } = window.Firebase;
   const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
-
   let saldo = 0;
   let isAdmin = false;
   let userRef = null;
 
-  // Profil untuk canvas label
+  // Profil untuk nameplate
   let playerName = "USER";
   let playerTextColor = "#ffffff";
-  let playerBorderColor = "#000000"; // utk stroke rect label canvas
+  let playerBorderColor = "#000000";
 
   function updateSaldoUI(){
     if(isAdmin){
@@ -332,7 +348,6 @@
   }
 
   function applyNicknameStyleFromData(data){
-    // Meniru home.html (bgColor/bgGradient, borderColor/borderGradient, color)
     let bg = data.bgColor || 'transparent';
     let extraAnim = '';
     if (data.bgGradient) {
@@ -345,7 +360,7 @@
       const baseBg = data.bgColor || 'transparent';
       border = '3px solid transparent';
       extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient}; background-origin: border-box; background-clip: padding-box, border-box;`;
-      // ambil warna pertama dari gradient sebagai fallback stroke canvas
+      // gunakan warna pertama gradient sebagai fallback stroke
       const m = String(data.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8}))|rgba?\([^)]*\)/);
       if (m) playerBorderColor = m[0];
     } else {
@@ -362,63 +377,11 @@
     usernameSpan.textContent = nick;
   }
 
-  onAuthStateChanged(auth, async (user)=>{
-    if(!user){
-      showToast("Silakan login dulu melalui Home.", 2500);
-      setTimeout(()=>window.location.href="index.html",1200);
-      return;
-    }
-    isAdmin = (user.uid === ADMIN_UID);
-    userRef = doc(db, "users", user.uid);
-
-    // initial
-    const snap = await getDoc(userRef);
-    if(snap.exists()){
-      const data = snap.data();
-      saldo = Number(data.saldo||0);
-      updateSaldoUI();
-      applyNicknameStyleFromData(data);
-      refreshCostsAndStart(); // hitung biaya awal setelah data awal masuk
-    }
-
-    // realtime update
-    onSnapshot(userRef, (snap)=>{
-      if(!snap.exists()) return;
-      const data = snap.data();
-      saldo = Number(data.saldo||0);
-      updateSaldoUI();
-      applyNicknameStyleFromData(data);
-      refreshCostsAndStart(); // pastikan tombol start & biaya ikut update kalau saldo berubah
-    });
-  });
-
-  // Potong saldo + naikkan consumedSaldo (biar Level di home jalan)
-  async function charge(amount){
-    amount = Math.max(0, Math.floor(amount||0));
-    if(isAdmin){ return; } // admin tidak dipotong
-    if(!userRef) return;
-    const newSaldo = Math.max(0, saldo - amount);
-    saldo = newSaldo;
-    updateSaldoUI();
-    try{
-      await updateDoc(userRef, { saldo: newSaldo, consumedSaldo: increment(amount) });
-    }catch(e){ /* boleh tampilkan toast kalau perlu */ }
-  }
-
-  /* ========= Config Panel + Custom Color Picker ========= */
-  const configPanel=document.getElementById('configPanel');
-  const startBtn=document.getElementById('startBtn');
-  const startLenInput=document.getElementById('startLenInput');
-  const boxes=[...document.querySelectorAll('.colorBox')];
-
+  // ======= Config biaya / tombol start =======
   let palette=['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'];
   let selected=[false,false,false,false,false];
   let lastPlayerColors=['#58ff9b'];
   let lastStartLen=3;
-
-  const costColorEl=document.getElementById('costColor');
-  const costLenEl=document.getElementById('costLen');
-  const costTotalEl=document.getElementById('costTotal');
 
   function calcCosts(){
     const len = clamp(parseInt(startLenInput.value||'3',10), 1, 300);
@@ -439,27 +402,17 @@
     const can = colorCount>0 && total <= saldoCheck;
     startBtn.disabled = !can;
   }
-  function refreshCostsAndStart(){ // ⬅️ ini yang dipakai dan TIDAK di-override lagi
+  function refreshCostsAndStart(){
     refreshCostUI();
     refreshStartState();
   }
 
-  // Color picker elements
-  const colorModal=document.getElementById('colorModal');
+  // ======= Color Picker =======
   const prevBox=document.getElementById('prevBox');
   const hueEl=document.getElementById('hue'), satEl=document.getElementById('sat'), litEl=document.getElementById('lit'), hexEl=document.getElementById('hex');
   const cancelPick=document.getElementById('cancelPick'), okPick=document.getElementById('okPick'), swatchesEl=document.getElementById('swatches');
   const SWATCHES=['#ff5d73','#ff9f1a','#ffd84d','#58ff9b','#2ed573','#79a7ff','#4c6ef5','#b56eff','#ff4d6d','#e9ff70','#a06cff','#ffe066','#3bdc68','#00d1b2','#00ffff','#ffffff'];
-  SWATCHES.forEach(c=>{ const d=document.createElement('div'); d.className='swatch'; d.style.background=c; d.addEventListener('click',()=>setHex(c)); swatchesEl.appendChild(d); });
 
-  // Saat modal terbuka, matikan pointer events joystick
-  const joyEl=document.getElementById('joy');
-  function updateJoyInteractivity(){
-    const anyOpen = configPanel.style.display !== 'none' || colorModal.style.display !== 'none';
-    joyEl.style.pointerEvents = anyOpen ? 'none' : 'auto';
-  }
-
-  let currentBox=-1;
   function hexToRgb(hex){
     hex = (hex||'').replace('#','').trim();
     if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
@@ -507,10 +460,25 @@
     prevBox.style.background=hex; hexEl.value=hex.replace('#','');
   }
   function setHex(hex){ if(!hex.startsWith('#')) hex='#'+hex; setHSLFromHex(hex); }
-  hueEl.addEventListener('input', setPreviewFromHSL);
-  satEl.addEventListener('input', setPreviewFromHSL);
-  litEl.addEventListener('input', setPreviewFromHSL);
-  hexEl.addEventListener('input', ()=>{ const v=hexEl.value.replace(/[^0-9a-fA-F]/g,''); hexEl.value=v.slice(0,6); if(v.length===6) setHex('#'+v); });
+
+  hueEl?.addEventListener('input', setPreviewFromHSL);
+  satEl?.addEventListener('input', setPreviewFromHSL);
+  litEl?.addEventListener('input', setPreviewFromHSL);
+  hexEl?.addEventListener('input', ()=>{ const v=hexEl.value.replace(/[^0-9a-fA-F]/g,''); hexEl.value=v.slice(0,6); if(v.length===6) setHex('#'+v); });
+
+  // isi swatches
+  if (swatchesEl && swatchesEl.children.length===0){
+    SWATCHES.forEach(c=>{ const d=document.createElement('div'); d.className='swatch'; d.style.background=c; d.addEventListener('click',()=>setHex(c)); swatchesEl.appendChild(d); });
+  }
+
+  // modal interactivity
+  const joyEl=document.getElementById('joy');
+  function updateJoyInteractivity(){
+    const anyOpen = configPanel.style.display !== 'none' || colorModal.style.display !== 'none';
+    joyEl.style.pointerEvents = anyOpen ? 'none' : 'auto';
+  }
+
+  let currentBox=-1;
 
   function openPickerFor(i){
     currentBox=i;
@@ -519,8 +487,12 @@
     colorModal.style.display='flex';
     updateJoyInteractivity();
   }
-  cancelPick.addEventListener('click', ()=>{ colorModal.style.display='none'; currentBox=-1; updateJoyInteractivity(); });
-  okPick.addEventListener('click', ()=>{
+  document.getElementById('cancelPick').addEventListener('click', ()=>{
+    colorModal.style.display='none';
+    currentBox=-1;
+    updateJoyInteractivity();
+  });
+  document.getElementById('okPick').addEventListener('click', ()=>{
     if(currentBox<0) return;
     let hex = '#'+(hexEl.value||'').padEnd(6,'0');
     if(!hexToRgb(hex)) hex = '#58ff9b';
@@ -536,7 +508,6 @@
 
   boxes.forEach((box,i)=>{
     box.addEventListener('click', ()=>openPickerFor(i));
-    // Dblclick untuk on/off pilihan warna (tetap kena biaya jika ON)
     box.addEventListener('dblclick', ()=>{
       selected[i]=!selected[i];
       box.classList.toggle('selected', selected[i]);
@@ -550,30 +521,7 @@
     refreshCostsAndStart();
   });
 
-  startBtn.addEventListener('click', async ()=>{
-    const { len, colorCount, total } = calcCosts();
-    if(colorCount<=0){ showToast('Pilih minimal satu warna.'); return; }
-
-    const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
-    if(total > saldoCheck){ showToast('Saldo tidak cukup!'); refreshStartState(); return; }
-
-    // Ambil warna sesuai pilihan (berurutan dari 1..5)
-    const colors = boxes.map((_, idx)=> selected[idx] ? (palette[idx] || '#ffffff') : null).filter(Boolean);
-    lastPlayerColors = colors.length ? colors : ['#58ff9b'];
-    lastStartLen = len;
-
-    // Potong saldo + naikkan consumedSaldo (skip untuk admin)
-    await charge(total);
-
-    // Mulai game
-    startGame(lastPlayerColors, len);
-    configPanel.style.display='none';
-    updateJoyInteractivity();
-    const msg = `Mulai! Dipotong ${formatRupiah(total)} (${colorCount} warna + panjang ${len}).`;
-    showToast(msg, 1800);
-  });
-
-  /* ========= Game Logic ========= */
+  // ======= Game logic =======
   function updateSnake(s,dt){
     if(!s.alive) return;
     let targetAngle=s.dir, steerX=0,steerY=0;
@@ -606,7 +554,6 @@
     const SP=segSpace(s); s._pathAcc+=mv; while(s._pathAcc>=SP){ s.path.unshift({x:s.x,y:s.y}); s._pathAcc-=SP; }
     const maxPath=Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP)); if(s.path.length>maxPath) s.path.length=maxPath;
 
-    // makan buah
     for(let i=foods.length-1;i>=0;i--){
       const f=foods[i], dx=s.x-f.x, dy=s.y-f.y, eatR=bodyRadius(s)+10;
       if(dx*dx+dy*dy<eatR*eatR){
@@ -619,7 +566,6 @@
       }
     }
 
-    // tabrakan
     for(const o of snakes){
       if(!o.alive || o===s) continue;
       const rS=bodyRadius(s), rO=bodyRadius(o), thresh=(rS+rO)*0.7, step=3;
@@ -642,7 +588,6 @@
     }
   }
 
-  /* ========= Rendering ========= */
   function drawGrid(){
     const step=WORLD.grid*camera.zoom; if(step<14) return;
     const ox=-((camera.x*camera.zoom)%step), oy=-((camera.y*camera.zoom)%step);
@@ -718,13 +663,10 @@
         ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1; ctx.stroke();
         break;
     }
-
     ctx.restore();
   }
-
   function drawFood(){ for(const f of foods) drawFruit(f); }
 
-  // Smoothing (Chaikin + Catmull–Rom→Bezier)
   function moveWithBezier(ctx, pts, tension=0.75){
     ctx.moveTo(pts[0].x, pts[0].y);
     for(let i=0;i<pts.length-1;i++){
@@ -789,23 +731,19 @@
     const rPix=bodyRadius(sn)*camera.zoom, segs=screenSegmentsFromSnake(sn);
     for(const seg of segs){ if(seg.length<2) continue; strokeStripedPath(seg, rPix*2, sn.colors, rPix*0.65); }
 
-    // head circle
     const headS=worldToScreen(sn.x,sn.y), rr=(6.5+0.1*Math.sqrt(sn.length))*camera.zoom;
     ctx.beginPath(); ctx.arc(headS.x, headS.y, rr, 0, Math.PI*2); ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=2; ctx.stroke();
     ctx.beginPath(); ctx.arc(headS.x+rr*0.25, headS.y-rr*0.15, rr*0.35, 0, Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
 
-    // nameplate di atas kepala — pakai playerName + warna teks dari profil
+    // nameplate
     const nscr=worldToScreen(sn.x,sn.y);
-    const padX=34, padY=16*camera.zoom; // lebar kotak
+    const padX=34, padY=16*camera.zoom;
     ctx.save();
-    // background semi-transparan
     ctx.fillStyle='rgba(0,0,0,.35)';
     ctx.fillRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-    // border gunakan borderColor profil (fallback hitam)
     ctx.strokeStyle = playerBorderColor || '#000';
     ctx.lineWidth = 1.5;
     ctx.strokeRect(nscr.x-padX, nscr.y-22*camera.zoom, padX*2, padY);
-    // teks
     ctx.font=`${12*camera.zoom}px system-ui,Segoe UI`; ctx.textAlign='center'; ctx.textBaseline='bottom';
     ctx.fillStyle=playerTextColor || '#fff';
     ctx.fillText(playerName || 'USER', nscr.x, nscr.y-10*camera.zoom);
@@ -821,17 +759,15 @@
     player=createSnake(colors, Math.random()*WORLD.w*0.6+WORLD.w*0.2, Math.random()*WORLD.h*0.6+WORLD.h*0.2, false, startLen);
     snakes.push(player);
     camera.x=player.x; camera.y=player.y; camera.zoom=1;
-    document.getElementById('len').textContent=player.length;
+    elLen.textContent=player.length;
     elUsers.textContent=snakes.filter(s=>s.alive).length;
     updateRankPanel();
   }
   function quickReset(){
-    // Reset tidak memotong saldo lagi (pakai setelan terakhir)
     const colors=(lastPlayerColors&&lastPlayerColors.length)?lastPlayerColors:['#58ff9b'];
     startGame(colors, lastStartLen||3);
     showToast('Reset!');
   }
-
   function stepPhysics(dt){ const h=1/60; while(dt>0){ const step=Math.min(h,dt); for(const s of snakes) updateSnake(s, step); dt-=step; } }
 
   let rankTimer=0;
@@ -856,11 +792,91 @@
   }
   requestAnimationFrame(loop);
 
-  // ===== Init =====
-  updateJoyInteractivity();
-  refreshCostsAndStart(); // ⬅️ hitung tampilan awal
+  // ====== Auth + realtime ======
+  (async () => {
+    await waitFirebase().catch(()=>{});
+    const { auth, db, doc, getDoc, updateDoc, onSnapshot, onAuthStateChanged, increment } = window.Firebase || {};
 
-})();
+    const ADMIN = ADMIN_UID;
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){
+        showToast("Silakan login dulu melalui Home.", 2500);
+        setTimeout(()=>window.location.href="index.html",1200);
+        return;
+      }
+      isAdmin = (user.uid === ADMIN);
+      userRef = doc(db, "users", user.uid);
+
+      // initial
+      const snap = await getDoc(userRef);
+      if(snap.exists()){
+        const data = snap.data();
+        saldo = Number(data.saldo||0);
+        updateSaldoUI();
+        applyNicknameStyleFromData(data);
+        refreshCostsAndStart();
+      }
+
+      // realtime
+      onSnapshot(userRef, (snap)=>{
+        if(!snap.exists()) return;
+        const data = snap.data();
+        saldo = Number(data.saldo||0);
+        updateSaldoUI();
+        applyNicknameStyleFromData(data);
+        refreshCostsAndStart();
+      });
+    });
+
+    // charge helper
+    async function charge(amount){
+      amount = Math.max(0, Math.floor(amount||0));
+      if(isAdmin || !userRef) return; // admin bebas
+      const newSaldo = Math.max(0, saldo - amount);
+      saldo = newSaldo; // optimistik
+      updateSaldoUI();
+      try{
+        await updateDoc(userRef, { saldo: newSaldo, consumedSaldo: increment(amount) });
+      }catch(e){
+        // kalau gagal, reload dari snapshot selanjutnya
+      }
+    }
+
+    // expose ke scope bawah
+    window.__charge = charge;
+  })();
+
+  // ====== Start button ======
+  startBtn.addEventListener('click', async ()=>{
+    const { len, colorCount, total } = calcCosts();
+    if(colorCount<=0){ showToast('Pilih minimal satu warna.'); return; }
+
+    const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
+    if(total > saldoCheck){ showToast('Saldo tidak cukup!'); refreshStartState(); return; }
+
+    const colors = boxes.map((_, idx)=> selected[idx] ? (palette[idx] || '#ffffff') : null).filter(Boolean);
+    lastPlayerColors = colors.length ? colors : ['#58ff9b'];
+    lastStartLen = len;
+
+    // potong saldo (skip admin)
+    if (window.__charge) await window.__charge(total);
+
+    // mulai
+    startGame(lastPlayerColors, len);
+    configPanel.style.display='none';
+    updateJoyInteractivity();
+    const msg = `Mulai! Dipotong ${formatRupiah(total)} (${colorCount} warna + panjang ${len}).`;
+    showToast(msg, 1800);
+  });
+
+  // ====== Init tampilan ======
+  updateJoyInteractivity();
+  refreshCostsAndStart();
+  // pastikan modal konfigurasi tampil di awal
+  configPanel.style.display='flex';
+
+}); // DOMContentLoaded
 </script>
 </body>
-  </html>
+</html>
