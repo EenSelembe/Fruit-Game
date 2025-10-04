@@ -14,6 +14,7 @@ const Game = (() => {
   let canvas, ctx, vw = 0, vh = 0, dpr = 1;
   const WORLD = { w: 4200, h: 4200, grid: 90 };
   const camera = { x: WORLD.w / 2, y: WORLD.h / 2, zoom: 1 };
+  let tNow = 0; // detik, untuk animasi pelangi
 
   function resize() {
     vw = innerWidth;
@@ -45,12 +46,13 @@ const Game = (() => {
   // UI refs
   let elLen, elUsers, rankRowsEl;
 
-  // Profil style (disuplai firebase-boot via event 'user:profile')
+  // Profil style (disuplai firebase-boot via controller)
   let profileName = 'USER';
   let profileTextColor = '#ffffff';
   let profileBorderColor = '#000000';
-  let profileBg = null;
-  let profileHasGradient = false;
+
+  // Admin mode (dibaca saat Start)
+  let adminMode = false;
 
   /* ===== Input ===== */
   const keys = {};
@@ -101,10 +103,6 @@ const Game = (() => {
         boostBtn.addEventListener('pointercancel', () => { boostHold = false; });
       }
     }
-
-    // Tombol reset di header (jika ada)
-    const resetBtn = document.getElementById('reset');
-    if (resetBtn) resetBtn.addEventListener('click', () => Game.quickReset());
   }
 
   /* ===== Geometry Helpers ===== */
@@ -113,7 +111,7 @@ const Game = (() => {
   function segSpace(s) { return Math.max(BASE_SEG_SPACE, bodyRadius(s) * 0.9); }
 
   /* ===== Snake ===== */
-  function createSnake(colors, x, y, isBot = false, len = 3) {
+  function createSnake(colors, x, y, isBot = false, len = 3, isAdmin = false) {
     const s = {
       id: Math.random().toString(36).slice(2),
       colors,
@@ -122,22 +120,17 @@ const Game = (() => {
       speedBase: 120, speedMax: 220, v: 0,
       boost: false, energy: 1,
       length: len, baseLen: len, fruitProgress: 0,
-      path: [], _pathAcc: 0, alive: true, isBot,
-      aiTarget: { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h },
-      nickname: isBot ? "Guest" : null,
-      borderColor: "#000"
+      path: [], _pathAcc: 0, alive: true, isBot, isAdmin,
+      aiTarget: { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h }
     };
     s.path.unshift({ x: s.x, y: s.y });
     return s;
   }
   function needForNext(s) { return 10 + Math.max(0, (s.length - s.baseLen)) * 2; }
 
-  function spawnDefaultBots(n = BOT_NUM) {
+  function spawnBots(n = BOT_NUM) {
     for (let i = 0; i < n; i++) {
-      const sn = createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8));
-      sn.nickname = "Guest";
-      sn.borderColor = "#000";
-      snakes.push(sn);
+      snakes.push(createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8), false));
     }
   }
 
@@ -146,9 +139,7 @@ const Game = (() => {
     const kind = FRUITS[Math.floor(rand(0, FRUITS.length))];
     foods.push({ kind, x, y, pulse: Math.random() * Math.PI * 2 });
   }
-  function ensureFood() {
-    while (foods.length < FOOD_COUNT) spawnFood();
-  }
+  function ensureFood() { while (foods.length < FOOD_COUNT) spawnFood(); }
 
   /* ===== Drawing ===== */
   function drawGrid() {
@@ -250,7 +241,7 @@ const Game = (() => {
   }
   function drawFood() { for (const f of foods) drawFruit(f); }
 
-  // Smoothing (Chaikin + Catmull–Rom→Bezier)
+  // Smoothing helpers
   function moveWithBezier(ctx, pts, tension = 0.75) {
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 0; i < pts.length - 1; i++) {
@@ -287,6 +278,7 @@ const Game = (() => {
     }
     if (cur.length > 1) segs.push(cur); return segs;
   }
+
   function strokeStripedPath(pts, strokeWidth, colors, outlineWidth = 0) {
     if (pts.length < 2) return;
     const smTailHead = chaikinSmooth(pts, 2);
@@ -318,32 +310,122 @@ const Game = (() => {
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1, strokeWidth * 0.35); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
+  // ======= Pelangi Admin (seluruh tubuh + glow) =======
+  function strokeRainbowPath(pts, strokeWidth, glow = true) {
+    if (pts.length < 2) return;
+    // Smooth lalu balik supaya indeks 0 = kepala → ekor (lebih enak warnai)
+    const smTailHead = chaikinSmooth(pts, 2);
+    const path = smTailHead.slice().reverse();
+
+    // GLOW lembut di bawah (mode "lighter")
+    if (glow) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.16;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = strokeWidth * 1.8;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Warna berjalan: hue berubah sepanjang tubuh dan waktu
+    const stepLen = Math.max(10, strokeWidth * 0.9);
+    let acc = 0, segStart = 0, hue0 = (tNow * 120) % 360;
+
+    function strokeSeg(a, b, hue) {
+      if (b <= a) return;
+      ctx.beginPath();
+      ctx.moveTo(path[a].x, path[a].y);
+      for (let i = a + 1; i <= b; i++) ctx.lineTo(path[i].x, path[i].y);
+      ctx.strokeStyle = `hsl(${hue}, 95%, 60%)`;
+      ctx.lineWidth = strokeWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    for (let i = 1; i < path.length; i++) {
+      const dx = path[i].x - path[i - 1].x, dy = path[i].y - path[i - 1].y;
+      const d = Math.hypot(dx, dy);
+      acc += d;
+      if (acc >= stepLen) {
+        // hue bergeser sesuai panjang (i) sehingga membentuk spektrum
+        const hue = (hue0 + i * 3.5) % 360;
+        strokeSeg(segStart, i, hue);
+        segStart = i;
+        acc = 0;
+      }
+    }
+    // sisa akhir
+    const hueLast = (hue0 + path.length * 3.5) % 360;
+    strokeSeg(segStart, path.length - 1, hueLast);
+
+    // Highlight tipis di atas
+    ctx.globalAlpha = 0.22;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1, strokeWidth * 0.35);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
   function drawSnake(sn) {
     if (sn.path.length < 2) return;
-    const rPix = bodyRadius(sn) * camera.zoom, segs = screenSegmentsFromSnake(sn);
-    for (const seg of segs) { if (seg.length < 2) continue; strokeStripedPath(seg, rPix * 2, sn.colors, rPix * 0.65); }
+    const rPix = bodyRadius(sn) * camera.zoom;
+    const segs = screenSegmentsFromSnake(sn);
 
-    // head + mata
-    const headS = worldToScreen(sn.x, sn.y), rr = (6.5 + 0.1 * Math.sqrt(sn.length)) * camera.zoom;
-    ctx.beginPath(); ctx.arc(headS.x, headS.y, rr, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.beginPath(); ctx.arc(headS.x + rr * 0.25, headS.y - rr * 0.15, rr * 0.35, 0, Math.PI * 2); ctx.fillStyle = '#000'; ctx.fill();
+    // Admin: tubuh pelangi menyala
+    if (sn.isAdmin) {
+      for (const seg of segs) {
+        if (seg.length < 2) continue;
+        strokeRainbowPath(seg, rPix * 2, true);
+      }
+    } else {
+      // Non-admin: garis belang sesuai warna yang dipilih
+      for (const seg of segs) {
+        if (seg.length < 2) continue;
+        strokeStripedPath(seg, rPix * 2, sn.colors, rPix * 0.65);
+      }
+    }
 
-    // nameplate di atas kepala — pakai style dari profil untuk player, atau per-snake utk bot
-    const nscr = worldToScreen(sn.x, sn.y);
+    // Kepala + mata
+    const headS = worldToScreen(sn.x, sn.y);
+    const rr = (6.5 + 0.1 * Math.sqrt(sn.length)) * camera.zoom;
+
+    // Glow kepala tambahan untuk admin
+    if (sn.isAdmin) {
+      const g = ctx.createRadialGradient(headS.x, headS.y, rr * 0.2, headS.x, headS.y, rr * 2.6);
+      const hueHead = ((tNow * 120) % 360);
+      g.addColorStop(0, `hsla(${hueHead},100%,70%,0.35)`);
+      g.addColorStop(1, `hsla(${hueHead},100%,70%,0.00)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(headS.x, headS.y, rr * 2.6, 0, Math.PI * 2); ctx.fill();
+    }
+
+    ctx.beginPath(); ctx.arc(headS.x, headS.y, rr, 0, Math.PI * 2);
+    ctx.strokeStyle = sn.isAdmin ? 'rgba(255,255,255,.7)' : 'rgba(0,0,0,.6)';
+    ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(headS.x + rr * 0.25, headS.y - rr * 0.15, rr * 0.35, 0, Math.PI * 2);
+    ctx.fillStyle = '#000'; ctx.fill();
+
+    // Nameplate di atas kepala — pakai style dari profil
+    const nscr = headS;
     const padX = 34, padY = 16 * camera.zoom;
-    const strokeCol = sn.borderColor || profileBorderColor || '#000';
-    const nameToShow = (sn === player) ? (profileName || 'USER') : (sn.nickname || 'User');
-
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,.35)';
     ctx.fillRect(nscr.x - padX, nscr.y - 22 * camera.zoom, padX * 2, padY);
-    ctx.strokeStyle = strokeCol;
+    ctx.strokeStyle = profileBorderColor || '#000';
     ctx.lineWidth = 1.5;
     ctx.strokeRect(nscr.x - padX, nscr.y - 22 * camera.zoom, padX * 2, padY);
     ctx.font = `${12 * camera.zoom}px system-ui,Segoe UI`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    ctx.fillStyle = (sn === player) ? (profileTextColor || '#fff') : '#fff';
-    ctx.fillText(nameToShow, nscr.x, nscr.y - 10 * camera.zoom);
+    ctx.fillStyle = profileTextColor || '#fff';
+    ctx.fillText(profileName || 'USER', nscr.x, nscr.y - 10 * camera.zoom);
     ctx.restore();
   }
 
@@ -412,9 +494,7 @@ const Game = (() => {
     if (s.isBot) {
       setTimeout(() => {
         const idx = snakes.indexOf(s); if (idx >= 0) snakes.splice(idx, 1);
-        const sn = createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8));
-        sn.nickname = "Guest"; sn.borderColor = "#000";
-        snakes.push(sn);
+        snakes.push(createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8), false));
       }, 700);
     } else {
       const toast = document.getElementById('toast');
@@ -432,80 +512,36 @@ const Game = (() => {
     const top = snakes.filter(s => s.alive).sort((a, b) => b.length - a.length).slice(0, 5);
     rankRowsEl.innerHTML = top.map((s, i) => {
       const me = (s === player) ? ' me' : '';
-      const nm = (s === player) ? (profileName || 'You') : (s.nickname || 'User');
-      return `<div class="rrow${me}"><div class="title">${i + 1}. ${nm}</div><div class="sub">Len ${s.length}</div></div>`;
+      return `<div class="rrow${me}"><div class="title">${i + 1}. User</div><div class="sub">Len ${s.length}</div></div>`;
     }).join('');
-  }
-
-  /* ===== Firebase → Bot Nicknames ===== */
-  async function spawnFirebaseBots() {
-    let added = 0;
-    try {
-      const db = window.Firebase?.db;
-      if (!db) throw new Error('Firebase DB belum siap');
-      const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
-
-      const snap = await getDocs(collection(db, "users"));
-      const meUid = window.Firebase?.auth?.currentUser?.uid;
-      const list = [];
-      snap.forEach(doc => {
-        const d = doc.data() || {};
-        const uid = doc.id;
-        if (uid === meUid) return; // skip diri sendiri
-        const name = d.name || d.username || '';
-        if (!name || !name.trim()) return;
-        list.push({
-          name,
-          color: d.color || '#79a7ff',
-          borderColor: d.borderColor || '#000'
-        });
-      });
-
-      // acak & ambil maksimal BOT_NUM
-      const pool = list.sort(() => Math.random() - 0.5).slice(0, BOT_NUM);
-      for (const u of pool) {
-        const sn = createSnake([u.color], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8));
-        sn.nickname = u.name;
-        sn.borderColor = u.borderColor || '#000';
-        snakes.push(sn);
-        added++;
-      }
-    } catch (e) {
-      console.warn('spawnFirebaseBots error:', e);
-    }
-
-    // kalau kurang, isi dengan bot default
-    if (added < BOT_NUM) {
-      spawnDefaultBots(BOT_NUM - added);
-    }
   }
 
   /* ===== Start/Reset ===== */
   let lastColors = ['#58ff9b'];
   let lastStartLen = 3;
 
-  async function startGame(colors, startLen) {
+  function startGame(colors, startLen) {
     snakes.splice(0, snakes.length);
     foods.splice(0, foods.length);
-
-    lastColors = (colors && colors.length) ? colors.slice() : ['#58ff9b'];
-    lastStartLen = startLen || 3;
-
     ensureFood();
+    spawnBots(BOT_NUM);
 
-    // spawn player dulu
-    player = createSnake(lastColors,
+    // Baca admin dari window.App (dipasang firebase-boot)
+    adminMode = !!(window.App && window.App.isAdmin);
+
+    player = createSnake(
+      (colors && colors.length ? colors : ['#58ff9b']),
       Math.random() * WORLD.w * 0.6 + WORLD.w * 0.2,
       Math.random() * WORLD.h * 0.6 + WORLD.h * 0.2,
       false,
-      lastStartLen
+      startLen || 3,
+      adminMode
     );
     snakes.push(player);
-
     camera.x = player.x; camera.y = player.y; camera.zoom = 1;
 
-    // lalu bot dari Firebase (fallback ke bot default jika kurang)
-    await spawnFirebaseBots();
+    lastColors = (colors && colors.length) ? colors : ['#58ff9b'];
+    lastStartLen = startLen || 3;
 
     if (elLen) elLen.textContent = player.length;
     if (elUsers) elUsers.textContent = snakes.filter(s => s.alive).length;
@@ -534,6 +570,8 @@ const Game = (() => {
   }
   function loop(now) {
     const frameDt = Math.min(0.1, (now - last) / 1000); last = now;
+    tNow += frameDt; // waktu untuk animasi pelangi
+
     stepPhysics(frameDt);
 
     if (player) {
@@ -570,14 +608,9 @@ const Game = (() => {
     addEventListener('resize', resize, { passive: true }); resize();
     bindInputs();
     requestAnimationFrame(loop);
-
-    // Terima profil dari Firebase (untuk sinkron nickname & warna player)
-    window.addEventListener('user:profile', (e) => {
-      try { applyProfileStyle(e.detail); } catch (_) {}
-    }, { passive: true });
   }
 
-  // Dipanggil firebase-boot via event 'user:profile'
+  // Dipanggil controller saat dapat "user:profile" dari firebase-boot
   function applyProfileStyle(style) {
     if (!style) return;
     profileName = style.name || 'USER';
@@ -588,8 +621,6 @@ const Game = (() => {
     } else {
       profileBorderColor = style.borderColor || '#000';
     }
-    profileBg = style.bgGradient || style.bgColor || null;
-    profileHasGradient = !!style.bgGradient;
   }
 
   return {
@@ -603,4 +634,4 @@ const Game = (() => {
 // Ekspor & global
 export default Game;
 export { Game };
-if (typeof window !== 'undefined') window.Game = Game;
+if (typeof window !== 'undefined')) window.Game = Game;
