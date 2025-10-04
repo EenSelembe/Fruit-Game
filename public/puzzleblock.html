@@ -146,24 +146,29 @@
   <source src="sonds/blockpuzzle.mp3" type="audio/mpeg">
 </audio>
 <audio id="sfxSpin">
-  <source src="sonds/roll.mp3" type="audio/mpeg">
+  <source src="sonds/spin.mp3" type="audio/mpeg">
 </audio>
 <audio id="sfxClear">
-  <source src="sonds/pecah.mp3" type="audio/mpeg">
+  <source src="sonds/clear.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfxDrop">
+  <source src="sonds/drop.mp3" type="audio/mpeg">
 </audio>
 
 <script>
   const backsound=document.getElementById("backsound");
   const sfxSpin=document.getElementById("sfxSpin");
   const sfxClear=document.getElementById("sfxClear");
+  const sfxDrop=document.getElementById("sfxDrop");
 
   backsound.volume=0.35;
   sfxSpin.volume=0.6;
   sfxClear.volume=0.85;
+  sfxDrop.volume=0.75;
 
   document.addEventListener("click",()=>{
     backsound.play().catch(()=>{});
-    [sfxSpin,sfxClear].forEach(a=>{
+    [sfxSpin,sfxClear,sfxDrop].forEach(a=>{
       a.muted=true;
       a.play().then(()=>{a.pause();a.currentTime=0;a.muted=false;}).catch(()=>{});
     });
@@ -192,6 +197,7 @@ const pieceBox=document.getElementById('pieceBox'),boardWrap=document.getElement
 
 const sfxSpin=document.getElementById("sfxSpin");
 const sfxClear=document.getElementById("sfxClear");
+const sfxDrop=document.getElementById("sfxDrop");
 
 const fmt=n=>n.toLocaleString("id-ID");
 function log(s){} /* status dihilangkan */
@@ -470,7 +476,10 @@ function onUp(e){
   const{ x,y }=getXY(e);clearGhost();
   const pos=originFromPointer(x,y,drag.piece.shape);
   if(pos&&canPlace(drag.piece.shape,pos.gx,pos.gy)){
-    placePiece(drag.piece,pos.gx,pos.gy);currentPiece=null;renderTrayEmpty("Tekan SPIN")
+    try{ sfxDrop.currentTime=0; sfxDrop.play().catch(()=>{});}catch(_){}
+    placePiece(drag.piece,pos.gx,pos.gy);
+    currentPiece=null;
+    renderTrayEmpty("Tekan SPIN")
   }
   cancelDrag()
 }
@@ -622,4 +631,4 @@ onSnap(qNotifs,(snapshot)=>{
   window.showWinNotif=showWinNotif;
 </script>
 </body>
-</html>
+  </html>
