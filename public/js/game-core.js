@@ -40,18 +40,17 @@ const Game = (() => {
 
   const snakes = [];
   let player = null;
-  let userIdCounter = 1;
   const BOT_NUM = 12;
 
   // UI refs
   let elLen, elUsers, rankRowsEl;
 
-  // Profil style (disuplai firebase-boot via controller)
+  // Profil style (disuplai firebase-boot via event 'user:profile')
   let profileName = 'USER';
   let profileTextColor = '#ffffff';
   let profileBorderColor = '#000000';
-  let profileBg = null;              // string bgColor atau gradient
-  let profileHasGradient = false;    // untuk efek animasi DOM (tidak dipakai di canvas)
+  let profileBg = null;
+  let profileHasGradient = false;
 
   /* ===== Input ===== */
   const keys = {};
@@ -102,6 +101,10 @@ const Game = (() => {
         boostBtn.addEventListener('pointercancel', () => { boostHold = false; });
       }
     }
+
+    // Tombol reset di header (jika ada)
+    const resetBtn = document.getElementById('reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => Game.quickReset());
   }
 
   /* ===== Geometry Helpers ===== */
@@ -120,16 +123,21 @@ const Game = (() => {
       boost: false, energy: 1,
       length: len, baseLen: len, fruitProgress: 0,
       path: [], _pathAcc: 0, alive: true, isBot,
-      aiTarget: { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h }
+      aiTarget: { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h },
+      nickname: isBot ? "Guest" : null,
+      borderColor: "#000"
     };
     s.path.unshift({ x: s.x, y: s.y });
     return s;
   }
   function needForNext(s) { return 10 + Math.max(0, (s.length - s.baseLen)) * 2; }
 
-  function spawnBots(n = BOT_NUM) {
+  function spawnDefaultBots(n = BOT_NUM) {
     for (let i = 0; i < n; i++) {
-      snakes.push(createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8)));
+      const sn = createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8));
+      sn.nickname = "Guest";
+      sn.borderColor = "#000";
+      snakes.push(sn);
     }
   }
 
@@ -320,19 +328,22 @@ const Game = (() => {
     ctx.beginPath(); ctx.arc(headS.x, headS.y, rr, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 2; ctx.stroke();
     ctx.beginPath(); ctx.arc(headS.x + rr * 0.25, headS.y - rr * 0.15, rr * 0.35, 0, Math.PI * 2); ctx.fillStyle = '#000'; ctx.fill();
 
-    // nameplate di atas kepala — pakai style dari profil
+    // nameplate di atas kepala — pakai style dari profil untuk player, atau per-snake utk bot
     const nscr = worldToScreen(sn.x, sn.y);
     const padX = 34, padY = 16 * camera.zoom;
+    const strokeCol = sn.borderColor || profileBorderColor || '#000';
+    const nameToShow = (sn === player) ? (profileName || 'USER') : (sn.nickname || 'User');
+
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,.35)';
     ctx.fillRect(nscr.x - padX, nscr.y - 22 * camera.zoom, padX * 2, padY);
-    ctx.strokeStyle = profileBorderColor || '#000';
+    ctx.strokeStyle = strokeCol;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(nscr.x - padX, nscr.y - 22 * camera.zoom, padX * 2, padY);
     ctx.font = `${12 * camera.zoom}px system-ui,Segoe UI`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    ctx.fillStyle = profileTextColor || '#fff';
-    ctx.fillText(profileName || 'USER', nscr.x, nscr.y - 10 * camera.zoom);
+    ctx.fillStyle = (sn === player) ? (profileTextColor || '#fff') : '#fff';
+    ctx.fillText(nameToShow, nscr.x, nscr.y - 10 * camera.zoom);
     ctx.restore();
   }
 
@@ -401,10 +412,11 @@ const Game = (() => {
     if (s.isBot) {
       setTimeout(() => {
         const idx = snakes.indexOf(s); if (idx >= 0) snakes.splice(idx, 1);
-        snakes.push(createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8)));
+        const sn = createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8));
+        sn.nickname = "Guest"; sn.borderColor = "#000";
+        snakes.push(sn);
       }, 700);
     } else {
-      // tampilkan toast jika ada elemen
       const toast = document.getElementById('toast');
       if (toast) {
         toast.textContent = 'Kamu tumbang! Tekan Reset untuk main lagi.';
@@ -420,32 +432,80 @@ const Game = (() => {
     const top = snakes.filter(s => s.alive).sort((a, b) => b.length - a.length).slice(0, 5);
     rankRowsEl.innerHTML = top.map((s, i) => {
       const me = (s === player) ? ' me' : '';
-      return `<div class="rrow${me}"><div class="title">${i + 1}. User</div><div class="sub">Len ${s.length}</div></div>`;
+      const nm = (s === player) ? (profileName || 'You') : (s.nickname || 'User');
+      return `<div class="rrow${me}"><div class="title">${i + 1}. ${nm}</div><div class="sub">Len ${s.length}</div></div>`;
     }).join('');
+  }
+
+  /* ===== Firebase → Bot Nicknames ===== */
+  async function spawnFirebaseBots() {
+    let added = 0;
+    try {
+      const db = window.Firebase?.db;
+      if (!db) throw new Error('Firebase DB belum siap');
+      const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
+
+      const snap = await getDocs(collection(db, "users"));
+      const meUid = window.Firebase?.auth?.currentUser?.uid;
+      const list = [];
+      snap.forEach(doc => {
+        const d = doc.data() || {};
+        const uid = doc.id;
+        if (uid === meUid) return; // skip diri sendiri
+        const name = d.name || d.username || '';
+        if (!name || !name.trim()) return;
+        list.push({
+          name,
+          color: d.color || '#79a7ff',
+          borderColor: d.borderColor || '#000'
+        });
+      });
+
+      // acak & ambil maksimal BOT_NUM
+      const pool = list.sort(() => Math.random() - 0.5).slice(0, BOT_NUM);
+      for (const u of pool) {
+        const sn = createSnake([u.color], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8));
+        sn.nickname = u.name;
+        sn.borderColor = u.borderColor || '#000';
+        snakes.push(sn);
+        added++;
+      }
+    } catch (e) {
+      console.warn('spawnFirebaseBots error:', e);
+    }
+
+    // kalau kurang, isi dengan bot default
+    if (added < BOT_NUM) {
+      spawnDefaultBots(BOT_NUM - added);
+    }
   }
 
   /* ===== Start/Reset ===== */
   let lastColors = ['#58ff9b'];
   let lastStartLen = 3;
 
-  function startGame(colors, startLen) {
+  async function startGame(colors, startLen) {
     snakes.splice(0, snakes.length);
     foods.splice(0, foods.length);
-    userIdCounter = 1;
-    ensureFood();
-    spawnBots(BOT_NUM);
 
-    player = createSnake(colors && colors.length ? colors : ['#58ff9b'],
+    lastColors = (colors && colors.length) ? colors.slice() : ['#58ff9b'];
+    lastStartLen = startLen || 3;
+
+    ensureFood();
+
+    // spawn player dulu
+    player = createSnake(lastColors,
       Math.random() * WORLD.w * 0.6 + WORLD.w * 0.2,
       Math.random() * WORLD.h * 0.6 + WORLD.h * 0.2,
       false,
-      startLen || 3
+      lastStartLen
     );
     snakes.push(player);
+
     camera.x = player.x; camera.y = player.y; camera.zoom = 1;
 
-    lastColors = (colors && colors.length) ? colors : ['#58ff9b'];
-    lastStartLen = startLen || 3;
+    // lalu bot dari Firebase (fallback ke bot default jika kurang)
+    await spawnFirebaseBots();
 
     if (elLen) elLen.textContent = player.length;
     if (elUsers) elUsers.textContent = snakes.filter(s => s.alive).length;
@@ -510,14 +570,18 @@ const Game = (() => {
     addEventListener('resize', resize, { passive: true }); resize();
     bindInputs();
     requestAnimationFrame(loop);
+
+    // Terima profil dari Firebase (untuk sinkron nickname & warna player)
+    window.addEventListener('user:profile', (e) => {
+      try { applyProfileStyle(e.detail); } catch (_) {}
+    }, { passive: true });
   }
 
-  // Dipanggil controller saat dapat "user:profile" dari firebase-boot
+  // Dipanggil firebase-boot via event 'user:profile'
   function applyProfileStyle(style) {
     if (!style) return;
     profileName = style.name || 'USER';
     profileTextColor = style.color || '#fff';
-    // borderColor/gradient → ambil warna pertama dari gradient utk fallback
     if (style.borderGradient) {
       const m = String(style.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8}))|rgba?\([^)]*\)/);
       profileBorderColor = m ? m[0] : (style.borderColor || '#000');
