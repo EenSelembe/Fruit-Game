@@ -5,8 +5,10 @@
 //   Game.start(colors, startLen)
 //   Game.quickReset()
 //   Game.applyProfileStyle(style)   // nama & warna pemain (dari Firebase)
+//   Game.getPlayerState()           // untuk net-sync.js publish posisi
 //   Game.netUpsert(uid, state)      // dipanggil net-sync.js untuk user online lain
 //   Game.netRemove(uid)             // dipanggil saat user lain offline / keluar
+//   (kompatibilitas lama) Game.addOrUpdateRemote === netUpsert, Game.removeRemote === netRemove
 
 const Game = (() => {
   /* ===== Helpers ===== */
@@ -14,6 +16,19 @@ const Game = (() => {
   const lerp  = (a, b, t) => a + (b - a) * t;
   const rand  = (a, b) => Math.random() * (b - a) + a;
   const angNorm = (a) => ((a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+
+  function hslToHex(h, s, l){
+    h/=360; s/=100; l/=100;
+    const hue2rgb=(p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1;
+      if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+    const q=l<.5?l*(1+s):l+s-l*s, p=2*l-q;
+    const r=Math.round(hue2rgb(p,q,h+1/3)*255), g=Math.round(hue2rgb(p,q,h)*255), b=Math.round(hue2rgb(p,q,h-1/3)*255);
+    const toHex=v=>('0'+v.toString(16)).slice(-2);
+    return '#'+toHex(r)+toHex(g)+toHex(b);
+  }
+  function rainbowPalette(t, count=6){
+    const arr=[]; for(let i=0;i<count;i++){ const h=(t*60 + i*(360/count))%360; arr.push(hslToHex(h, 85, 55)); } return arr;
+  }
 
   /* ===== Canvas / Camera / World ===== */
   let canvas, ctx, vw = 0, vh = 0, dpr = 1;
@@ -28,10 +43,7 @@ const Game = (() => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   function worldToScreen(x, y) {
-    return {
-      x: (x - camera.x) * camera.zoom + vw / 2,
-      y: (y - camera.y) * camera.zoom + vh / 2
-    };
+    return { x: (x - camera.x) * camera.zoom + vw / 2, y: (y - camera.y) * camera.zoom + vh / 2 };
   }
   function wrapPos(p) {
     if (p.x < 0) p.x += WORLD.w; else if (p.x >= WORLD.w) p.x -= WORLD.w;
@@ -50,7 +62,7 @@ const Game = (() => {
   // UI
   let elLen, elUsers, rankRowsEl;
 
-  // Profil pemain aktif (untuk default nama & style)
+  // Profil pemain aktif (untuk default nama & style nameplate)
   let myName = 'USER';
   let myTextColor = '#ffffff';
   let myBorderColor = '#000000';
@@ -114,7 +126,7 @@ const Game = (() => {
   function segSpace(s) { return Math.max(BASE_SEG_SPACE, bodyRadius(s) * 0.9); }
 
   /* ===== Snake ===== */
-  function createSnake(colors, x, y, isBot = false, len = 3, name = 'USER', uid = null) {
+  function createSnake(colors, x, y, isBot = false, len = 3, name = 'USER', uid = null, nameStyle = null) {
     const s = {
       id: Math.random().toString(36).slice(2),
       uid, name,
@@ -127,7 +139,10 @@ const Game = (() => {
       path: [], _pathAcc: 0, alive: true,
       isBot, isRemote: false,
       aiTarget: { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h },
-      isAdminRainbow: false
+      isAdminRainbow: false,
+      // nameplate style per-snake:
+      textColor: nameStyle?.color || '#fff',
+      borderColor: nameStyle?.borderColor || '#000'
     };
     s.path.unshift({ x: s.x, y: s.y });
     return s;
@@ -336,12 +351,21 @@ const Game = (() => {
     ctx.globalAlpha = 1;
   }
 
-  function drawSnake(sn) {
+  function drawSnake(sn, tNow=0) {
     if (sn.path.length < 2) return;
+
+    // Admin rainbow dinamis
+    let cols = sn.colors;
+    let glow = false;
+    if (sn.isAdminRainbow) {
+      cols = rainbowPalette(tNow, 6);
+      glow = true;
+    }
+
     const rPix = bodyRadius(sn) * camera.zoom, segs = screenSegmentsFromSnake(sn);
     for (const seg of segs) {
       if (seg.length < 2) continue;
-      strokeStripedPath(seg, rPix * 2, sn.colors, rPix * 0.65, sn.isAdminRainbow);
+      strokeStripedPath(seg, rPix * 2, cols, rPix * 0.65, glow);
     }
 
     // head + mata
@@ -352,18 +376,18 @@ const Game = (() => {
     ctx.beginPath(); ctx.arc(headS.x + rr * 0.25, headS.y - rr * 0.15, rr * 0.35, 0, Math.PI * 2);
     ctx.fillStyle = '#000'; ctx.fill();
 
-    // nameplate
+    // nameplate per-snake (pakai textColor/borderColor ular itu)
     const nscr = headS;
     const padX = 34, padY = 16 * camera.zoom;
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,.35)';
     ctx.fillRect(nscr.x - padX, nscr.y - 22 * camera.zoom, padX * 2, padY);
-    ctx.strokeStyle = myBorderColor || '#000';
+    ctx.strokeStyle = sn.borderColor || '#000';
     ctx.lineWidth = 1.5;
     ctx.strokeRect(nscr.x - padX, nscr.y - 22 * camera.zoom, padX * 2, padY);
     ctx.font = `${12 * camera.zoom}px system-ui,Segoe UI`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    ctx.fillStyle = myTextColor || '#fff';
+    ctx.fillStyle = sn.textColor || '#fff';
     ctx.fillText(sn.name || 'USER', nscr.x, nscr.y - 10 * camera.zoom);
     ctx.restore();
   }
@@ -386,8 +410,8 @@ const Game = (() => {
         targetAngle = Math.atan2(pointer.y - head.y, pointer.x - head.x);
       } else if (steerX || steerY) targetAngle = Math.atan2(steerY, steerX);
       s.boost = boostHold || keys['shift'];
-    } else if (s.isBot || s.isRemote === false) {
-      // AI sederhana untuk bot (termasuk fallback offline)
+    } else if (s.isRemote === false) {
+      // AI sederhana untuk bot/offline
       const dx = s.aiTarget.x - s.x, dy = s.aiTarget.y - s.y;
       if ((dx * dx + dy * dy) < 140 * 140) { s.aiTarget.x = Math.random() * WORLD.w; s.aiTarget.y = Math.random() * WORLD.h; }
       targetAngle = Math.atan2(dy, dx) + (Math.random() * 0.36 - 0.18);
@@ -442,21 +466,19 @@ const Game = (() => {
       const p = s.path[i]; spawnFood(p.x + (Math.random() * 12 - 6), p.y + (Math.random() * 12 - 6));
     }
 
-    // Jika remote player mati, biarkan tetap dihapus.
-    if (s.isRemote) {
-      removeSnake(s);
-      return;
-    }
+    if (s.isRemote) { removeSnake(s); return; }
 
     // Jika bot, respawn bot baru setelah jeda
-    if (s.isBot) {
+    if (s !== player) {
       setTimeout(() => {
         removeSnake(s);
-        // respawn bot acak sederhana
-        const nb = createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8), s.name, s.uid);
+        const uinfo = s.uid ? window.Presence?.UserDir.get(s.uid) : null;
+        const style = uinfo?.style || null;
+        const nb = createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8), s.name, s.uid, style);
+        if (uinfo?.isAdmin) { nb.isAdminRainbow = true; }
         registerSnake(nb);
       }, 700);
-    } else if (s === player) {
+    } else {
       const toast = document.getElementById('toast');
       if (toast) { toast.textContent = 'Kamu tumbang! Tekan Reset untuk main lagi.'; toast.style.display = 'block';
         clearTimeout(killSnake._t); killSnake._t = setTimeout(() => toast.style.display = 'none', 1800); }
@@ -491,12 +513,9 @@ const Game = (() => {
       const { uid, u } = offline[i];
       if (snakesByUid.has(uid)) continue; // sudah ada (remote / bot lama)
       const p = hashToPos(uid);
-      const baseCols = ['#79a7ff'];
-      const s = createSnake(baseCols, p.x, p.y, true, 3 + Math.floor(Math.random() * 8), u.name, uid);
-      if (u.isAdmin) {
-        s.colors = ["#ff0055","#ff7b00","#ffee00","#00d26a","#00b3ff","#6950ff"];
-        s.isAdminRainbow = true;
-      }
+      const style = u.style || null;
+      const s = createSnake(['#79a7ff'], p.x, p.y, true, 3 + Math.floor(Math.random() * 8), u.name, uid, style);
+      if (u.isAdmin) { s.isAdminRainbow = true; }
       registerSnake(s);
     }
   }
@@ -519,10 +538,10 @@ const Game = (() => {
 
     // Admin → pelangi + glow (tak bisa diganti)
     const isAdmin = !!window.App?.isAdmin;
-    const cols = isAdmin ? ["#ff0055","#ff7b00","#ffee00","#00d26a","#00b3ff","#6950ff"]
-                         : (colors && colors.length ? colors : ['#58ff9b']);
+    const cols = isAdmin ? rainbowPalette(0, 6) : (colors && colors.length ? colors : ['#58ff9b']);
 
-    player = createSnake(cols, startX, startY, false, startLen || 3, myName, uid);
+    const nameStyle = { color: myTextColor, borderColor: myBorderColor };
+    player = createSnake(cols, startX, startY, false, startLen || 3, myName, uid, nameStyle);
     if (isAdmin) player.isAdminRainbow = true;
 
     registerSnake(player);
@@ -578,8 +597,11 @@ const Game = (() => {
     // render
     ctx.clearRect(0, 0, vw, vh);
     drawGrid();
+    // menjaga density buah
+    if (foods.length < FOOD_COUNT * 0.85) ensureFood();
     drawFood();
-    for (const s of snakes) drawSnake(s);
+    const tNow = performance.now() / 1000;
+    for (const s of snakes) drawSnake(s, tNow);
 
     // HUD
     if (player) {
@@ -600,20 +622,21 @@ const Game = (() => {
     let s = snakesByUid.get(uid);
     if (!s) {
       // buat ular baru utk user online tsb
-      const name = state?.name || (window.Presence?.UserDir.get(uid)?.name) || 'USER';
+      const uinfo = window.Presence?.UserDir.get(uid);
+      const style = uinfo?.style || null;
+      const name = state?.name || uinfo?.name || 'USER';
       const cols = state?.colors && state.colors.length ? state.colors : ['#79a7ff'];
       s = createSnake(cols,
-        state?.x ?? rand(0, WORLD.w),
-        state?.y ?? rand(0, WORLD.h),
+        typeof state?.x === 'number' ? state.x : rand(0, WORLD.w),
+        typeof state?.y === 'number' ? state.y : rand(0, WORLD.h),
         false,
         state?.len ?? 3,
         name,
-        uid
+        uid,
+        style
       );
       s.isRemote = true;
-      // admin: pelangi
-      const uinfo = window.Presence?.UserDir.get(uid);
-      if (uinfo?.isAdmin) { s.colors = ["#ff0055","#ff7b00","#ffee00","#00d26a","#00b3ff","#6950ff"]; s.isAdminRainbow = true; }
+      if (uinfo?.isAdmin) s.isAdminRainbow = true;
       registerSnake(s);
     }
     // update state
@@ -621,11 +644,10 @@ const Game = (() => {
     if (typeof state.y === 'number') s.y = state.y;
     if (typeof state.dir === 'number') s.dir = state.dir;
     if (typeof state.len === 'number') s.length = Math.max(1, Math.floor(state.len));
-    if (Array.isArray(state.colors) && state.colors.length) s.colors = state.colors.slice();
+    if (Array.isArray(state.colors) && state.colors.length && !s.isAdminRainbow) s.colors = state.colors.slice();
     if (typeof state.name === 'string') s.name = state.name;
     if (state.alive === false) killSnake(s);
 
-    // pastikan path tidak kosong
     if (!s.path || !s.path.length) s.path = [{ x: s.x, y: s.y }];
   }
 
@@ -633,12 +655,15 @@ const Game = (() => {
     if (!uid) return;
     const s = snakesByUid.get(uid);
     if (!s) return;
-
-    // jadikan bot offline agar tetap ada di peta
+    // jadikan bot offline supaya tetap ada di peta & pakai AI
     s.isRemote = false;
     s.isBot = true;
     s.aiTarget = { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h };
   }
+
+  // kompatibilitas dengan versi net-sync lama:
+  const addOrUpdateRemote = netUpsert;
+  const removeRemote = netRemove;
 
   /* ===== Public ===== */
   function init() {
@@ -652,6 +677,10 @@ const Game = (() => {
     resize();
     bindInputs();
     requestAnimationFrame(loop);
+
+    // jika presence update / users loaded → spawn ulang bot offline yang belum ada
+    window.addEventListener('users:loaded', ()=> spawnOfflineAsBots(12));
+    window.addEventListener('presence:update', ()=> spawnOfflineAsBots(12));
   }
 
   // Dipanggil controller saat dapat "user:profile" dari firebase-boot
@@ -663,6 +692,25 @@ const Game = (() => {
       const m = String(style.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8}))|rgba?\([^)]*\)/);
       myBorderColor = m ? m[0] : (style.borderColor || '#000');
     } else myBorderColor = style.borderColor || '#000';
+
+    // update player nameplate bila sudah ada
+    if (player) {
+      player.name = myName;
+      player.textColor = myTextColor;
+      player.borderColor = myBorderColor;
+    }
+  }
+
+  // state ringkas untuk publish ke Firestore
+  function getPlayerState(){
+    if (!player) return null;
+    return {
+      name: player.name,
+      colors: player.colors,
+      x: player.x, y: player.y, dir: player.dir,
+      len: player.length,
+      alive: player.alive !== false
+    };
   }
 
   return {
@@ -670,8 +718,11 @@ const Game = (() => {
     start: startGame,
     quickReset,
     applyProfileStyle,
+    getPlayerState,
     netUpsert,
-    netRemove
+    netRemove,
+    addOrUpdateRemote,
+    removeRemote
   };
 })();
 
