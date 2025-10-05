@@ -5,23 +5,22 @@
   <title>Admin Panel - Daftar User</title>
   <style>
     body { font-family: Arial, sans-serif; background:#111; color:#fff; margin:16px; }
-    h2 { margin: 0 0 6px }
+    h2 { margin:0 0 6px }
     #status { margin:4px 0 8px }
-    #adminInfo { font-size:12px; opacity:.85; margin-bottom:8px }
-    table { width:100%; border-collapse: collapse; }
+    #adminInfo { font-size:12px; opacity:.85; margin-bottom:8px; word-break:break-all }
+    table { width:100%; border-collapse:collapse; }
     th, td { border:1px solid #444; padding:8px; text-align:center; }
     th { background:#333; }
     input, select { background:#222; border:1px solid #444; color:#fff; padding:4px; }
     .btn { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
     .btn-update { background:#4caf50; color:#fff; }
     .btn-update[disabled]{ opacity:.6; cursor:not-allowed }
-    .muted{ opacity:.75 }
   </style>
 </head>
 <body>
   <h2>📋 Daftar User</h2>
   <div id="status">🔒 Harus login sebagai admin dulu…</div>
-  <div id="adminInfo" class="muted"></div>
+  <div id="adminInfo"></div>
 
   <table id="usersTable" style="display:none;">
     <thead>
@@ -44,9 +43,12 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import {
+      initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+      collection, getDocs, doc, setDoc
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // === Firebase ===
+    // ===== Firebase config =====
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
       authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -58,20 +60,24 @@
     };
     const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
-    const app = initializeApp(firebaseConfig);
+    const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
 
-    // === UI helpers ===
-    const $ = (s)=>document.querySelector(s);
-    function setStatus(t){ $("#status").textContent = t; }
-    function setAdminInfo(user, token){
+    // === 🔧 Firestore: long-polling (menghindari hang di 4G/proxy) ===
+    const db   = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+      useFetchStreams: false,
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+
+    const $ = sel => document.querySelector(sel);
+    const setStatus = t => $("#status").textContent = t;
+    const setAdminInfo = (user, token) => {
       $("#adminInfo").textContent = user
         ? `Login: ${user.email || "(tanpa email)"} | UID: ${user.uid} | isAdmin claim: ${token?.claims?.isAdmin ? "true":"false"} | Project: ${firebaseConfig.projectId}`
         : "";
-    }
+    };
 
-    // Preset gradient
     const presets = {
       "": "",
       "🌈 Rainbow": "linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet)",
@@ -84,7 +90,7 @@
 
     async function isAdminUser(user){
       if(!user) return false;
-      const tok = await user.getIdTokenResult(true); // refresh token supaya klaim terbaru kebaca
+      const tok = await user.getIdTokenResult(true); // refresh klaim
       setAdminInfo(user, tok);
       return user.uid === ADMIN_UID || !!tok.claims.isAdmin;
     }
@@ -92,15 +98,15 @@
     async function loadUsers(){
       const tbody = $("#usersTable tbody");
       tbody.innerHTML = "";
+      const snap = await getDocs(collection(db, "users"));
 
-      const snap = await getDocs(collection(db,"users"));
       snap.forEach(d=>{
         const u = d.data() || {};
         const tr = document.createElement("tr");
 
         // build preset options
         let opts = "";
-        for(const [label,val] of Object.entries(presets)){
+        for(const [label, val] of Object.entries(presets)){
           const sel = (u.bgGradient || "") === val ? "selected":"";
           opts += `<option value="${val}" ${sel}>${label}</option>`;
         }
@@ -112,13 +118,12 @@
           <td><input id="saldo-${d.id}" type="number" value="${Number(u.saldo || 0)}" style="width:90px"></td>
           <td><input id="color-${d.id}" type="color" value="${u.color || '#ffffff'}"></td>
           <td><input id="border-${d.id}" type="color" value="${u.borderColor || '#000000'}"></td>
-          <td><input id="bg-${d.id}" type="text" value="${u.bgColor || ''}" placeholder="#000000"></td>
+          <td><input id="bg-${d.id}" type="text" value="${u.bgColor || ''}" placeholder="#000000 / transparent"></td>
           <td><input id="bordergrad-${d.id}" type="text" value="${u.borderGradient || ''}" placeholder="linear-gradient(...)"></td>
           <td><select id="bggrad-${d.id}" style="width:160px">${opts}</select></td>
           <td><button class="btn btn-update" id="btn-${d.id}">Update</button></td>
         `;
         tbody.appendChild(tr);
-
         tr.querySelector(`#btn-${d.id}`).addEventListener("click", ()=>updateUser(d.id));
       });
 
@@ -129,6 +134,7 @@
     async function updateUser(uid){
       const btn = document.getElementById(`btn-${uid}`);
       btn.disabled = true; btn.textContent = "Updating…";
+
       const payload = {
         saldo: Number(document.getElementById(`saldo-${uid}`).value) || 0,
         color: (document.getElementById(`color-${uid}`).value || null),
@@ -140,20 +146,16 @@
       };
 
       try{
-        // Timeout guard 12s supaya tidak “menggantung diam”
-        const p = setDoc(doc(db,"users",uid), payload, { merge:true });
-        await Promise.race([
-          p,
-          new Promise((_,rej)=>setTimeout(()=>rej(new Error("Timeout: cek koneksi atau rules Firestore")), 12000))
-        ]);
-
+        console.log("Writing", uid, payload);
+        await setDoc(doc(db,"users",uid), payload, { merge:true });
         alert("✅ Berhasil update: " + uid);
         setStatus("✅ Update sukses untuk UID " + uid);
-        await loadUsers(); // refresh tabel
+        await loadUsers();
       }catch(err){
         console.error(err);
-        alert("❌ Gagal update: " + (err?.message || err));
-        setStatus("❌ Gagal update UID " + uid + " — " + (err?.message || err));
+        // Tampilkan kode error rules kalau ada
+        alert("❌ Gagal update: " + (err.code || err.message || err));
+        setStatus("❌ Gagal update UID " + uid + " — " + (err.code || err.message || err));
       }finally{
         btn.disabled = false; btn.textContent = "Update";
       }
@@ -170,7 +172,6 @@
         }
         return;
       }
-
       try{
         if(await isAdminUser(user)){
           setStatus("✅ Admin terverifikasi. Memuat data…");
