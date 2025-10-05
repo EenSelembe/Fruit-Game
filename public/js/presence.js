@@ -5,15 +5,15 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-const db = window.Firebase?.db || getFirestore();
+const db   = window.Firebase?.db   || getFirestore();
 const auth = window.Firebase?.auth || getAuth();
 
-// ===== dataset yang diexpose ke file lain =====
-const UserDir = new Map();         // uid -> { uid, name, style, isAdmin }
-const OnlineUids = new Set();      // set uid yang online di room 'default'
-const ROOM_ID = "default";
+const UserDir = new Map();     // uid -> { uid, name, style, isAdmin }
+const OnlineUids = new Set();  // uid yang online di room yg sama
+const ROOM_ID = window.WORLD_ROOM_ID || "world1";
+console.info("[ROOM presence]", ROOM_ID);
 
-// ambil semua user utk dipakai nama & style bot-offline
+// ambil semua user utk nama + style bot offline
 async function loadUsersOnce(){
   const snap = await getDocs(collection(db, "users"));
   UserDir.clear();
@@ -35,7 +35,7 @@ async function loadUsersOnce(){
   window.dispatchEvent(new CustomEvent("users:loaded", { detail: { users: [...UserDir.values()] } }));
 }
 
-// subscribe presence (online/offline)
+// subscribe presence per-room
 function subPresence(){
   const q = query(collection(db, "presence"), where("room", "==", ROOM_ID));
   onSnapshot(q, snap=>{
@@ -48,12 +48,10 @@ function subPresence(){
   });
 }
 
-// jaga status online milik diri sendiri
+// heartbeat untuk diri sendiri
 async function keepMyPresence(uid){
   const ref = doc(db, "presence", uid);
   await setDoc(ref, { room: ROOM_ID, online: true, ts: serverTimestamp() }, { merge: true });
-
-  // refresh heartbeat saat tab aktif
   const ping = () => updateDoc(ref, { ts: serverTimestamp(), online: !document.hidden });
   document.addEventListener("visibilitychange", ping);
   setInterval(ping, 15000);
