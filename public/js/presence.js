@@ -1,42 +1,71 @@
 // /public/js/presence.js
-// Presence sederhana: tulis heartbeat ke Firestore dan tampilkan jumlah pemain online.
-
+import {
+  getFirestore, collection, getDocs, onSnapshot, doc, setDoc, updateDoc,
+  serverTimestamp, query, where
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-const auth = getAuth();               // pakai app default
-const db   = getFirestore();
+const db = window.Firebase?.db || getFirestore();
+const auth = window.Firebase?.auth || getAuth();
 
-let uid = null;
-let timer = null;
+// ===== dataset yang diexpose ke file lain =====
+const UserDir = new Map();         // uid -> { uid, name, style, isAdmin }
+const OnlineUids = new Set();      // set uid yang online di room 'default'
+const ROOM_ID = "default";
 
-function heartbeat() {
-  const p = window.App?.profile || {};
-  setDoc(doc(db, "presence", uid), {
-    username: p.name || p.username || "Anonim",
-    t: Date.now()
-  }, { merge: true });
+// ambil semua user utk dipakai nama & style bot-offline
+async function loadUsersOnce(){
+  const snap = await getDocs(collection(db, "users"));
+  UserDir.clear();
+  snap.forEach(d=>{
+    const u = d.data() || {};
+    UserDir.set(d.id, {
+      uid: d.id,
+      name: u.name || u.username || "USER",
+      isAdmin: d.id === (window.App?.ADMIN_UID),
+      style: {
+        color: u.color || "#fff",
+        bgColor: u.bgColor || null,
+        bgGradient: u.bgGradient || null,
+        borderColor: u.borderColor || "#000",
+        borderGradient: u.borderGradient || null
+      }
+    });
+  });
+  window.dispatchEvent(new CustomEvent("users:loaded", { detail: { users: [...UserDir.values()] } }));
 }
 
-onAuthStateChanged(auth, (user) => {
-  if (!user) return;
-  uid = user.uid;
-
-  // kirim heartbeat tiap 5s
-  heartbeat();
-  timer && clearInterval(timer);
-  timer = setInterval(heartbeat, 5000);
-
-  // dengarkan semua presence dan hitung yang aktif (<15s)
-  const col = collection(db, "presence");
-  onSnapshot(col, (snap) => {
-    const now = Date.now();
-    let online = 0;
-    snap.forEach((d) => {
-      const t = (d.data()?.t) || 0;
-      if (now - t < 15000) online++;
+// subscribe presence (online/offline)
+function subPresence(){
+  const q = query(collection(db, "presence"), where("room", "==", ROOM_ID));
+  onSnapshot(q, snap=>{
+    OnlineUids.clear();
+    snap.forEach(d=>{
+      const v = d.data() || {};
+      if (v.online) OnlineUids.add(d.id);
     });
-    const el = document.getElementById("userCount");
-    if (el) el.textContent = online;
+    window.dispatchEvent(new CustomEvent("presence:update", { detail: { online: [...OnlineUids] } }));
   });
+}
+
+// jaga status online milik diri sendiri
+async function keepMyPresence(uid){
+  const ref = doc(db, "presence", uid);
+  await setDoc(ref, { room: ROOM_ID, online: true, ts: serverTimestamp() }, { merge: true });
+
+  // refresh heartbeat saat tab aktif
+  const ping = () => updateDoc(ref, { ts: serverTimestamp(), online: !document.hidden });
+  document.addEventListener("visibilitychange", ping);
+  setInterval(ping, 15000);
+  addEventListener("beforeunload", ()=>{ navigator.sendBeacon?.("/", "bye"); });
+}
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user) return;
+  await loadUsersOnce();
+  subPresence();
+  keepMyPresence(user.uid);
 });
+
+// expose
+window.Presence = { UserDir, OnlineUids, ROOM_ID };
