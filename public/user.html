@@ -3,35 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>Admin Panel - Daftar User</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #fff; margin:0; padding:16px;}
-    header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; }
+    h2 { margin: 12px 0 6px }
+    #adminInfo { font-size: 13px; opacity:.85 }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     th, td { border: 1px solid #444; padding: 8px; text-align: center; }
-    th { background: #222; position:sticky; top:0; z-index:2; }
-    .btn { padding: 6px 10px; cursor: pointer; border: none; border-radius: 6px; }
+    th { background: #333; }
+    .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 5px; }
     .btn-update { background: #4caf50; color: white; }
-    .btn-signout { background:#e53935; color:#fff; }
-    .btn-login { background:#1e88e5; color:#fff; }
-    input, select { background:#1a1a1a; border:1px solid #444; color:#fff; padding:4px 6px; border-radius:4px; }
-    #status { margin:10px 0; opacity:.9 }
-    .note { font-size:13px; opacity:.8; margin-top:6px }
-    .wrap { max-width: 1200px; margin: 0 auto; }
+    .btn-update[disabled]{ opacity:.6; cursor:not-allowed }
+    input, select { background:#222; border:1px solid #444; color:#fff; padding:3px; }
+    .muted{opacity:.75}
   </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h2>📋 Daftar User</h2>
-    <div>
-      <button id="loginBtn" class="btn btn-login" style="display:none;">Login Admin</button>
-      <button id="logoutBtn" class="btn btn-signout" style="display:none;">Sign out</button>
-    </div>
-  </header>
-
+  <h2>📋 Daftar User</h2>
   <div id="status">🔒 Harus login sebagai admin dulu...</div>
-  <div class="note">Admin dikenali jika <code>UID === ADMIN_UID</code> <b>atau</b> token punya claim <code>isAdmin: true</code>.</div>
+  <div id="adminInfo" class="muted"></div>
 
   <table id="usersTable" style="display:none;">
     <thead>
@@ -50,164 +39,162 @@
     </thead>
     <tbody></tbody>
   </table>
-</div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } 
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, updateDoc } 
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-    authDomain: "fruit-game-5e4a8.firebaseapp.com",
-    projectId: "fruit-game-5e4a8",
-    storageBucket: "fruit-game-5e4a8.appspot.com",
-    messagingSenderId: "936228678997",
-    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
-    measurementId: "G-EPTSQQPM4D"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+      measurementId: "G-EPTSQQPM4D"
+    };
 
-  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // pastikan sama dengan di Firestore rules
+    const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // UID admin tetap kamu
 
-  // Preset gradient list
-  const presets = {
-    "": "",
-    "🌈 Rainbow": "linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet)",
-    "💜 Pink-Purple": "linear-gradient(270deg, #ff00ff, #8000ff, #ff00ff)",
-    "💙 Cyan-Blue": "linear-gradient(270deg, #00ffff, #0066ff, #00ffff)",
-    "🔥 Gold-Red": "linear-gradient(270deg, gold, orange, red, gold)",
-    "🌌 Galaxy": "linear-gradient(270deg, #00f, #8000ff, #ff00ff, #00f)",
-    "💚 Green Neon": "linear-gradient(270deg, #00ff00, #00cc66, #00ff00)"
-  };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    // Preset gradient list
+    const presets = {
+      "": "",
+      "🌈 Rainbow": "linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet)",
+      "💜 Pink-Purple": "linear-gradient(270deg, #ff00ff, #8000ff, #ff00ff)",
+      "💙 Cyan-Blue": "linear-gradient(270deg, #00ffff, #0066ff, #00ffff)",
+      "🔥 Gold-Red": "linear-gradient(270deg, gold, orange, red, gold)",
+      "🌌 Galaxy": "linear-gradient(270deg, #00f, #8000ff, #ff00ff, #00f)",
+      "💚 Green Neon": "linear-gradient(270deg, #00ff00, #00cc66, #00ff00)"
+    };
 
-  const statusEl = document.getElementById("status");
-  const usersTable = document.getElementById("usersTable");
-  const loginBtn = document.getElementById("loginBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
+    const $ = (s) => document.querySelector(s);
 
-  loginBtn.addEventListener("click", async ()=>{
-    const email = prompt("Masukkan email admin:");
-    const password = prompt("Masukkan password admin:");
-    if (!email || !password) return;
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (e) {
-      alert("Login gagal: " + (e?.message || e));
+    function setStatus(text){ $("#status").textContent = text; }
+    function setAdminInfo(user, token){
+      $("#adminInfo").textContent = user
+        ? `Login: ${user.email || "(tanpa email)"} | UID: ${user.uid} | isAdmin claim: ${token?.claims?.isAdmin ? "true" : "false"}`
+        : "";
     }
-  });
 
-  logoutBtn.addEventListener("click", async ()=>{
-    try { await signOut(auth); } catch(e) {}
-  });
+    async function isAdminUser(user){
+      if (!user) return false;
+      // Cek claim + UID tetap
+      const tokenResult = await user.getIdTokenResult(true); // force refresh
+      const byClaim = !!tokenResult.claims.isAdmin;
+      const byUid   = user.uid === ADMIN_UID;
+      setAdminInfo(user, tokenResult);
+      return byClaim || byUid;
+    }
 
-  function isAdminLocal(user, token) {
-    const byUid = user?.uid === ADMIN_UID;
-    const byClaim = !!token?.claims?.isAdmin;
-    return byUid || byClaim;
-  }
+    async function loadUsers() {
+      const tableBody = document.querySelector("#usersTable tbody");
+      tableBody.innerHTML = "";
+      // Ambil dari server; jika ingin paksa server, tambahkan cache: false (v9 tidak ada param). Ini tetap OK.
+      const querySnapshot = await getDocs(collection(db, "users"));
 
-  async function loadUsers() {
-    const tbody = usersTable.querySelector("tbody");
-    tbody.innerHTML = "";
-    const snap = await getDocs(collection(db, "users"));
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        const tr = document.createElement("tr");
 
-    snap.forEach((docSnap) => {
-      const data = docSnap.data() || {};
-      const tr = document.createElement("tr");
+        // Dropdown options
+        let options = "";
+        for (const [label, value] of Object.entries(presets)) {
+          const selected = (data.bgGradient || "") === value ? "selected" : "";
+          options += `<option value="${value}" ${selected}>${label}</option>`;
+        }
 
-      // Dropdown preset
-      let options = "";
-      for (const [label, value] of Object.entries(presets)) {
-        const selected = (data.bgGradient || "") === value ? "selected" : "";
-        options += `<option value="${value}" ${selected}>${label}</option>`;
-      }
+        tr.innerHTML = `
+          <td style="font-size:12px">${docSnap.id}</td>
+          <td><input type="text" id="username-${docSnap.id}" value="${data.username || ''}" style="width:120px; color:${data.color || '#fff'};"></td>
+          <td>${data.email || ''}</td>
+          <td><input type="number" id="saldo-${docSnap.id}" value="${Number(data.saldo || 0)}" style="width:80px;"></td>
+          <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
+          <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
+          <td><input type="text"  id="bg-${docSnap.id}" value="${data.bgColor || ''}" placeholder="#000000"></td>
+          <td><input type="text"  id="bordergrad-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="linear-gradient(...)"></td>
+          <td><select id="bggrad-${docSnap.id}" style="width:160px;">${options}</select></td>
+          <td><button class="btn btn-update" id="btn-${docSnap.id}">Update</button></td>
+        `;
+        tableBody.appendChild(tr);
 
-      tr.innerHTML = `
-        <td style="font-size:12px;opacity:.85">${docSnap.id}</td>
-        <td><input type="text" id="username-${docSnap.id}" value="${data.username || data.name || ''}" style="width:140px; color:${data.color || '#fff'};"></td>
-        <td style="font-size:12px;opacity:.9">${data.email || ''}</td>
-        <td><input type="number" id="saldo-${docSnap.id}" value="${Number(data.saldo||0)}" style="width:90px;"></td>
-        <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
-        <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
-        <td><input type="text" id="bg-${docSnap.id}" value="${data.bgColor || ''}" placeholder="#000000 / kosong" style="width:120px;"></td>
-        <td><input type="text" id="bordergrad-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="linear-gradient(...)" style="width:160px;"></td>
-        <td><select id="bggrad-${docSnap.id}" style="width:170px;">${options}</select></td>
-        <td><button class="btn btn-update" id="btn-${docSnap.id}">Update</button></td>
-      `;
-      tbody.appendChild(tr);
+        // Pasang handler dengan try/catch, tampilkan error ke alert
+        tr.querySelector(`#btn-${docSnap.id}`).addEventListener("click", async () => {
+          const btn = tr.querySelector(`#btn-${docSnap.id}`);
+          btn.disabled = true;
+          btn.textContent = "Updating...";
+          try{
+            const newSaldo = Number(document.getElementById("saldo-" + docSnap.id).value);
+            const newColor = document.getElementById("color-" + docSnap.id).value || null;
+            const newBorder = document.getElementById("border-" + docSnap.id).value || null;
+            const newBg = (document.getElementById("bg-" + docSnap.id).value || "").trim();
+            const newBorderGrad = (document.getElementById("bordergrad-" + docSnap.id).value || "").trim();
+            const newBgGrad = (document.getElementById("bggrad-" + docSnap.id).value || "").trim();
+            const newUsername = (document.getElementById("username-" + docSnap.id).value || "").trim();
 
-      // Attach handler
-      const btn = tr.querySelector(`#btn-${docSnap.id}`);
-      btn.addEventListener("click", () => updateUser(docSnap.id));
-    });
+            const payload = {
+              saldo: isFinite(newSaldo) ? newSaldo : 0,
+              color: newColor,
+              borderColor: newBorder,
+              // simpan empty string sebagai null agar rapi (opsional)
+              bgColor: newBg || null,
+              borderGradient: newBorderGrad || null,
+              bgGradient: newBgGrad || null,
+              username: newUsername || null
+            };
 
-    usersTable.style.display = "table";
-  }
-
-  async function updateUser(uid) {
-    const newSaldo = Number(document.getElementById("saldo-" + uid).value);
-    const newColor = document.getElementById("color-" + uid).value || null;
-    const newBorder = document.getElementById("border-" + uid).value || null;
-    const newBg = document.getElementById("bg-" + uid).value || "";
-    const newBorderGrad = document.getElementById("bordergrad-" + uid).value || "";
-    const newBgGrad = document.getElementById("bggrad-" + uid).value || "";
-    const newUsername = document.getElementById("username-" + uid).value || "";
-
-    const userDocRef = doc(db, "users", uid);
-
-    try {
-      await updateDoc(userDocRef, { 
-        saldo: isFinite(newSaldo) ? newSaldo : 0,
-        color: newColor,
-        borderColor: newBorder,
-        bgColor: newBg || null,
-        borderGradient: newBorderGrad || null,
-        bgGradient: newBgGrad || null,
-        username: newUsername
+            await updateDoc(doc(db, "users", docSnap.id), payload);
+            alert("✅ User " + docSnap.id + " berhasil diupdate!");
+            await loadUsers(); // refresh
+          }catch(err){
+            console.error(err);
+            alert("❌ Gagal update: " + (err && err.message ? err.message : err));
+          }finally{
+            btn.disabled = false;
+            btn.textContent = "Update";
+          }
+        });
       });
-      alert("✅ User " + uid + " berhasil diupdate!");
-    } catch (e) {
-      console.error(e);
-      alert("❌ Gagal update user " + uid + ":\n" + (e?.message || e));
+
+      setStatus("✅ Login admin berhasil. Data user dimuat.");
+      document.getElementById("usersTable").style.display = "table";
     }
-  }
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      statusEl.textContent = "🔒 Harus login sebagai admin dulu...";
-      usersTable.style.display = "none";
-      loginBtn.style.display = "inline-block";
-      logoutBtn.style.display = "none";
-      return;
-    }
-    loginBtn.style.display = "none";
-    logoutBtn.style.display = "inline-block";
-
-    try {
-      // refresh token supaya custom claims terbaru terbaca
-      const token = await user.getIdTokenResult(true);
-      const ok = isAdminLocal(user, token);
-      statusEl.textContent = ok
-        ? `✅ Admin terdeteksi (UID: ${user.uid}${token?.claims?.isAdmin ? ", claim:isAdmin" : ""})`
-        : `🚫 Kamu bukan admin (UID: ${user.uid}). Hubungi admin jika ini seharusnya admin.`;
-
-      if (ok) {
-        await loadUsers();
-      } else {
-        usersTable.style.display = "none";
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setStatus("🔒 Harus login sebagai admin dulu...");
+        setAdminInfo(null, null);
+        const email = prompt("Masukkan email admin:");
+        const password = prompt("Masukkan password admin:");
+        if (email && password) {
+          try{
+            await signInWithEmailAndPassword(auth, email, password);
+          }catch(err){
+            alert("Login gagal: " + err.message);
+          }
+        }
+        return;
       }
-    } catch (e) {
-      console.error(e);
-      statusEl.textContent = "⚠️ Gagal membaca status admin: " + (e?.message || e);
-      usersTable.style.display = "none";
-    }
-  });
-</script>
+
+      try{
+        const ok = await isAdminUser(user); // cek UID tetap + claim
+        if (!ok) {
+          setStatus("🚫 Kamu bukan admin!");
+          return;
+        }
+        // admin → muat data
+        await loadUsers();
+      }catch(err){
+        console.error(err);
+        setStatus("❌ Error autentikasi admin: " + (err.message || err));
+      }
+    });
+  </script>
 </body>
 </html>
