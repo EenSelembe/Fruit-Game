@@ -1,60 +1,84 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin Panel - Daftar User</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #fff; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
-    th { background: #333; }
-    .btn { padding: 6px 12px; cursor: pointer; border: none; border-radius: 6px; }
-    .btn-update { background: #4caf50; color: white; }
-    input, select { background:#222; border:1px solid #444; color:#fff; padding:4px; }
-    .bar { display:flex; gap:10px; align-items:center; }
-    .pill { background:#1b1b1b; border:1px solid #333; padding:6px 10px; border-radius:999px; }
-    .ok { color:#8ef58e }
-    .warn { color:#ffd04d }
-    .err { color:#ff7b7b }
-    small{opacity:.8}
+    :root{ --bg:#111; --panel:#181818; --text:#fff; --muted:#bbb; --line:#444; --accent:#4caf50; --warn:#ffc107; --err:#ff5252; }
+    *{ box-sizing:border-box }
+    body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); margin:0; padding:16px }
+    h2 { margin: 6px 0 10px; }
+    #topbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px }
+    .pill{ background:#222; border:1px solid var(--line); padding:6px 10px; border-radius:999px; font-size:13px; color:var(--muted) }
+    .btn { padding: 6px 10px; cursor: pointer; border: 1px solid var(--line); border-radius: 8px; background:#222; color:#fff }
+    .btn:disabled{ opacity:.6; cursor:not-allowed }
+    .btn-update{ background: var(--accent); border-color: #2e7d32; color:#fff; font-weight:700 }
+    .btn-refresh{ background:#2d5eff; border-color:#2847a3 }
+    .ok{ color:#75fb79 } .warn{ color:var(--warn) } .err{ color:var(--err) }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; background:var(--panel); border:1px solid var(--line) }
+    th, td { border: 1px solid var(--line); padding: 8px; text-align: center; font-size:14px }
+    th { background: #222; position:sticky; top:0; z-index:1 }
+    td code { font-size:12px }
+    input, select { background:#1b1b1b; border:1px solid var(--line); color:#fff; padding:6px; border-radius:6px }
+    input[type="number"]{ width:100px }
+    input[type="text"]{ width:160px }
+    input[type="color"]{ width:46px; height:32px; padding:0 }
+    .table-wrap{ overflow:auto; max-height: 65vh; border:1px solid var(--line); border-radius:10px }
+
+    #status { margin: 10px 0 6px; font-size:14px }
+    #log { margin-top:12px; background:#0e0e0e; border:1px solid var(--line); color:#ddd; padding:10px;
+           border-radius:10px; max-height:160px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; white-space:pre-wrap }
+    @media (max-width:680px){
+      td:nth-child(1){ max-width:150px; overflow:hidden; text-overflow:ellipsis }
+      input[type="text"]{ width:140px }
+      .table-wrap{ max-height: 55vh; }
+    }
   </style>
 </head>
 <body>
-  <h2>📋 Admin • Daftar User</h2>
+  <h2>📋 Admin Panel — Daftar User</h2>
 
-  <div class="bar">
-    <div id="status" class="pill">🔒 Harus login sebagai admin...</div>
-    <div id="me" class="pill"><small>UID:</small> <span id="myuid">-</span> &nbsp; <small>Email:</small> <span id="myemail">-</span></div>
-    <button id="btnRefresh" class="btn">♻️ Refresh Token</button>
+  <div id="topbar">
+    <span class="pill">UID Admin: <code id="myuid">-</code></span>
+    <span class="pill">Email: <span id="myemail">-</span></span>
+    <button id="btnRefresh" class="btn btn-refresh">Refresh Token & Reload</button>
   </div>
 
-  <table id="usersTable" style="display:none; margin-top:12px;">
-    <thead>
-      <tr>
-        <th>UID</th>
-        <th>Username</th>
-        <th>Email</th>
-        <th>Saldo</th>
-        <th>Warna Teks</th>
-        <th>Warna Border</th>
-        <th>BG Color</th>
-        <th>Border Gradient</th>
-        <th>BG Gradient (preset)</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div id="status">🔒 Harus login sebagai admin dulu…</div>
 
-  <pre id="log" style="margin-top:14px; background:#0e0e0e; border:1px solid #333; padding:10px; border-radius:8px; max-height:200px; overflow:auto;"></pre>
+  <div class="table-wrap">
+    <table id="usersTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>UID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Saldo</th>
+          <th>Warna Teks</th>
+          <th>Warna Border</th>
+          <th>BG Color</th>
+          <th>Border Gradient</th>
+          <th>BG Gradient (Preset)</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
+  <pre id="log"></pre>
+
+  <!-- ===== SCRIPT (module) ===== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { 
-      getAuth, onAuthStateChanged, signInWithEmailAndPassword, setPersistence, browserLocalPersistence
+    import {
+      getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+      setPersistence, browserLocalPersistence
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { 
-      getFirestore, collection, getDocs, doc, setDoc 
+    import {
+      getFirestore, collection, getDocs, doc, setDoc
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     // === CONFIG ===
@@ -67,13 +91,13 @@
       appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
       measurementId: "G-EPTSQQPM4D"
     };
-    const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // pastikan ini 100% sama
+    const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
     // === INIT ===
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    await setPersistence(auth, browserLocalPersistence);
+    setPersistence(auth, browserLocalPersistence).catch(()=>{});
 
     // UI refs
     const elStatus = document.getElementById("status");
@@ -81,21 +105,10 @@
     const elMeEmail = document.getElementById("myemail");
     const elTable = document.getElementById("usersTable");
     const elLog = document.getElementById("log");
-    document.getElementById("btnRefresh").onclick = async () => {
-      try {
-        if (auth.currentUser) {
-          await auth.currentUser.getIdToken(true);
-          log("Token refreshed.");
-          // ulang load users biar rules fresh
-          await loadUsers();
-        } else {
-          log("Belum login.");
-        }
-      } catch (e) {
-        logErr(e);
-        alert("Gagal refresh token: " + (e.message || e.code));
-      }
-    };
+    const btnRefresh = document.getElementById("btnRefresh");
+
+    function log(msg){ elLog.textContent += `[INFO] ${msg}\n`; elLog.scrollTop = elLog.scrollHeight; }
+    function logErr(e){ elLog.textContent += `[ERR ] ${(e && e.code)||''} ${(e && e.message)||e}\n`; elLog.scrollTop = elLog.scrollHeight; }
 
     // Preset gradient list
     const presets = {
@@ -108,32 +121,28 @@
       "💚 Green Neon": "linear-gradient(270deg, #00ff00, #00cc66, #00ff00)"
     };
 
-    function log(msg){ elLog.textContent += `[INFO] ${msg}\n`; elLog.scrollTop = elLog.scrollHeight; }
-    function logErr(e){ elLog.textContent += `[ERR ] ${e.code || ''} ${e.message || e}\n`; elLog.scrollTop = elLog.scrollHeight; }
-
     async function loadUsers() {
       try{
-        if (!auth.currentUser) { log("loadUsers: belum login"); return; }
-        // force claim fresh
+        if (!auth.currentUser) return;
+        // memastikan token admin (agar rules membaca claim terbaru)
         await auth.currentUser.getIdToken(true);
 
-        const querySnapshot = await getDocs(collection(db, "users"));
+        const qs = await getDocs(collection(db, "users"));
         const tbody = document.querySelector("#usersTable tbody");
         tbody.innerHTML = "";
 
-        querySnapshot.forEach((docSnap) => {
+        qs.forEach((docSnap)=>{
           const data = docSnap.data() || {};
-          const tr = document.createElement("tr");
-
-          // Dropdown options
+          // build options
           let options = "";
           for (const [label, value] of Object.entries(presets)) {
-            const selected = (data.bgGradient || "") === value ? "selected" : "";
-            options += `<option value="${value}" ${selected}>${label}</option>`;
+            const sel = (data.bgGradient || "") === value ? "selected" : "";
+            options += `<option value="${value}" ${sel}>${label}</option>`;
           }
 
+          const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td style="font-size:12px">${docSnap.id}</td>
+            <td style="font-size:12px"><code>${docSnap.id}</code></td>
             <td><input type="text" id="username-${docSnap.id}" value="${(data.username||'').replace(/"/g,'&quot;')}" style="width:120px; color:${data.color || '#fff'};"></td>
             <td>${data.email || ''}</td>
             <td><input type="number" id="saldo-${docSnap.id}" value="${Number(data.saldo||0)}" style="width:90px;"></td>
@@ -141,17 +150,15 @@
             <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
             <td><input type="text" id="bg-${docSnap.id}" value="${data.bgColor || '#000000'}"></td>
             <td><input type="text" id="bordergrad-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="linear-gradient(...)"></td>
-            <td>
-              <select id="bggrad-${docSnap.id}" style="width:160px;">${options}</select>
-            </td>
-            <td><button class="btn btn-update" onclick="updateUser('${docSnap.id}')">Update</button></td>
+            <td><select id="bggrad-${docSnap.id}" style="width:170px;">${options}</select></td>
+            <td><button class="btn btn-update" data-uid="${docSnap.id}">Update</button></td>
           `;
           tbody.appendChild(tr);
         });
 
         elStatus.innerHTML = "✅ <span class='ok'>Login admin</span> • boleh mengubah data user";
         elTable.style.display = "table";
-        log(`Loaded ${querySnapshot.size} users.`);
+        log(`Loaded ${qs.size} users.`);
       }catch(e){
         elStatus.innerHTML = "⚠️ <span class='warn'>Gagal load users</span>";
         logErr(e);
@@ -159,11 +166,10 @@
       }
     }
 
-    // Ganti updateDoc -> setDoc(..., {merge:true}) agar tetap jalan jika doc belum ada
-    window.updateUser = async function(uid) {
+    async function updateUser(uid){
       try{
         if (!auth.currentUser) throw new Error("Belum login");
-        await auth.currentUser.getIdToken(true); // refresh claim
+        await auth.currentUser.getIdToken(true);
 
         const newSaldo = Number(document.getElementById("saldo-" + uid).value);
         const newColor = document.getElementById("color-" + uid).value;
@@ -175,17 +181,17 @@
 
         const ref = doc(db, "users", uid);
         await setDoc(ref, {
-          saldo: newSaldo,
-          color: newColor,
-          borderColor: newBorder,
-          bgColor: newBg,
+          saldo: isFinite(newSaldo) ? newSaldo : 0,
+          color: newColor || null,
+          borderColor: newBorder || null,
+          bgColor: newBg || null,
           borderGradient: newBorderGrad || null,
           bgGradient: newBgGrad || null,
           username: newUsername || null
         }, { merge: true });
 
-        alert("✅ User " + uid + " berhasil diupdate");
         log(`Updated ${uid}`);
+        alert("✅ Berhasil update: " + uid);
         await loadUsers();
       }catch(e){
         logErr(e);
@@ -193,40 +199,63 @@
       }
     }
 
-    onAuthStateChanged(auth, async (user) => {
+    // === Event delegation untuk tombol Update (tanpa inline onclick) ===
+    document.addEventListener("click", async (ev)=>{
+      const btn = ev.target.closest(".btn-update");
+      if (!btn) return;
+      const uid = btn.dataset.uid;
+      btn.disabled = true;
+      const prev = btn.textContent;
+      btn.textContent = "Updating...";
+      try{
+        await updateUser(uid);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prev;
+      }
+    });
+
+    // Tombol refresh token + reload daftar
+    btnRefresh.addEventListener("click", async ()=>{
+      try {
+        if (auth.currentUser) {
+          await auth.currentUser.getIdToken(true);
+          log("Token refreshed.");
+          await loadUsers();
+        } else {
+          log("Belum login.");
+        }
+      } catch(e){ logErr(e); alert("Gagal refresh token: "+(e.message||e.code)); }
+    });
+
+    // Auth flow
+    onAuthStateChanged(auth, async (user)=>{
       try{
         if (user) {
           elMeUid.textContent = user.uid;
           elMeEmail.textContent = user.email || "(no email)";
-          // refresh token biar claims up-to-date
           await user.getIdToken(true);
-
-          if (user.uid === ADMIN_UID || (await user.getIdTokenResult()).claims?.isAdmin === true || (await user.getIdTokenResult()).claims?.isAdmin === "true") {
+          const idTokRes = await user.getIdTokenResult();
+          const claimAdmin = idTokRes.claims?.isAdmin === true || idTokRes.claims?.isAdmin === "true";
+          if (user.uid === ADMIN_UID || claimAdmin) {
             elStatus.innerHTML = "✅ <span class='ok'>Login admin terdeteksi</span>";
             await loadUsers();
           } else {
-            elStatus.innerHTML = "🚫 <span class='err'>Kamu bukan admin</span> • UID sekarang: <code>" + user.uid + "</code>";
+            elStatus.innerHTML = "🚫 <span class='err'>Kamu bukan admin</span> • UID: <code>"+user.uid+"</code>";
             elTable.style.display = "none";
-            log("Bukan admin: " + user.uid);
+            log("Bukan admin: "+user.uid);
           }
         } else {
-          // prompt login sederhana
           const email = prompt("Masukkan email admin:");
           const password = prompt("Masukkan password admin:");
           if (email && password) {
-            try{
-              await signInWithEmailAndPassword(auth, email, password);
-            }catch(e){
-              logErr(e);
-              alert("Login gagal: " + (e.message || e.code));
-            }
+            try { await signInWithEmailAndPassword(auth, email, password); }
+            catch(e){ logErr(e); alert("Login gagal: " + (e.message || e.code)); }
           } else {
             log("Login dibatalkan.");
           }
         }
-      }catch(e){
-        logErr(e);
-      }
+      }catch(e){ logErr(e); }
     });
   </script>
 </body>
