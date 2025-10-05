@@ -1,141 +1,213 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - Daftar User</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; margin:0; padding:16px;}
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+    th { background: #222; position:sticky; top:0; z-index:2; }
+    .btn { padding: 6px 10px; cursor: pointer; border: none; border-radius: 6px; }
+    .btn-update { background: #4caf50; color: white; }
+    .btn-signout { background:#e53935; color:#fff; }
+    .btn-login { background:#1e88e5; color:#fff; }
+    input, select { background:#1a1a1a; border:1px solid #444; color:#fff; padding:4px 6px; border-radius:4px; }
+    #status { margin:10px 0; opacity:.9 }
+    .note { font-size:13px; opacity:.8; margin-top:6px }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h2>📋 Daftar User</h2>
+    <div>
+      <button id="loginBtn" class="btn btn-login" style="display:none;">Login Admin</button>
+      <button id="logoutBtn" class="btn btn-signout" style="display:none;">Sign out</button>
+    </div>
+  </header>
 
-    // ======== Helper =========
-    function signedIn() {
-      return request.auth != null;
+  <div id="status">🔒 Harus login sebagai admin dulu...</div>
+  <div class="note">Admin dikenali jika <code>UID === ADMIN_UID</code> <b>atau</b> token punya claim <code>isAdmin: true</code>.</div>
+
+  <table id="usersTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>UID</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Saldo</th>
+        <th>Warna Teks</th>
+        <th>Warna Border</th>
+        <th>BG Color</th>
+        <th>Border Gradient</th>
+        <th>BG Gradient (Preset)</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } 
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc } 
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",
+    projectId: "fruit-game-5e4a8",
+    storageBucket: "fruit-game-5e4a8.appspot.com",
+    messagingSenderId: "936228678997",
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
+    measurementId: "G-EPTSQQPM4D"
+  };
+
+  const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // pastikan sama dengan di Firestore rules
+
+  // Preset gradient list
+  const presets = {
+    "": "",
+    "🌈 Rainbow": "linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet)",
+    "💜 Pink-Purple": "linear-gradient(270deg, #ff00ff, #8000ff, #ff00ff)",
+    "💙 Cyan-Blue": "linear-gradient(270deg, #00ffff, #0066ff, #00ffff)",
+    "🔥 Gold-Red": "linear-gradient(270deg, gold, orange, red, gold)",
+    "🌌 Galaxy": "linear-gradient(270deg, #00f, #8000ff, #ff00ff, #00f)",
+    "💚 Green Neon": "linear-gradient(270deg, #00ff00, #00cc66, #00ff00)"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const statusEl = document.getElementById("status");
+  const usersTable = document.getElementById("usersTable");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  loginBtn.addEventListener("click", async ()=>{
+    const email = prompt("Masukkan email admin:");
+    const password = prompt("Masukkan password admin:");
+    if (!email || !password) return;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (e) {
+      alert("Login gagal: " + (e?.message || e));
     }
-    // Perkuat deteksi admin: UID tetap + dukung custom claim boolean/string
-    function isAdmin() {
-      return signedIn() && (
-        request.auth.uid == "AxB4G2xwhiXdJnyDrzn82Xanc4x2" ||       // hardcoded UID admin
-        request.auth.token.isAdmin == true ||                        // boolean
-        request.auth.token.isAdmin == "true"                         // string fallback
-      );
-    }
+  });
 
-    // ===== USERS =====
-    match /users/{userId} {
-      // Baca boleh untuk semua user login
-      allow read: if signedIn();
+  logoutBtn.addEventListener("click", async ()=>{
+    try { await signOut(auth); } catch(e) {}
+  });
 
-      // TULIS boleh oleh pemilik dokumen ATAU admin (create/update/delete)
-      allow write: if (signedIn() && request.auth.uid == userId) || isAdmin();
-      // (Baris di atas mencakup create/update/delete, jadi kamu tidak perlu aturan terpisah.)
-    }
+  function isAdminLocal(user, token) {
+    const byUid = user?.uid === ADMIN_UID;
+    const byClaim = !!token?.claims?.isAdmin;
+    return byUid || byClaim;
+  }
 
-    // ===== TRANSFERS =====
-    match /transfers/{tid} {
-      // Baca: pengirim/penerima atau admin
-      allow read: if signedIn() && (
-        resource.data.from == request.auth.token.email ||
-        resource.data.to == request.auth.token.email ||
-        isAdmin()
-      );
+  async function loadUsers() {
+    const tbody = usersTable.querySelector("tbody");
+    tbody.innerHTML = "";
+    const snap = await getDocs(collection(db, "users"));
 
-      // Buat transfer (validasi + admin boleh atas nama)
-      allow create: if signedIn()
-        && request.resource.data.nominal is int
-        && request.resource.data.to is string
-        && request.resource.data.from is string
-        && (
-          request.resource.data.from == request.auth.token.email
-          || isAdmin()
-        );
+    snap.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      const tr = document.createElement("tr");
 
-      // Edit/hapus hanya admin
-      allow update, delete: if isAdmin();
-    }
-
-    // ===== USERNAMES =====
-    match /usernames/{username} {
-      allow create: if signedIn()
-                 && !exists(/databases/$(database)/documents/usernames/$(username));
-      allow read: if signedIn();
-      allow delete: if isAdmin();
-    }
-
-    // ===== GLOBAL CHAT =====
-    match /globalChat/{messageId} {
-      allow read: if signedIn();
-      allow create: if signedIn()
-                 && request.resource.data.text is string
-                 && request.resource.data.text.size() > 0;
-      allow update, delete: if isAdmin();
-    }
-
-    // ===== DIRECT MESSAGES =====
-    match /dm/{userId}/messages/{msgId} {
-      allow read: if signedIn()
-               && (request.auth.uid == userId || request.auth.uid == resource.data.from);
-      allow create: if signedIn()
-                 && request.resource.data.text is string
-                 && request.resource.data.text.size() > 0
-                 && request.resource.data.from == request.auth.uid
-                 && request.resource.data.to == userId;
-      allow update, delete: if isAdmin();
-    }
-
-    // ===== NOTIFS =====
-    match /notifs/{notifId} {
-      allow read: if signedIn();
-      allow create: if signedIn()
-                 && request.resource.data.nickname is string
-                 && request.resource.data.amount is int
-                 && request.resource.data.createdAt != null;
-      allow update: if false;
-      allow delete: if signedIn(); // ubah ke isAdmin() kalau mau hanya admin
-    }
-
-    // ===== ROOMS (game & fitur lain) =====
-    match /rooms/{roomId} {
-      // baca/tulis room oleh user login (seperti sebelumnya), admin otomatis lolos
-      allow read, write: if signedIn() || isAdmin();
-
-      // Pemain (sinkron game)
-      match /players/{uid} {
-        allow read: if signedIn();
-        // pemilik boleh tulis dokumennya, atau admin
-        allow create, update, delete: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      // Dropdown preset
+      let options = "";
+      for (const [label, value] of Object.entries(presets)) {
+        const selected = (data.bgGradient || "") === value ? "selected" : "";
+        options += `<option value="${value}" ${selected}>${label}</option>`;
       }
 
-      // Kursi (seat)
-      match /seats/{seatNo} {
-        allow read, write: if signedIn() || isAdmin();
-      }
+      tr.innerHTML = `
+        <td style="font-size:12px;opacity:.85">${docSnap.id}</td>
+        <td><input type="text" id="username-${docSnap.id}" value="${data.username || data.name || ''}" style="width:140px; color:${data.color || '#fff'};"></td>
+        <td style="font-size:12px;opacity:.9">${data.email || ''}</td>
+        <td><input type="number" id="saldo-${docSnap.id}" value="${Number(data.saldo||0)}" style="width:90px;"></td>
+        <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
+        <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
+        <td><input type="text" id="bg-${docSnap.id}" value="${data.bgColor || ''}" placeholder="#000000 / kosong" style="width:120px;"></td>
+        <td><input type="text" id="bordergrad-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="linear-gradient(...)" style="width:160px;"></td>
+        <td><select id="bggrad-${docSnap.id}" style="width:170px;">${options}</select></td>
+        <td><button class="btn btn-update" id="btn-${docSnap.id}">Update</button></td>
+      `;
+      tbody.appendChild(tr);
 
-      // Peserta (presence per room)
-      match /participants/{uid} {
-        allow read, write: if (signedIn() && request.auth.uid == uid) || isAdmin();
-      }
+      // Attach handler
+      const btn = tr.querySelector(`#btn-${docSnap.id}`);
+      btn.addEventListener("click", () => updateUser(docSnap.id));
+    });
 
-      // Chat room
-      match /messages/{msgId} {
-        allow read: if signedIn();
-        allow create: if signedIn()
-                   && request.resource.data.text is string
-                   && request.resource.data.text.size() > 0;
-        allow update, delete: if false;
-        // admin override
-        allow read, write: if isAdmin();
-      }
+    usersTable.style.display = "table";
+  }
 
-      // Signaling WebRTC
-      match /mesh/{pairId} {
-        allow read, write: if signedIn() || isAdmin();
-        match /ice_a/{cid} { allow read, write: if signedIn() || isAdmin(); }
-        match /ice_b/{cid} { allow read, write: if signedIn() || isAdmin(); }
-      }
+  async function updateUser(uid) {
+    const newSaldo = Number(document.getElementById("saldo-" + uid).value);
+    const newColor = document.getElementById("color-" + uid).value || null;
+    const newBorder = document.getElementById("border-" + uid).value || null;
+    const newBg = document.getElementById("bg-" + uid).value || "";
+    const newBorderGrad = document.getElementById("bordergrad-" + uid).value || "";
+    const newBgGrad = document.getElementById("bggrad-" + uid).value || "";
+    const newUsername = document.getElementById("username-" + uid).value || "";
 
-      // Admin override di level room
-      allow read, write: if isAdmin();
-    }
+    const userDocRef = doc(db, "users", uid);
 
-    // ===== Presence global (online/offline) =====
-    match /presence/{uid} {
-      allow read: if signedIn();
-      allow write: if (signedIn() && request.auth.uid == uid) || isAdmin();
+    try {
+      await updateDoc(userDocRef, { 
+        saldo: isFinite(newSaldo) ? newSaldo : 0,
+        color: newColor,
+        borderColor: newBorder,
+        bgColor: newBg || null,
+        borderGradient: newBorderGrad || null,
+        bgGradient: newBgGrad || null,
+        username: newUsername
+      });
+      alert("✅ User " + uid + " berhasil diupdate!");
+    } catch (e) {
+      console.error(e);
+      alert("❌ Gagal update user " + uid + ":\n" + (e?.message || e));
     }
   }
-}
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      statusEl.textContent = "🔒 Harus login sebagai admin dulu...";
+      usersTable.style.display = "none";
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+      return;
+    }
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "inline-block";
+
+    try {
+      // refresh token supaya custom claims terbaru terbaca
+      const token = await user.getIdTokenResult(true);
+      const ok = isAdminLocal(user, token);
+      statusEl.textContent = ok
+        ? `✅ Admin terdeteksi (UID: ${user.uid}${token?.claims?.isAdmin ? ", claim:isAdmin" : ""})`
+        : `🚫 Kamu bukan admin (UID: ${user.uid}). Hubungi admin jika ini seharusnya admin.`;
+
+      if (ok) {
+        await loadUsers();
+      } else {
+        usersTable.style.display = "none";
+      }
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = "⚠️ Gagal membaca status admin: " + (e?.message || e);
+      usersTable.style.display = "none";
+    }
+  });
+</script>
+</body>
+</html>
