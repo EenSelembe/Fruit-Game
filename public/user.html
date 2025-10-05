@@ -4,22 +4,23 @@
   <meta charset="UTF-8">
   <title>Admin Panel - Daftar User</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #fff; }
-    h2 { margin: 12px 0 6px }
-    #adminInfo { font-size: 13px; opacity:.85 }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
-    th { background: #333; }
-    .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 5px; }
-    .btn-update { background: #4caf50; color: white; }
+    body { font-family: Arial, sans-serif; background:#111; color:#fff; margin:16px; }
+    h2 { margin: 0 0 6px }
+    #status { margin:4px 0 8px }
+    #adminInfo { font-size:12px; opacity:.85; margin-bottom:8px }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border:1px solid #444; padding:8px; text-align:center; }
+    th { background:#333; }
+    input, select { background:#222; border:1px solid #444; color:#fff; padding:4px; }
+    .btn { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
+    .btn-update { background:#4caf50; color:#fff; }
     .btn-update[disabled]{ opacity:.6; cursor:not-allowed }
-    input, select { background:#222; border:1px solid #444; color:#fff; padding:3px; }
-    .muted{opacity:.75}
+    .muted{ opacity:.75 }
   </style>
 </head>
 <body>
   <h2>📋 Daftar User</h2>
-  <div id="status">🔒 Harus login sebagai admin dulu...</div>
+  <div id="status">🔒 Harus login sebagai admin dulu…</div>
   <div id="adminInfo" class="muted"></div>
 
   <table id="usersTable" style="display:none;">
@@ -42,11 +43,10 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } 
-      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, updateDoc } 
-      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+    // === Firebase ===
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
       authDomain: "fruit-game-5e4a8.firebaseapp.com",
@@ -56,14 +56,22 @@
       appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",
       measurementId: "G-EPTSQQPM4D"
     };
-
-    const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2"; // UID admin tetap kamu
+    const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Preset gradient list
+    // === UI helpers ===
+    const $ = (s)=>document.querySelector(s);
+    function setStatus(t){ $("#status").textContent = t; }
+    function setAdminInfo(user, token){
+      $("#adminInfo").textContent = user
+        ? `Login: ${user.email || "(tanpa email)"} | UID: ${user.uid} | isAdmin claim: ${token?.claims?.isAdmin ? "true":"false"} | Project: ${firebaseConfig.projectId}`
+        : "";
+    }
+
+    // Preset gradient
     const presets = {
       "": "",
       "🌈 Rainbow": "linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet)",
@@ -74,125 +82,105 @@
       "💚 Green Neon": "linear-gradient(270deg, #00ff00, #00cc66, #00ff00)"
     };
 
-    const $ = (s) => document.querySelector(s);
-
-    function setStatus(text){ $("#status").textContent = text; }
-    function setAdminInfo(user, token){
-      $("#adminInfo").textContent = user
-        ? `Login: ${user.email || "(tanpa email)"} | UID: ${user.uid} | isAdmin claim: ${token?.claims?.isAdmin ? "true" : "false"}`
-        : "";
-    }
-
     async function isAdminUser(user){
-      if (!user) return false;
-      // Cek claim + UID tetap
-      const tokenResult = await user.getIdTokenResult(true); // force refresh
-      const byClaim = !!tokenResult.claims.isAdmin;
-      const byUid   = user.uid === ADMIN_UID;
-      setAdminInfo(user, tokenResult);
-      return byClaim || byUid;
+      if(!user) return false;
+      const tok = await user.getIdTokenResult(true); // refresh token supaya klaim terbaru kebaca
+      setAdminInfo(user, tok);
+      return user.uid === ADMIN_UID || !!tok.claims.isAdmin;
     }
 
-    async function loadUsers() {
-      const tableBody = document.querySelector("#usersTable tbody");
-      tableBody.innerHTML = "";
-      // Ambil dari server; jika ingin paksa server, tambahkan cache: false (v9 tidak ada param). Ini tetap OK.
-      const querySnapshot = await getDocs(collection(db, "users"));
+    async function loadUsers(){
+      const tbody = $("#usersTable tbody");
+      tbody.innerHTML = "";
 
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data() || {};
+      const snap = await getDocs(collection(db,"users"));
+      snap.forEach(d=>{
+        const u = d.data() || {};
         const tr = document.createElement("tr");
 
-        // Dropdown options
-        let options = "";
-        for (const [label, value] of Object.entries(presets)) {
-          const selected = (data.bgGradient || "") === value ? "selected" : "";
-          options += `<option value="${value}" ${selected}>${label}</option>`;
+        // build preset options
+        let opts = "";
+        for(const [label,val] of Object.entries(presets)){
+          const sel = (u.bgGradient || "") === val ? "selected":"";
+          opts += `<option value="${val}" ${sel}>${label}</option>`;
         }
 
         tr.innerHTML = `
-          <td style="font-size:12px">${docSnap.id}</td>
-          <td><input type="text" id="username-${docSnap.id}" value="${data.username || ''}" style="width:120px; color:${data.color || '#fff'};"></td>
-          <td>${data.email || ''}</td>
-          <td><input type="number" id="saldo-${docSnap.id}" value="${Number(data.saldo || 0)}" style="width:80px;"></td>
-          <td><input type="color" id="color-${docSnap.id}" value="${data.color || '#ffffff'}"></td>
-          <td><input type="color" id="border-${docSnap.id}" value="${data.borderColor || '#000000'}"></td>
-          <td><input type="text"  id="bg-${docSnap.id}" value="${data.bgColor || ''}" placeholder="#000000"></td>
-          <td><input type="text"  id="bordergrad-${docSnap.id}" value="${data.borderGradient || ''}" placeholder="linear-gradient(...)"></td>
-          <td><select id="bggrad-${docSnap.id}" style="width:160px;">${options}</select></td>
-          <td><button class="btn btn-update" id="btn-${docSnap.id}">Update</button></td>
+          <td style="font-size:12px">${d.id}</td>
+          <td><input id="username-${d.id}" type="text" value="${u.username || ''}" style="width:120px; color:${u.color || '#fff'}"></td>
+          <td>${u.email || ''}</td>
+          <td><input id="saldo-${d.id}" type="number" value="${Number(u.saldo || 0)}" style="width:90px"></td>
+          <td><input id="color-${d.id}" type="color" value="${u.color || '#ffffff'}"></td>
+          <td><input id="border-${d.id}" type="color" value="${u.borderColor || '#000000'}"></td>
+          <td><input id="bg-${d.id}" type="text" value="${u.bgColor || ''}" placeholder="#000000"></td>
+          <td><input id="bordergrad-${d.id}" type="text" value="${u.borderGradient || ''}" placeholder="linear-gradient(...)"></td>
+          <td><select id="bggrad-${d.id}" style="width:160px">${opts}</select></td>
+          <td><button class="btn btn-update" id="btn-${d.id}">Update</button></td>
         `;
-        tableBody.appendChild(tr);
+        tbody.appendChild(tr);
 
-        // Pasang handler dengan try/catch, tampilkan error ke alert
-        tr.querySelector(`#btn-${docSnap.id}`).addEventListener("click", async () => {
-          const btn = tr.querySelector(`#btn-${docSnap.id}`);
-          btn.disabled = true;
-          btn.textContent = "Updating...";
-          try{
-            const newSaldo = Number(document.getElementById("saldo-" + docSnap.id).value);
-            const newColor = document.getElementById("color-" + docSnap.id).value || null;
-            const newBorder = document.getElementById("border-" + docSnap.id).value || null;
-            const newBg = (document.getElementById("bg-" + docSnap.id).value || "").trim();
-            const newBorderGrad = (document.getElementById("bordergrad-" + docSnap.id).value || "").trim();
-            const newBgGrad = (document.getElementById("bggrad-" + docSnap.id).value || "").trim();
-            const newUsername = (document.getElementById("username-" + docSnap.id).value || "").trim();
-
-            const payload = {
-              saldo: isFinite(newSaldo) ? newSaldo : 0,
-              color: newColor,
-              borderColor: newBorder,
-              // simpan empty string sebagai null agar rapi (opsional)
-              bgColor: newBg || null,
-              borderGradient: newBorderGrad || null,
-              bgGradient: newBgGrad || null,
-              username: newUsername || null
-            };
-
-            await updateDoc(doc(db, "users", docSnap.id), payload);
-            alert("✅ User " + docSnap.id + " berhasil diupdate!");
-            await loadUsers(); // refresh
-          }catch(err){
-            console.error(err);
-            alert("❌ Gagal update: " + (err && err.message ? err.message : err));
-          }finally{
-            btn.disabled = false;
-            btn.textContent = "Update";
-          }
-        });
+        tr.querySelector(`#btn-${d.id}`).addEventListener("click", ()=>updateUser(d.id));
       });
 
-      setStatus("✅ Login admin berhasil. Data user dimuat.");
-      document.getElementById("usersTable").style.display = "table";
+      $("#usersTable").style.display = "table";
+      setStatus("✅ Data user dimuat.");
     }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setStatus("🔒 Harus login sebagai admin dulu...");
-        setAdminInfo(null, null);
+    async function updateUser(uid){
+      const btn = document.getElementById(`btn-${uid}`);
+      btn.disabled = true; btn.textContent = "Updating…";
+      const payload = {
+        saldo: Number(document.getElementById(`saldo-${uid}`).value) || 0,
+        color: (document.getElementById(`color-${uid}`).value || null),
+        borderColor: (document.getElementById(`border-${uid}`).value || null),
+        bgColor: (document.getElementById(`bg-${uid}`).value || "").trim() || null,
+        borderGradient: (document.getElementById(`bordergrad-${uid}`).value || "").trim() || null,
+        bgGradient: (document.getElementById(`bggrad-${uid}`).value || "").trim() || null,
+        username: (document.getElementById(`username-${uid}`).value || "").trim() || null
+      };
+
+      try{
+        // Timeout guard 12s supaya tidak “menggantung diam”
+        const p = setDoc(doc(db,"users",uid), payload, { merge:true });
+        await Promise.race([
+          p,
+          new Promise((_,rej)=>setTimeout(()=>rej(new Error("Timeout: cek koneksi atau rules Firestore")), 12000))
+        ]);
+
+        alert("✅ Berhasil update: " + uid);
+        setStatus("✅ Update sukses untuk UID " + uid);
+        await loadUsers(); // refresh tabel
+      }catch(err){
+        console.error(err);
+        alert("❌ Gagal update: " + (err?.message || err));
+        setStatus("❌ Gagal update UID " + uid + " — " + (err?.message || err));
+      }finally{
+        btn.disabled = false; btn.textContent = "Update";
+      }
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){
+        setStatus("🔒 Harus login sebagai admin…");
         const email = prompt("Masukkan email admin:");
         const password = prompt("Masukkan password admin:");
-        if (email && password) {
-          try{
-            await signInWithEmailAndPassword(auth, email, password);
-          }catch(err){
-            alert("Login gagal: " + err.message);
-          }
+        if(email && password){
+          try{ await signInWithEmailAndPassword(auth, email, password); }
+          catch(e){ alert("Login gagal: " + e.message); }
         }
         return;
       }
 
       try{
-        const ok = await isAdminUser(user); // cek UID tetap + claim
-        if (!ok) {
-          setStatus("🚫 Kamu bukan admin!");
-          return;
+        if(await isAdminUser(user)){
+          setStatus("✅ Admin terverifikasi. Memuat data…");
+          await loadUsers();
+        }else{
+          setStatus("🚫 Kamu bukan admin.");
         }
-        // admin → muat data
-        await loadUsers();
-      }catch(err){
-        console.error(err);
-        setStatus("❌ Error autentikasi admin: " + (err.message || err));
+      }catch(e){
+        console.error(e);
+        setStatus("❌ Error admin: " + (e?.message || e));
       }
     });
   </script>
