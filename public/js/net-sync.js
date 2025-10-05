@@ -1,9 +1,8 @@
 // /public/js/net-sync.js
 // Sinkronisasi posisi pemain via Firestore (1 room: "world1")
 
-import {
-  collection, doc, onSnapshot, setDoc
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { collection, doc, onSnapshot, setDoc }
+  from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const NetSync = (() => {
   const ROOM_ID = "world1";
@@ -20,31 +19,49 @@ const NetSync = (() => {
     uid = user.uid;
     myRef = doc(db, "rooms", ROOM_ID, "players", uid);
 
-    // publish awal (merge)
-    const name   = window.App?.profileStyle?.name || "Player";
-    const cols   = Array.isArray(colors) && colors.length ? colors : ["#58ff9b"];
-    const st0    = window.Game?.getPlayerState?.() || {};
+    const name = window.App?.profileStyle?.name || "Player";
+    const cols = Array.isArray(colors) && colors.length ? colors : ["#58ff9b"];
+    const st0  = window.Game?.getPlayerState?.() || {};
+
+    // --- gunakan "len" secara konsisten ---
     setDoc(myRef, {
-      name, colors: cols,
-      x: st0.x || 0, y: st0.y || 0, dir: st0.dir || 0, length: startLen || st0.length || 3,
-      online: true, ts: Date.now()
+      name,
+      colors: cols,
+      x: st0.x || 0,
+      y: st0.y || 0,
+      dir: st0.dir || 0,
+      len: (typeof startLen === "number" ? startLen : (st0.len ?? 3)),
+      alive: st0.alive !== false,
+      online: true,
+      ts: Date.now()
     }, { merge: true });
 
     // subscribe semua pemain di room
     const colRef = collection(db, "rooms", ROOM_ID, "players");
     unsub = onSnapshot(colRef, (snap)=>{
-      snap.docChanges().forEach(ch=>{
-        const id = ch.doc.id; if (id === uid) return; // skip diri sendiri
-        const data = ch.doc.data() || {};
-        const alive = (data.online !== false) && (Date.now() - (data.ts || 0) < 15000);
-        if (alive) {
-          window.Game?.addOrUpdateRemote?.(id, {
+      snap.forEach(d=>{
+        const id = d.id;
+        if (id === uid) return; // skip diri sendiri
+
+        const data = d.data() || {};
+        const aliveNow =
+          (data.online !== false) &&
+          (Date.now() - (data.ts || 0) < 15000) &&
+          (data.alive !== false);
+
+        if (aliveNow) {
+          window.Game?.netUpsert?.(id, {
             name: data.name || "Player",
             colors: Array.isArray(data.colors) && data.colors.length ? data.colors : ["#79a7ff"],
-            x: +data.x || 0, y: +data.y || 0, dir: +data.dir || 0, length: +data.length || 3
+            x: +data.x || 0,
+            y: +data.y || 0,
+            dir: +data.dir || 0,
+            // --- kirim "len" yang benar ---
+            len: (typeof data.len === "number" ? data.len : 3),
+            alive: data.alive !== false
           });
         } else {
-          window.Game?.removeRemote?.(id);
+          window.Game?.netRemove?.(id);
         }
       });
     });
@@ -54,9 +71,14 @@ const NetSync = (() => {
       const st = window.Game?.getPlayerState?.();
       if (!st) return;
       setDoc(myRef, {
-        name: st.name, colors: st.colors,
-        x: st.x, y: st.y, dir: st.dir, length: st.length,
-        online: true, ts: Date.now()
+        name: st.name,
+        colors: st.colors,
+        x: st.x, y: st.y, dir: st.dir,
+        // --- konsisten pakai "len" ---
+        len: st.len,
+        alive: st.alive !== false,
+        online: true,
+        ts: Date.now()
       }, { merge: true });
     }, 100);
 
@@ -65,9 +87,10 @@ const NetSync = (() => {
       const online = !document.hidden;
       setDoc(myRef, { online, ts: Date.now() }, { merge: true });
     });
+
     addEventListener("beforeunload", ()=>{
-      try { navigator.sendBeacon && setDoc(myRef, { online:false, ts:Date.now() }, { merge:true }); }
-      catch(_) { /* no-op */ }
+      try { setDoc(myRef, { online:false, ts:Date.now() }, { merge:true }); }
+      catch(_) {}
     });
   }
 
