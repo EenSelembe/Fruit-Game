@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <title>Snake.io — Online + Rank + Buah + Custom Warna + Saldo + Profil</title>
-  <link rel="stylesheet" href="./css/snackio.css">
+  <title>Snake.io — Smooth + Rank + Buah + Custom Color + Saldo + Profil</title>
+  <link rel="stylesheet" href="./css/snackio.css?v=10">
 </head>
 <body>
   <div id="wrap">
@@ -14,6 +14,7 @@
           <span class="nickname" id="usernameSpan" style="color:#fff;border:1px solid #000;background:transparent;">USER</span>
         </span>
         <span class="pill stat">Panjang: <span id="len">3</span></span>
+        <span class="pill">User: <span id="userCount">0</span></span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <span class="pill stat">Saldo: <span id="saldo">...</span></span>
@@ -34,7 +35,7 @@
     <footer><button id="boostBtn" class="btn">BOOST</button></footer>
   </div>
 
-  <!-- PANEL CONFIG -->
+  <!-- START MENU / CONFIG -->
   <div id="configPanel" class="modal" aria-modal="true" role="dialog">
     <div class="card">
       <h1>Pengaturan Awal</h1>
@@ -76,7 +77,7 @@
     </div>
   </div>
 
-  <!-- COLOR PICKER -->
+  <!-- COLOR PICKER MODAL -->
   <div id="colorModal" class="modal" style="display:none">
     <div class="card">
       <h1>Pilih Warna</h1>
@@ -101,21 +102,19 @@
 
   <div class="toast" id="toast" style="display:none"></div>
 
-  <!-- ===== URUTAN SCRIPT FINAL ===== -->
-  <script type="module" src="./js/firebase-boot.js"></script>
-  <script type="module" src="./js/helpers.js"></script>
-  <script type="module" src="./js/saldo.js"></script>
-  <script type="module" src="./js/picker.js"></script>
-  <script type="module" src="./js/presence.js"></script>
-  <script type="module" src="./js/net-sync.js"></script>
-  <script type="module" src="./js/game-core.js"></script>
-  <script type="module" src="./js/controller.js"></script>
-
+  <!-- Paksa 1 ROOM untuk semua device -->
   <script>
-    // Reset tombol cepat
-    document.getElementById('reset').addEventListener('click', () => {
-      if (window.Game?.quickReset) window.Game.quickReset();
-    });
+    window.WORLD_ROOM_ID = 'world1';
   </script>
+
+  <!-- URUTAN SCRIPT (pakai versi untuk bust cache) -->
+  <script type="module" src="./js/firebase-boot.js?v=10"></script>
+  <script type="module" src="./js/helpers.js?v=10"></script>
+  <script type="module" src="./js/picker.js?v=10"></script>
+  <script type="module" src="./js/saldo.js?v=10"></script>
+  <script type="module" src="./js/presence.js?v=10"></script>
+  <script type="module" src="./js/game-core.js?v=10"></script>
+  <script type="module" src="./js/net-sync.js?v=10"></script>
+  <script type="module" src="./js/controller.js?v=10"></script>
 </body>
-  </html>
+            </html>
