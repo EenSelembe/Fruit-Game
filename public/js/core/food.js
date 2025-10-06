@@ -8,7 +8,7 @@ export const FRUITS = [
   'apple','orange','grape','watermelon','strawberry','lemon','blueberry','starfruit'
 ];
 
-// ===== Warna aura glow per buah =====
+// ===== Warna aura glow per buah (hex) =====
 const GLOW_COLOR = {
   apple:      '#ff4d4d',
   orange:     '#ffa94d',
@@ -20,58 +20,83 @@ const GLOW_COLOR = {
   starfruit:  '#e9ff70'
 };
 
-// ===== Parameter glow (silakan tweak kalau mau) =====
-const PULSE_SPEED       = 2.6;  // kecepatan denyut
-const BASE_GLOW_ALPHA   = 0.42; // intensitas dasar aura
-const BASE_GLOW_BLUR    = 18;   // blur px pada zoom=1
-const EXTRA_BLUR        = 14;   // tambahan blur mengikuti pulse
-const AURA_RADIUS       = 11;   // radius aura dasar pada zoom=1
+// ===== Parameter glow (statis, tanpa denyut) =====
+const GLOW_ALPHA = 0.35;        // intensitas aura (0–1)
+const GLOW_BASE_RADIUS = 18;    // radius aura pada scale buah (bukan pixel canvas)
 
-// Spawn 1 buah (dengan fase acak untuk variasi denyut)
-export function spawnFood(x = rand(0, State.WORLD.w), y = rand(0, State.WORLD.h)) {
-  const kind = FRUITS[Math.floor(rand(0, FRUITS.length))];
-  State.foods.push({ kind, x, y, phase: Math.random() * Math.PI * 2 });
+// Cache sprite glow per buah (offscreen canvas)
+const glowCache = new Map();
+
+function hexToRgb(hex) {
+  let h = hex.replace('#','');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const num = parseInt(h, 16);
+  return { r: (num>>16)&255, g: (num>>8)&255, b: num&255 };
 }
 
-// Pastikan jumlah buah memenuhi kuota
+function makeGlowSprite(kind) {
+  const col = GLOW_COLOR[kind] || '#ffffff';
+  const { r,g,b } = hexToRgb(col);
+
+  // Offscreen ukuran tetap (hemat), skala dilakukan saat drawImage
+  const SZ = 128;
+  const c = document.createElement('canvas');
+  c.width = SZ; c.height = SZ;
+  const x = c.getContext('2d');
+
+  // Radial gradient lembut dari tengah ke tepi
+  const cx = SZ/2, cy = SZ/2, rOut = SZ*0.45;
+  const grad = x.createRadialGradient(cx, cy, rOut*0.15, cx, cy, rOut);
+  grad.addColorStop(0.00, `rgba(${r},${g},${b},0.85)`);
+  grad.addColorStop(0.35, `rgba(${r},${g},${b},0.55)`);
+  grad.addColorStop(0.70, `rgba(${r},${g},${b},0.20)`);
+  grad.addColorStop(1.00, `rgba(${r},${g},${b},0.00)`);
+
+  x.clearRect(0,0,SZ,SZ);
+  x.globalCompositeOperation = 'source-over';
+  x.fillStyle = grad;
+  x.beginPath();
+  x.arc(cx, cy, rOut, 0, Math.PI*2);
+  x.fill();
+
+  return c;
+}
+
+function getGlowSprite(kind) {
+  if (!glowCache.has(kind)) glowCache.set(kind, makeGlowSprite(kind));
+  return glowCache.get(kind);
+}
+
+// ===== Spawn & maintain buah =====
+export function spawnFood(x = rand(0, State.WORLD.w), y = rand(0, State.WORLD.h)) {
+  const kind = FRUITS[Math.floor(rand(0, FRUITS.length))];
+  State.foods.push({ kind, x, y });
+}
 export function ensureFood() {
   while (State.foods.length < State.FOOD_COUNT) spawnFood();
 }
 
-// Gambar aura glow berdenyut (lighter blending)
-function drawGlow(ctx, kind, phase = 0) {
-  const zz = State.camera.zoom;
-  const t = performance.now() / 1000;
-  const pulse = 0.65 + 0.35 * Math.sin(t * PULSE_SPEED + phase);
-  const blur = (BASE_GLOW_BLUR + EXTRA_BLUR * pulse) * zz;
-  const r = (AURA_RADIUS + 4 * pulse) * zz;
-  const col = GLOW_COLOR[kind] || '#ffffff';
-
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = BASE_GLOW_ALPHA * pulse;
-  ctx.shadowBlur = blur;
-  ctx.shadowColor = col;
-  ctx.fillStyle = col;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-// Gambar 1 buah (dengan aura)
+// ===== Gambar 1 buah (glow statis + bentuk buah) =====
 export function drawFruit(ctx, f) {
   const s = worldToScreen(f.x, f.y);
   if (s.x < -30 || s.y < -30 || s.x > State.vw + 30 || s.y > State.vh + 30) return;
 
+  const zz = State.camera.zoom;
+
+  // --- Glow (pakai sprite, ringan) ---
+  const spr = getGlowSprite(f.kind);
+  const size = (GLOW_BASE_RADIUS * 2) * zz; // skala sesuai zoom
+  ctx.save();
+  ctx.globalAlpha = GLOW_ALPHA;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(spr, s.x - size/2, s.y - size/2, size, size);
+  ctx.restore();
+
+  // --- Bentuk buah ---
   ctx.save();
   ctx.translate(s.x, s.y);
-  ctx.scale(State.camera.zoom, State.camera.zoom);
+  ctx.scale(zz, zz);
 
-  // Aura glow (panggil dulu agar “di belakang” bentuk buah)
-  drawGlow(ctx, f.kind, f.phase);
-
-  // Bentuk buah (asli, tanpa perubahan besar)
   switch (f.kind) {
     case 'apple': {
       ctx.fillStyle = '#ff4d4d';
@@ -165,7 +190,7 @@ export function drawFruit(ctx, f) {
   ctx.restore();
 }
 
-// Gambar semua buah
+// ===== Gambar semua buah =====
 export function drawFood(ctx) {
   for (const f of State.foods) drawFruit(ctx, f);
 }
