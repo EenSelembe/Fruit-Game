@@ -1,172 +1,254 @@
-// public/js/game-core.js
-// === Engine utama: state, input, kamera, render, buah + efek sedot, UI, loop ===
+// /public/js/game-core.js
+// Engine Snake.io — kamera, loop, UI, start/reset, dan hook online.
+// Memakai modul modular di /public/js/core/*
+// API publik:
+//   Game.init()
+//   Game.start(colors, startLen)
+//   Game.quickReset()
+//   Game.applyProfileStyle(style)
+//   Game.netUpsert(uid, state)
+//   Game.netRemove(uid)
+//   Game.getPlayerState()
 
-import { createSnake, updateSnake, drawSnake, killSnake, spawnOfflineAsBots,
-         registerSnake, removeSnake, bodyRadius, segSpace, needForNext } from './core/snake.js';
+import { State } from './core/state.js';
+import { clamp, lerp } from './core/utils.js';
+import { drawFood, ensureFood } from './core/food.js';
+import { createSnake, updateSnake, drawSnake, spawnOfflineAsBots } from './core/snake.js';
+import { grabUIRefs, setResetVisible, showToast, updateHUDCounts, updateRankPanel } from './core/ui.js';
+import { Input } from './core/input.js';
+import { netUpsert, netRemove } from './core/net.js';
 
-/* ================== Utils & Globals ================== */
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const lerp  = (a, b, t) => a + (b - a) * t;
-const rand  = (a, b) => Math.random() * (b - a) + a;
-const angNorm = (a) => ((a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-
-const GameState = {
-  WORLD: { w: 4200, h: 4200, grid: 90 },
-  camera: { x: 2100, y: 2100, zoom: 1 },
-  vw: 0, vh: 0, dpr: 1,
-  foods: [],
-  FOOD_COUNT: 1400,
-  snakes: [],
-  snakesByUid: new Map(),
-  player: null,
-  ui: { elLen:null, elUsers:null, rankRowsEl:null, toastEl:null, resetBtnEl:null, canReset:false }
-};
-window.GameState = GameState;
-window.GameUtils = { clamp, lerp, rand, angNorm };
-
-/* ================== Canvas / Resize / Camera ================== */
+// ===== Canvas / Camera =====
 let canvas, ctx;
 function resize() {
-  GameState.vw = innerWidth; GameState.vh = innerHeight;
-  GameState.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  canvas.width = GameState.vw * GameState.dpr; canvas.height = GameState.vh * GameState.dpr;
-  canvas.style.width = GameState.vw + "px"; canvas.style.height = GameState.vh + "px";
-  ctx.setTransform(GameState.dpr, 0, 0, GameState.dpr, 0, 0);
-}
-function worldToScreen(x, y) {
-  const { camera, vw, vh } = GameState;
-  return { x: (x - camera.x) * camera.zoom + vw / 2, y: (y - camera.y) * camera.zoom + vh / 2 };
-}
-window.GameRender = { worldToScreen };
+  const vw = innerWidth;
+  const vh = innerHeight;
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  canvas.width = vw * dpr;
+  canvas.height = vh * dpr;
+  canvas.style.width = vw + 'px';
+  canvas.style.height = vh + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-/* ================== Input (pointer, keyboard, boost) ================== */
-const GameInput = {
-  keys: {},
-  pointer: { x: 0, y: 0, down: false },
-  boostHold: false,
-  getTargetAngleForPlayer(px, py) {
-    const { pointer, keys } = GameInput;
-    if (pointer.down) {
-      const head = worldToScreen(px, py);
-      return Math.atan2(pointer.y - head.y, pointer.x - head.x);
-    }
-    let ax=0, ay=0;
-    if (keys['w'] || keys['arrowup'])    ay -= 1;
-    if (keys['s'] || keys['arrowdown'])  ay += 1;
-    if (keys['a'] || keys['arrowleft'])  ax -= 1;
-    if (keys['d'] || keys['arrowright']) ax += 1;
-    if (ax || ay) return Math.atan2(ay, ax);
-    return null;
+  State.vw = vw;
+  State.vh = vh;
+  State.dpr = dpr;
+}
+
+// ===== Profil pemain aktif (untuk nameplate) =====
+let myName = 'USER';
+let myTextColor = '#ffffff';
+let myBorderColor = '#000000';
+
+// ===== Game State lokal =====
+let lastColors = ['#58ff9b'];
+let lastStartLen = 3;
+let rankTick = 0;
+let lastTS = 0;
+
+// ===== Helpers =====
+function clearWorld() {
+  State.snakes.splice(0, State.snakes.length);
+  State.snakesByUid.clear();
+  State.foods.splice(0, State.foods.length);
+  ensureFood(); // isi awal supaya langsung ada buah
+}
+
+// ===== Start/Reset =====
+function startGame(colors, startLen) {
+  clearWorld();
+
+  // Buat pemain
+  const uid = window.App?.profile?.id || null;
+  const startX = Math.random() * State.WORLD.w * 0.6 + State.WORLD.w * 0.2;
+  const startY = Math.random() * State.WORLD.h * 0.6 + State.WORLD.h * 0.2;
+
+  const isAdmin = !!window.App?.isAdmin;
+  const cols = isAdmin ? State.RAINBOW?.slice?.() || lastColors.slice() : (colors && colors.length ? colors : ['#58ff9b']);
+
+  const me = createSnake(
+    cols,
+    startX,
+    startY,
+    false,
+    startLen || 3,
+    myName,
+    uid,
+    myTextColor,
+    myBorderColor
+  );
+  if (isAdmin) me.isAdminRainbow = true;
+
+  State.player = me;
+  State.snakes.push(me);
+  if (me.uid) State.snakesByUid.set(me.uid, me);
+
+  // Kamera awal
+  State.camera.x = me.x;
+  State.camera.y = me.y;
+  State.camera.zoom = 1;
+
+  // Simpan untuk quick reset
+  lastColors = cols.slice();
+  lastStartLen = startLen || 3;
+
+  // Spawn bot offline dengan nama & style Presence (admin pelangi)
+  spawnOfflineAsBots(12);
+
+  // HUD awal
+  updateHUDCounts();
+  updateRankPanel();
+
+  // Pastikan tombol Restart tersembunyi saat hidup
+  setResetVisible(false);
+}
+
+function quickReset() {
+  startGame(lastColors, lastStartLen);
+  setResetVisible(false);
+  showToast('Reset!', 900);
+}
+
+// ===== Loop =====
+function stepPhysics(dt) {
+  // Fixed-step 60 Hz
+  const h = 1 / 60;
+  while (dt > 0) {
+    const step = Math.min(h, dt);
+    for (const s of State.snakes) updateSnake(s, step);
+    dt -= step;
   }
-};
-window.GameInput = GameInput;
+}
 
-function bindInputs() {
+function updateCamera(dt) {
+  const p = State.player;
+  if (!p) return;
+  const zLen = Math.min(0.5, Math.log10(1 + p.length / 10) * 0.35);
+  const zSpeed = Math.min(0.6, (p.v - p.speedBase) / (p.speedMax - p.speedBase + 1e-6)) * 0.45;
+  const tZoom = clamp(1.15 - zSpeed - zLen, 0.35, 1.18);
+  State.camera.zoom = lerp(State.camera.zoom, tZoom, 0.06);
+  State.camera.x = lerp(State.camera.x, p.x, 0.085);
+  State.camera.y = lerp(State.camera.y, p.y, 0.085);
+}
+
+function render() {
+  ctx.clearRect(0, 0, State.vw, State.vh);
+
+  // Grid ringan (opsional)
+  const step = State.WORLD.grid * State.camera.zoom;
+  if (step >= 14) {
+    const ox = -((State.camera.x * State.camera.zoom) % step);
+    const oy = -((State.camera.y * State.camera.zoom) % step);
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = ox; x < State.vw; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, State.vh); }
+    for (let y = oy; y < State.vh; y += step) { ctx.moveTo(0, y); ctx.lineTo(State.vw, y); }
+    ctx.stroke();
+  }
+
+  // Buah (termasuk glow + efek sedot + auto-refill)
+  drawFood(ctx);
+
+  // Ular
+  for (const s of State.snakes) drawSnake(ctx, s);
+
+  // HUD count + rank panel (throttle 4x/detik)
+  if (State.player) updateHUDCounts();
+  rankTick += 1;
+  if (rankTick >= 15) { // ~0.25s pada 60FPS
+    updateRankPanel();
+    rankTick = 0;
+  }
+}
+
+function loop(now) {
+  if (!lastTS) lastTS = now;
+  const dt = Math.min(0.1, (now - lastTS) / 1000);
+  lastTS = now;
+
+  stepPhysics(dt);
+  updateCamera(dt);
+  render();
+
+  requestAnimationFrame(loop);
+}
+
+// ===== Input binding tambahan (R untuk reset) =====
+function bindLocalKeys() {
   addEventListener('keydown', (e) => {
-    const k = e.key.toLowerCase();
-    GameInput.keys[k] = true;
-    if (k === 'shift') GameInput.boostHold = true;
-    if (k === 'r' && GameState.ui.canReset) Game.quickReset();
-  });
-  addEventListener('keyup', (e) => {
-    const k = e.key.toLowerCase();
-    GameInput.keys[k] = false;
-    if (k === 'shift') GameInput.boostHold = false;
-  });
-  addEventListener('pointerdown', (e) => { GameInput.pointer.down = true; GameInput.pointer.x = e.clientX; GameInput.pointer.y = e.clientY; });
-  addEventListener('pointermove',  (e) => { GameInput.pointer.x = e.clientX; GameInput.pointer.y = e.clientY; });
-  addEventListener('pointerup',    ()  => { GameInput.pointer.down = false; });
-  addEventListener('pointercancel',()  => { GameInput.pointer.down = false; });
+    if ((e.key === 'r' || e.key === 'R') && State.ui?.canReset) {
+      Game.quickReset();
+    }
+  }, { passive: true });
 }
 
-/* ================== UI (Restart di tengah + HUD + Rank) ================== */
-function ensureRestartButton() {
-  let btn = document.getElementById('restart') || document.getElementById('reset');
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.id = 'restart';
-    btn.textContent = 'Restart';
-    document.body.appendChild(btn);
+// ===== Public API =====
+const Game = {
+  init() {
+    canvas = document.getElementById('game');
+    if (!canvas) {
+      throw new Error('Canvas #game tidak ditemukan. Pastikan ada <canvas id="game"></canvas> di HTML.');
+    }
+    ctx = canvas.getContext('2d');
+
+    // Simpan context ke State (opsional bila modul lain butuh)
+    State.ctx = ctx;
+
+    // UI & tombol Restart (tengah layar)
+    const restartBtn = grabUIRefs();
+    if (restartBtn) {
+      restartBtn.addEventListener('click', () => {
+        if (State.ui?.canReset) Game.quickReset();
+      });
+    }
+
+    // Resize
+    addEventListener('resize', resize, { passive: true });
+    resize();
+
+    // Input (pointer/keyboard/joystick) — dikendalikan modul Input
+    if (Input?.init) Input.init(canvas);
+    bindLocalKeys();
+
+    // Mulai loop
+    requestAnimationFrame(loop);
+  },
+
+  start(colors, startLen) {
+    startGame(colors, startLen);
+  },
+
+  quickReset,
+
+  applyProfileStyle(style) {
+    if (!style) return;
+    myName = style.name || 'USER';
+    myTextColor = style.color || '#fff';
+    if (style.borderGradient) {
+      const m = String(style.borderGradient).match(/(#(?:[0-9a-fA-F]{3,8}))|rgba?\([^)]*\)/);
+      myBorderColor = m ? m[0] : (style.borderColor || '#000');
+    } else myBorderColor = style.borderColor || '#000';
+  },
+
+  // Hook untuk net-sync
+  netUpsert,
+  netRemove,
+
+  getPlayerState() {
+    const p = State.player;
+    if (!p) return null;
+    return {
+      name: p.name,
+      colors: p.colors,
+      x: p.x, y: p.y, dir: p.dir,
+      length: Math.max(1, Math.floor(p.length))
+    };
   }
-  Object.assign(btn.style, {
-    position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-    zIndex: '9999', display: 'none', padding: '14px 28px', fontSize: '20px',
-    borderRadius: '12px', border: '0', cursor: 'pointer',
-    background: '#1fffb0', color: '#071a12', fontWeight: '700',
-    boxShadow: '0 8px 24px rgba(0,0,0,.25)', letterSpacing: '0.4px'
-  });
-  btn.onclick = () => { if (GameState.ui.canReset) Game.quickReset(); };
-  GameState.ui.resetBtnEl = btn;
-  return btn;
-}
-function grabUIRefs() {
-  const ui = GameState.ui;
-  ui.elLen      = document.getElementById('len')       || ui.elLen;
-  ui.elUsers    = document.getElementById('userCount') || ui.elUsers;
-  ui.rankRowsEl = document.getElementById('rankRows')  || ui.rankRowsEl;
-  ui.toastEl    = document.getElementById('toast')     || ui.toastEl;
-  ensureRestartButton();
-}
-function setResetVisible(show) {
-  const btn = ensureRestartButton();
-  btn.style.display = show ? 'block' : 'none';
-  GameState.ui.canReset = !!show;
-}
-function showToast(msg, dur = 1200) {
-  const t = GameState.ui.toastEl;
-  if (!t) return;
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => (t.style.display = 'none'), dur);
-}
-function updateHUDCounts() {
-  const { elLen, elUsers } = GameState.ui;
-  if (GameState.player && elLen) elLen.textContent = Math.max(1, Math.floor(GameState.player.length));
-  if (elUsers) elUsers.textContent = GameState.snakes.filter((s) => s.alive).length;
-}
-function updateRankPanel() {
-  const el = GameState.ui.rankRowsEl;
-  if (!el) return;
-  const top = GameState.snakes
-    .filter((s) => s.alive)
-    .sort((a, b) => b.length - a.length)
-    .slice(0, 5);
-  el.innerHTML = top.map((s,i)=>`
-    <div class="rrow${s===GameState.player?' me':''}">
-      <div class="title">${i+1}. ${s.name || 'USER'}</div>
-      <div class="sub">Len ${Math.max(1, Math.floor(s.length))}</div>
-    </div>`).join('');
-}
-window.GameUI = { setResetVisible, showToast };
-
-/* ================== Food + Glow + Efek Sedot ================== */
-const FRUITS = ['apple','orange','grape','watermelon','strawberry','lemon','blueberry','starfruit'];
-const FRUIT_COLOR = {
-  apple:'#ff4d4d', orange:'#ffa94d', grape:'#a06cff', watermelon:'#ff5d73',
-  strawberry:'#ff4d6d', lemon:'#ffe066', blueberry:'#4c6ef5', starfruit:'#e9ff70'
 };
-function spawnFood(x = rand(0, GameState.WORLD.w), y = rand(0, GameState.WORLD.h)) {
-  const kind = FRUITS[Math.floor(rand(0, FRUITS.length))];
-  GameState.foods.push({ kind, x, y });
-}
-function ensureFood(){ while (GameState.foods.length < GameState.FOOD_COUNT) spawnFood(); }
 
-const glowCache = new Map();
-function hexToRgb(hex) {
-  let h = String(hex).replace('#','');
-  if (h.length === 3) h = h.split('').map(c=>c+c).join('');
-  const num = parseInt(h,16);
-  return { r:(num>>16)&255, g:(num>>8)&255, b:num&255 };
-}
-function makeGlowSprite(kind) {
-  const col = FRUIT_COLOR[kind] || '#ffffff';
-  const { r,g,b } = hexToRgb(col);
-  const SZ = 128, c = document.createElement('canvas'); c.width=SZ; c.height=SZ;
-  const x = c.getContext('2d'); const cx = SZ/2, cy = SZ/2, rOut = SZ*0.45;
-  const grad = x.createRadialGradient(cx,cy,rOut*0.15, cx,cy,rOut);
-  grad.addColorStop(0.00, `rgba(${r},${g},${b},0.85)`);
-  grad.addColorStop(0.35, `rgba(${r},${g},${b},0.55)`);
-  grad.addColorStop(0.70, `rgba(${r},${g},${b},0.20)`);
-  grad.addColorStop(1.00, `rgba(${r},${g},${b},0.00)`);
-  x.fillStyle = grad; x.beginPath(); x.arc(cx
+export default Game;
+export { Game };
+
+// Global compat
+if (typeof window !== 'undefined') window.Game = Game;
