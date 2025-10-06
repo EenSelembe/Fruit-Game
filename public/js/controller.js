@@ -63,6 +63,9 @@ function refreshStartState() {
 }
 function refreshCostsAndStart() { refreshCostUI(); refreshStartState(); }
 
+// Toast helper (aman bila GameUI belum ada)
+const toast = (msg, dur=1200) => window.GameUI?.showToast?.(msg, dur);
+
 // ==== Event dari picker ====
 window.addEventListener("color:update", (e) => {
   palette  = e.detail.palette;
@@ -88,45 +91,81 @@ startLenInput.addEventListener("input", refreshCostsAndStart);
 
 // ==== Tombol START ====
 startBtn.addEventListener("click", async () => {
-  const { len, total } = calcCosts();
+  // guard kalau belum init
+  if (!window.Game || typeof window.Game.start !== "function") {
+    toast("Game belum siap, sebentar...", 1200);
+    return;
+  }
 
+  const { len, total } = calcCosts();
   let colors = getSelectedColors();
   if (isAdmin) colors = RAINBOW; // admin pelangi
 
-  // potong saldo (kecuali admin)
-  if (!isAdmin && window.Saldo?.charge) {
-    await window.Saldo.charge(total);
-  }
+  // lock tombol agar tidak double-klik
+  const oldText = startBtn.textContent;
+  startBtn.disabled = true;
+  startBtn.textContent = "Memulai...";
 
-  // start game lokal
-  if (window.Game && typeof window.Game.start === "function") {
+  try {
+    // potong saldo (kecuali admin)
+    if (!isAdmin && window.Saldo?.charge) {
+      await window.Saldo.charge(total);
+    }
+
+    // start game lokal
     window.Game.start(colors, len);
+    lastPurchase = { colors, len, total };
+
+    // sync online (jangan halangi game kalau gagal)
+    try {
+      NetSync.start(colors, len);
+    } catch (e) {
+      console.warn("[NetSync] start gagal:", e);
+      toast("Mode online gagal, tetap lanjut offline", 1500);
+    }
+
+    // tutup panel & feedback
+    if (configPanel) configPanel.style.display = "none";
+    toast("Game dimulai!", 1000);
+
+  } catch (err) {
+    console.error("Start gagal:", err);
+    toast(err?.message || "Start gagal. Cek saldo atau koneksi.", 1600);
+    // jika gagal, jangan ubah UI panel
+  } finally {
+    startBtn.textContent = oldText;
+    refreshCostsAndStart(); // set enabled/disabled sesuai kondisi terakhir
   }
-  // catat last purchase utk reset
-  lastPurchase = { colors, len, total };
-
-  // start sync online
-  NetSync.start(colors, len);
-
-  // tutup panel
-  configPanel.style.display = "none";
 });
 
-// ==== Tombol RESET ====
+// ==== Tombol RESET (header) ====
 if (resetBtn) {
   resetBtn.addEventListener("click", async ()=>{
-    if (lastPurchase && !isAdmin && window.Saldo?.charge) {
-      await window.Saldo.charge(lastPurchase.total);
+    try {
+      if (lastPurchase && !isAdmin && window.Saldo?.charge) {
+        await window.Saldo.charge(lastPurchase.total);
+      }
+      if (window.Game?.quickReset) window.Game.quickReset();
+      toast("Reset!", 900);
+    } catch (e) {
+      console.error("Reset gagal:", e);
+      toast(e?.message || "Reset gagal.", 1200);
     }
-    if (window.Game?.quickReset) window.Game.quickReset();
-    // NetSync tetap jalan; publish state baru akan mengikuti Game.getPlayerState()
   });
 }
 
 // ==== Inisialisasi awal ====
+// Pastikan Game.init() benar-benar terpanggil meskipun urutan module berubah.
 document.addEventListener("DOMContentLoaded", () => {
   refreshCostsAndStart();
-  if (window.Game && typeof window.Game.init === "function") {
-    window.Game.init();
-  }
+
+  const tryInit = () => {
+    if (window.Game && typeof window.Game.init === "function") {
+      window.Game.init();
+      return;
+    }
+    // cek ulang tiap 100ms sampai Game tersedia
+    setTimeout(tryInit, 100);
+  };
+  tryInit();
 });
