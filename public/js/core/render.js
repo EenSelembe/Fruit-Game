@@ -147,4 +147,4 @@ export function renderFrame(dt) {
   updateHUDCounts();
   rankTimer += dt;
   if (rankTimer > 0.25) { updateRankPanel(); rankTimer = 0; }
-}
+      }
