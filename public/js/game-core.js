@@ -15,8 +15,34 @@ const Game = (() => {
   const lerp  = (a, b, t) => a + (b - a) * t;
   const rand  = (a, b) => Math.random() * (b - a) + a;
   const angNorm = (a) => ((a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-
   const RAINBOW = ["#ff0055","#ff7b00","#ffee00","#00d26a","#00b3ff","#6950ff"];
+
+  /* ===== BOT CONFIGS ===== */
+  // Bot biasa (ramah)
+  const BOT_CFG = {
+    visionRadius: 420,          // seberapa jauh “lihat” musuh
+    avoidRadius: 190,           // jika musuh lebih dekat dari ini → menghindar
+    chaseRadius: 280,           // kejar mangsa kecil dalam radius ini
+    foodAggro: 320,             // jarak cari buah
+    baseJitter: 0.16,           // goyangan arah
+    boostChance: 0.02,          // peluang boost kecil
+    speedBase: 120,
+    speedMax: 220,
+    interceptT: 0.35            // horizon prediksi intercept
+  };
+
+  // BOSS (admin offline) — lebih agresif & pintar
+  const BOSS_CFG = {
+    visionRadius: 860,
+    avoidRadius: 220,
+    chaseRadius: 720,
+    foodAggro: 540,
+    baseJitter: 0.08,
+    boostChance: 0.18,
+    speedBase: 150,
+    speedMax: 285,
+    interceptT: 0.55
+  };
 
   /* ===== Canvas / Camera / World ===== */
   let canvas, ctx, vw = 0, vh = 0, dpr = 1;
@@ -128,6 +154,7 @@ const Game = (() => {
       isBot, isRemote: false,
       aiTarget: { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h },
       isAdminRainbow: false,
+      isBossAI: false,            // special AI (admin offline)
       nameColor, borderColor
     };
     s.path.unshift({ x: s.x, y: s.y });
@@ -365,6 +392,77 @@ const Game = (() => {
     ctx.restore();
   }
 
+  /* ===== BOT BRAIN ===== */
+  function nearestFoodTo(s, maxDist) {
+    let best = null, bestD2 = (maxDist*maxDist);
+    for (let i = 0; i < foods.length; i++) {
+      const f = foods[i];
+      const dx = f.x - s.x, dy = f.y - s.y;
+      const d2 = dx*dx + dy*dy;
+      if (d2 < bestD2) { bestD2 = d2; best = f; }
+    }
+    return best ? {f:best, d2:bestD2} : null;
+  }
+  function nearestEnemyTo(s, maxDist, onlyRealPlayers=false) {
+    let best=null, bestD2 = (maxDist*maxDist);
+    for (const o of snakes) {
+      if (!o.alive || o===s) continue;
+      if (onlyRealPlayers && (o.isBot || !o.isRemote) && o!==player) continue;
+      const dx = o.x - s.x, dy = o.y - s.y;
+      const d2 = dx*dx + dy*dy;
+      if (d2 < bestD2) { bestD2 = d2; best = o; }
+    }
+    return best ? {o:best, d2:bestD2} : null;
+  }
+  function predictHead(sn, t) {
+    // prediksi linier: posisi head setelah t detik
+    const v = Math.max(sn.speedBase, sn.v||sn.speedBase);
+    return { x: sn.x + Math.cos(sn.dir)*v*t, y: sn.y + Math.sin(sn.dir)*v*t };
+  }
+  function botBrain(s, CFG) {
+    // 1) Hindari ancaman dekat
+    const nearThreat = nearestEnemyTo(s, CFG.visionRadius);
+    if (nearThreat) {
+      const e = nearThreat.o;
+      const dx = e.x - s.x, dy = e.y - s.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < CFG.avoidRadius + bodyRadius(e) + bodyRadius(s)*0.8) {
+        // kabur berlawanan arah + sedikit jitter
+        let ang = Math.atan2(s.y - e.y, s.x - e.x);
+        ang += rand(-0.35, 0.35);
+        return { targetAngle: ang, boost: Math.random() < (CFG.boostChance*2) };
+      }
+    }
+
+    // 2) Kejar mangsa kecil jika ada & cukup dekat
+    const preyWrap = nearestEnemyTo(s, CFG.chaseRadius, false);
+    if (preyWrap && preyWrap.o.length < s.length * 0.85) {
+      const prey = preyWrap.o;
+      const p = predictHead(prey, CFG.interceptT);
+      let ang = Math.atan2(p.y - s.y, p.x - s.x);
+      ang += rand(-CFG.baseJitter, CFG.baseJitter);
+      return { targetAngle: ang, boost: Math.random() < CFG.boostChance };
+    }
+
+    // 3) Cari buah
+    const nf = nearestFoodTo(s, CFG.foodAggro);
+    if (nf) {
+      const f = nf.f;
+      let ang = Math.atan2(f.y - s.y, f.x - s.x);
+      ang += rand(-CFG.baseJitter*0.6, CFG.baseJitter*0.6);
+      return { targetAngle: ang, boost: false };
+    }
+
+    // 4) Jelajah bebas (waypoint sederhana)
+    const dx = (s.aiTarget?.x ?? s.x) - s.x;
+    const dy = (s.aiTarget?.y ?? s.y) - s.y;
+    if ((dx*dx + dy*dy) < 140*140) {
+      s.aiTarget = { x: Math.random()*WORLD.w, y: Math.random()*WORLD.h };
+    }
+    let ang = Math.atan2(dy, dx) + rand(-CFG.baseJitter, CFG.baseJitter);
+    return { targetAngle: ang, boost: Math.random() < (CFG.boostChance*0.5) };
+  }
+
   /* ===== Physics ===== */
   function updateSnake(s, dt) {
     if (!s.alive) return;
@@ -384,11 +482,13 @@ const Game = (() => {
       } else if (steerX || steerY) targetAngle = Math.atan2(steerY, steerX);
       s.boost = boostHold || keys['shift'];
     } else if (s.isBot || s.isRemote === false) {
-      // AI sederhana utk bot/offline
-      const dx = s.aiTarget.x - s.x, dy = s.aiTarget.y - s.y;
-      if ((dx * dx + dy * dy) < 140 * 140) { s.aiTarget.x = Math.random() * WORLD.w; s.aiTarget.y = Math.random() * WORLD.h; }
-      targetAngle = Math.atan2(dy, dx) + (Math.random() * 0.36 - 0.18);
-      s.boost = Math.random() < 0.012;
+      // AI bot/boss
+      const CFG = (s.isBossAI ? BOSS_CFG : BOT_CFG);
+      s.speedBase = CFG.speedBase;
+      s.speedMax  = CFG.speedMax;
+      const out = botBrain(s, CFG);
+      targetAngle = out.targetAngle;
+      s.boost = !!out.boost;
     }
 
     const MAX_TURN = 3.4, delta = angNorm(targetAngle - s.dir);
@@ -445,6 +545,9 @@ const Game = (() => {
       setTimeout(() => {
         removeSnake(s);
         const nb = createSnake(['#79a7ff'], Math.random() * WORLD.w, Math.random() * WORLD.h, true, 3 + Math.floor(Math.random() * 8), s.name, s.uid, s.nameColor, s.borderColor);
+        // pertahankan status boss jika ini admin offline
+        nb.isBossAI = s.isBossAI;
+        if (nb.isBossAI) { nb.colors = RAINBOW.slice(); nb.isAdminRainbow = true; nb.speedBase = BOSS_CFG.speedBase; nb.speedMax = BOSS_CFG.speedMax; }
         registerSnake(nb);
       }, 700);
     } else if (s === player) {
@@ -483,13 +586,18 @@ const Game = (() => {
       if (snakesByUid.has(uid)) continue;
       const p = hashToPos(uid);
 
-      // nameplate style per user
       const nameColor  = u.style?.color || '#fff';
       const borderCol  = u.style?.borderColor || '#000';
+      const s = createSnake(['#79a7ff'], p.x, p.y, true, 3 + Math.floor(Math.random() * 8), u.name, uid, nameColor, borderCol);
 
-      const baseCols = ['#79a7ff'];
-      const s = createSnake(baseCols, p.x, p.y, true, 3 + Math.floor(Math.random() * 8), u.name, uid, nameColor, borderCol);
-      if (u.isAdmin) { s.colors = RAINBOW.slice(); s.isAdminRainbow = true; }
+      if (u.isAdmin) {
+        // admin offline → BOSS AI + pelangi + glow
+        s.colors = RAINBOW.slice();
+        s.isAdminRainbow = true;
+        s.isBossAI = true;
+        s.speedBase = BOSS_CFG.speedBase;
+        s.speedMax  = BOSS_CFG.speedMax;
+      }
       registerSnake(s);
     }
   }
@@ -629,10 +737,21 @@ const Game = (() => {
     if (!uid) return;
     const s = snakesByUid.get(uid);
     if (!s) return;
-    // jadikan bot offline agar tetap ada di peta
+
+    // Jadikan bot offline agar tetap ada di peta
     s.isRemote = false;
     s.isBot = true;
     s.aiTarget = { x: Math.random() * WORLD.w, y: Math.random() * WORLD.h };
+
+    // Jika yang keluar adalah ADMIN → jadikan BOSS (super bot)
+    const uinfo = window.Presence?.UserDir.get(uid);
+    if (uinfo?.isAdmin) {
+      s.isBossAI = true;
+      s.colors = RAINBOW.slice();
+      s.isAdminRainbow = true;
+      s.speedBase = BOSS_CFG.speedBase;
+      s.speedMax  = BOSS_CFG.speedMax;
+    }
   }
 
   /* ===== Public ===== */
