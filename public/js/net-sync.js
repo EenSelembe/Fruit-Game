@@ -1,9 +1,5 @@
-// /public/js/net-sync.js
-// Sinkron posisi pemain via Firestore 1 room global
-
-import {
-  collection, doc, onSnapshot, setDoc
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+// /public/js/net-sync.js — sinkron posisi pemain via Firestore 1 room global
+import { collection, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 const NetSync = (() => {
   const ROOM_ID = window.WORLD_ROOM_ID || "world1";
@@ -44,7 +40,7 @@ const NetSync = (() => {
       snap.docChanges().forEach(ch=>{
         const id = ch.doc.id;
         const data = ch.doc.data() || {};
-        if (id === uid) return; // skip diri sendiri (Game publish sendiri)
+        if (id === uid) return; // skip diri sendiri
 
         const alive = (data.online !== false) && (Date.now() - (data.ts || 0) < 15000);
         if (alive) {
