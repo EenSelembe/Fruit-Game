@@ -37,19 +37,19 @@ function updateHeaderNickname(u){
 
 /* ===== AUTH FLOW ===== */
 onAuthStateChanged(auth, async(user)=>{
-  if(!user){ location.href="index.html"; return; }
+  if(!user){ try{location.href="index.html";}catch(_){} return; }
   window.App.uid=user.uid;
   window.App.isAdmin=(user.uid===ADMIN_UID);
   const ref=doc(db,"users",user.uid);
   window.App.userRef=ref;
 
-  // pastikan dokumen ada
+  // pastikan dokumen ada (TANPA menimpa saldo)
   const snap=await getDoc(ref);
   if(!snap.exists()){
-    await setDoc(ref,{name:user.displayName||"Anonim",saldo:0,createdAt:serverTimestamp()},{merge:true});
+    await setDoc(ref,{ name:user.displayName||"Anonim", createdAt:serverTimestamp() },{ merge:true });
   }
 
-  // realtime listener
+  // realtime listener user
   onSnapshot(ref,(snap)=>{
     if(!snap.exists())return;
     const d=snap.data();
@@ -64,6 +64,7 @@ onAuthStateChanged(auth, async(user)=>{
     const el2=document.getElementById("saldoInModal");
     if(el1)el1.textContent=formatRp(s);
     if(el2)el2.textContent=formatRp(s);
+
     window.dispatchEvent(new CustomEvent("user:profile",{detail:style}));
     window.dispatchEvent(new CustomEvent("user:saldo",{detail:{saldo:s,isAdmin:window.App.isAdmin}}));
   });
@@ -77,14 +78,13 @@ window.Saldo.charge=async function(amount){
   amount=Math.max(0,Math.floor(Number(amount)||0));
   if(amount<=0)return;
   try{
-    // gunakan updateDoc jika bisa, fallback ke setDoc jika error (agar tidak diam)
     await updateDoc(window.App.userRef,{
       saldo:increment(-amount),
       consumedSaldo:increment(amount),
       lastUpdate:serverTimestamp()
     });
   }catch(e){
-    console.warn("updateDoc gagal, fallback ke setDoc",e);
+    console.warn("updateDoc gagal, fallback setDoc(merge)",e);
     await setDoc(window.App.userRef,{
       saldo:increment(-amount),
       consumedSaldo:increment(amount),
