@@ -25,7 +25,6 @@ const Game = (() => {
     const frameDt = Math.min(0.1, (now - last) / 1000); last = now;
     stepPhysics(frameDt);
 
-    // camera follow + zoom
     if (State.player) {
       const zLen = Math.min(0.5, Math.log10(1 + State.player.length/10) * 0.35);
       const zSpeed = Math.min(0.6, (State.player.v - State.player.speedBase) / (State.player.speedMax - State.player.speedBase + 1e-6)) * 0.45;
@@ -46,16 +45,27 @@ const Game = (() => {
     State.foods.splice(0, State.foods.length);
     ensureFood();
 
+    // persist admin dari runtime
+    const isAdminRuntime = !!window.App?.isAdmin;
+    if (isAdminRuntime) State.profile.isAdminPersist = true;
+
+    // dianggap admin jika salah satu true
+    const isAdmin =
+      State.profile.forceAdminRainbow ||
+      State.profile.isAdminPersist ||
+      isAdminRuntime;
+
     // player
     const uid = window.App?.profile?.id || null;
     const startX = Math.random() * State.WORLD.w * 0.6 + State.WORLD.w * 0.2;
     const startY = Math.random() * State.WORLD.h * 0.6 + State.WORLD.h * 0.2;
 
-    const isAdmin = !!window.App?.isAdmin;
     const cols = isAdmin ? RAINBOW.slice() : (colors && colors.length ? colors : [DEFAULT_PLAYER_COLOR]);
-
-    const sMe = createSnake(cols, startX, startY, false, startLen || 3, State.profile.name, uid, State.profile.textColor, State.profile.borderColor);
-    if (isAdmin) sMe.isAdminRainbow = true;
+    const sMe = createSnake(
+      cols, startX, startY, false, startLen || 3,
+      State.profile.name, uid, State.profile.textColor, State.profile.borderColor
+    );
+    sMe.isAdminRainbow = !!isAdmin;
 
     State.player = sMe;
     registerSnake(State.player);
@@ -65,10 +75,7 @@ const Game = (() => {
     State.lastColors = cols.slice();
     State.lastStartLen = startLen || 3;
 
-    // bots for offline users
     spawnOfflineAsBots(12);
-
-    // hide reset while alive
     setResetVisible(false);
   }
 
@@ -102,6 +109,11 @@ const Game = (() => {
     }
   }
 
+  // API paksa pelangi admin
+  function setAdminRainbow(on = true) {
+    State.profile.forceAdminRainbow = !!on;
+  }
+
   function getPlayerState() {
     if (!State.player) return null;
     return {
@@ -118,7 +130,8 @@ const Game = (() => {
     applyProfileStyle,
     netUpsert,
     netRemove,
-    getPlayerState
+    getPlayerState,
+    setAdminRainbow
   };
 })();
 
