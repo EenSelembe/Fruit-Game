@@ -1,7 +1,9 @@
 // public/js/core/net.js
 import { State } from './state.js';
-import { RAINBOW } from './config.js';
+import { RAINBOW, BOT_PALETTES } from './config.js';
 import { createSnake, registerSnake } from './snake.js';
+
+const pickPal = () => BOT_PALETTES[Math.floor(Math.random()*BOT_PALETTES.length)];
 
 export function netUpsert(uid, state) {
   if (!uid) return;
@@ -9,9 +11,12 @@ export function netUpsert(uid, state) {
 
   let s = State.snakesByUid.get(uid);
   if (!s) {
-    const uinfo = window.Presence?.UserDir.get(uid);
+    const uinfo = window.Presence?.UserDir?.get?.(uid);
+    const isAdmin = !!(uinfo?.isAdmin || state?.isAdmin);
     const name  = state?.name || uinfo?.name || 'USER';
-    const cols  = state?.colors && state.colors.length ? state.colors : ['#79a7ff'];
+    const cols  = isAdmin ? RAINBOW.slice()
+               : (Array.isArray(state?.colors) && state.colors.length ? state.colors
+               : pickPal());
     const nameColor = uinfo?.style?.color || '#fff';
     const borderCol = uinfo?.style?.borderColor || '#000';
 
@@ -26,7 +31,8 @@ export function netUpsert(uid, state) {
       borderCol
     );
     s.isRemote = true;
-    if (uinfo?.isAdmin) { s.colors = RAINBOW.slice(); s.isAdminRainbow = true; }
+    s.isAdminRainbow = isAdmin;
+    if (isAdmin) s.colors = RAINBOW.slice();
     registerSnake(s);
   }
 
@@ -48,4 +54,4 @@ export function netRemove(uid) {
   s.isRemote = false;
   s.isBot = true;
   s.aiTarget = { x: Math.random()*State.WORLD.w, y: Math.random()*State.WORLD.h };
-}
+                  }
