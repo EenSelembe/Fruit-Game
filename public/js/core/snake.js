@@ -1,17 +1,19 @@
 // public/js/core/snake.js
 import { State } from './state.js';
 import { clamp, lerp, angNorm } from './utils.js';
+import { worldToScreen } from './camera.js';
 import { spawnFood, spawnSuckBurst } from './food.js';
 import { setResetVisible, showToast } from './ui.js';
 import { RAINBOW, BOT_PALETTES } from './config.js';
 import { Input } from './input.js';
 
+/* ================== Geometry & Growth ================== */
 export function bodyRadius(s){ return 4 + 2*Math.sqrt(Math.max(0, s.length-3)); }
 const BASE_SEG_SPACE = 6;
 export function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
 export function needForNext(s){ return 10 + Math.max(0,(s.length - s.baseLen))*2; }
 
-// ===== Palet unik (non-admin tidak boleh sama) =====
+/* ================== Unique Palettes (non-admin) ================== */
 function paletteKey(cols){ return cols.map(c=>String(c).toLowerCase()).join('|'); }
 function isRainbow(cols){
   if (!Array.isArray(cols) || cols.length !== RAINBOW.length) return false;
@@ -36,7 +38,7 @@ function shiftHex(hex, amt){
 function paletteUsed(cols){
   const key = paletteKey(cols);
   for (const s of State.snakes) {
-    if (s.isAdminRainbow) continue; // admin: pelangi
+    if (s.isAdminRainbow) continue; // admin: pelangi selalu diizinkan
     if (paletteKey(s.colors) === key) return true;
   }
   return false;
@@ -56,7 +58,7 @@ function nudgePalette(baseCols, seedKey){
   return baseCols.slice();
 }
 function pickUniquePalette(preferred, uidOrId){
-  if (preferred && isRainbow(preferred)) return preferred.slice();
+  if (preferred && isRainbow(preferred)) return preferred.slice();          // admin palette
   if (preferred && preferred.length && !paletteUsed(preferred)) return preferred.slice();
   const start = BOT_PALETTES.length ? (hash32(uidOrId||'') % BOT_PALETTES.length) : 0;
   for (let i=0;i<BOT_PALETTES.length;i++){
@@ -71,8 +73,8 @@ export function ensureUniqueColors(s, preferred=null){
   s.colors = pickUniquePalette(preferred || s.colors, s.uid || s.id);
 }
 
-// ===== Turbo drain (integer per detik) =====
-const BOOST_LENGTH_DRAIN_PER_SEC = 1;
+/* ================== Creation & Registry ================== */
+const BOOST_LENGTH_DRAIN_PER_SEC = 1; // turbo drain 1 poin/det (integer via accumulator)
 
 export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=null, nameColor='#fff', borderColor='#000') {
   const s = {
@@ -92,8 +94,8 @@ export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=n
     aiSkill: isBot ? 0.8 : 0.9,
     aiAggro: isBot ? 0.65 : 0.9,
     _lenDrainAcc: 0,
-    // ⬇️ hitung total buah yang dimakan (untuk drop saat mati)
-    fruitsEaten: 0
+    fruitsEaten: 0,          // total buah dimakan (untuk drop saat mati)
+    _eatTimer: 0             // untuk animasi mulut membuka
   };
   ensureUniqueColors(s);
   s.path.unshift({ x: s.x, y: s.y });
@@ -103,12 +105,14 @@ export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=n
 export function registerSnake(s){ State.snakes.push(s); if (s.uid) State.snakesByUid.set(s.uid, s); }
 export function removeSnake(s){ const i=State.snakes.indexOf(s); if(i>=0) State.snakes.splice(i,1); if(s.uid) State.snakesByUid.delete(s.uid); }
 
+/* ================== Wrapping ================== */
 export function wrapPos(p) {
   const W = State.WORLD;
   if (p.x < 0) p.x += W.w; else if (p.x >= W.w) p.x -= W.w;
   if (p.y < 0) p.y += W.h; else if (p.y >= W.h) p.y -= W.h;
 }
 
+/* ================== AI & Physics ================== */
 export function updateSnake(s, dt) {
   if (!s.alive) return;
 
@@ -119,6 +123,7 @@ export function updateSnake(s, dt) {
     if (t !== null) targetAngle = t;
     s.boost = Input.boostHold || Input.keys['shift'];
   } else if (s.isBot || s.isRemote === false) {
+    // Admin lebih agresif, bot biasa lebih kalem
     const aggro = Math.max(0.4, Math.min(1.4, s.aiAggro || 0.7));
     const skill = s.aiSkill || 0.8;
 
@@ -157,7 +162,7 @@ export function updateSnake(s, dt) {
     let vx = target.x - s.x, vy = target.y - s.y;
     const vlen = Math.hypot(vx, vy) || 1; vx /= vlen; vy /= vlen;
 
-    // hindari bahaya
+    // hindari bahaya (tubuh & kepala)
     let ax = 0, ay = 0, dangerMax = 0;
     const R2 = 110 * 110;
     for (const o of State.snakes) {
@@ -228,13 +233,15 @@ export function updateSnake(s, dt) {
   const maxPath = Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP));
   if (s.path.length > maxPath) s.path.length = maxPath;
 
-  // makan buah + efek sedot + hitung total dimakan
+  // makan buah + efek sedot + counter + buka mulut
   for (let i = State.foods.length - 1; i >= 0; i--) {
     const f = State.foods[i], dx2 = s.x - f.x, dy2 = s.y - f.y, eatR = bodyRadius(s) + 10;
     if (dx2*dx2 + dy2*dy2 < eatR*eatR) {
-      spawnSuckBurst(f.kind, f.x, f.y, s.id); // efek sedot
+      spawnSuckBurst(f.kind, f.x, f.y, s.id);     // efek sedot
+      s._eatTimer = performance.now();            // mulut buka 200ms
       State.foods.splice(i,1);
-      s.fruitsEaten = (s.fruitsEaten|0) + 1;   // ⬅️ hitung total
+      s.fruitsEaten = (s.fruitsEaten|0) + 1;
+
       s.fruitProgress += 1;
       if (s.fruitProgress >= needForNext(s)) {
         s.fruitProgress = 0;
@@ -254,25 +261,23 @@ export function updateSnake(s, dt) {
   }
 }
 
+/* ================== Death & Respawn ================== */
 export function killSnake(s) {
   if (!s.alive) return;
   s.alive = false;
 
-  // === Drop buah sebanyak total yang dimakan ===
+  // Drop buah sebanyak total yang dimakan
   const count = Math.max(0, Math.floor(s.fruitsEaten || 0));
   if (count > 0) {
     const path = (s.path && s.path.length) ? s.path : [{ x: s.x, y: s.y }];
     const L = path.length;
     for (let k = 0; k < count; k++) {
-      const t = (L > 1) ? Math.min(L - 1, Math.floor((k / count) * (L - 1))) : 0;
+      const t = (L > 1) ? Math.min(L - 1, Math.floor((k / Math.max(1,count-1)) * (L - 1))) : 0;
       const p = path[t];
-      const jitterX = (Math.random() * 14 - 7);
-      const jitterY = (Math.random() * 14 - 7);
-      spawnFood(p.x + jitterX, p.y + jitterY);
+      spawnFood(p.x + (Math.random()*14 - 7), p.y + (Math.random()*14 - 7));
     }
   }
 
-  // === Sisa logika kematian ===
   if (s.isRemote) { removeSnake(s); return; }
 
   if (s.isBot) {
@@ -284,11 +289,12 @@ export function killSnake(s) {
       registerSnake(nb);
     }, 700);
   } else if (s === State.player) {
-    setResetVisible(true); // ⬅️ tampilkan tombol Restart di tengah
+    setResetVisible(true); // tombol Restart ditampilkan (UI sudah pusatkan di layar)
     showToast('Kamu kalah! Tekan Restart untuk main lagi.', 1800);
   }
 }
 
+/* ================== Offline Bots Spawn ================== */
 export function hashToPos(uid){
   let h = 2166136261 >>> 0;
   for (let i=0;i<uid.length;i++){ h ^= uid.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
@@ -326,3 +332,166 @@ export function spawnOfflineAsBots(maxCount=12) {
     registerSnake(s);
   }
 }
+
+/* ================== Rendering ================== */
+// Helpers untuk path halus + striping tubuh
+function moveWithBezier(ctx, pts, tension = 0.75) {
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = i > 0 ? pts[i - 1] : pts[i], p1 = pts[i], p2 = pts[i + 1],
+          p3 = (i !== pts.length - 2) ? pts[i + 2] : p2, t = tension;
+    const cp1x = p1.x + (p2.x - p0.x) * t / 6, cp1y = p1.y + (p2.y - p0.y) * t / 6;
+    const cp2x = p2.x - (p3.x - p1.x) * t / 6, cp2y = p2.y - (p3.y - p1.y) * t / 6;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+  }
+}
+function chaikinSmooth(pts, iterations = 2) {
+  let out = pts.slice();
+  for (let k = 0; k < iterations; k++) {
+    const res = [out[0]];
+    for (let i = 0; i < out.length - 1; i++) {
+      const p = out[i], q = out[i + 1];
+      const Q = { x: p.x * 0.75 + q.x * 0.25, y: p.y * 0.75 + q.y * 0.25 };
+      const R = { x: p.x * 0.25 + q.x * 0.75, y: p.y * 0.25 + q.y * 0.75 };
+      res.push(Q, R);
+    }
+    res.push(out[out.length - 1]); out = res;
+  }
+  return out;
+}
+function screenSegmentsFromSnake(sn) {
+  const pts = [];
+  for (let i = sn.path.length - 1; i >= 0; i--) {
+    const p = sn.path[i]; const s = worldToScreen(p.x, p.y); pts.push({ x: s.x, y: s.y });
+  }
+  const headNow = worldToScreen(sn.x, sn.y); pts.push({ x: headNow.x, y: headNow.y });
+  const segs = []; let cur = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    if (Math.abs(a.x - b.x) > State.vw * 0.6 || Math.abs(a.y - b.y) > State.vh * 0.6) { segs.push(cur); cur = [b]; }
+    else cur.push(b);
+  }
+  if (cur.length > 1) segs.push(cur);
+  return segs;
+}
+function strokeStripedPath(ctx, pts, strokeWidth, colors, outlineWidth = 0, glow = false) {
+  if (pts.length < 2) return;
+  const smTailHead = chaikinSmooth(pts, 2);
+
+  // outline
+  if (outlineWidth > 0) {
+    ctx.beginPath(); moveWithBezier(ctx, smTailHead, 0.75);
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = strokeWidth + outlineWidth * 2;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  const cols = (colors && colors.length) ? colors : ['#58ff9b'];
+  if (cols.length <= 1) {
+    ctx.beginPath(); moveWithBezier(ctx, smTailHead, 0.75);
+    ctx.strokeStyle = cols[0];
+    ctx.lineWidth = strokeWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (glow) { ctx.shadowBlur = 14; ctx.shadowColor = cols[0]; }
+    ctx.stroke(); if (glow) { ctx.shadowBlur = 0; }
+  } else {
+    const smHeadTail = smTailHead.slice().reverse();
+    const stripeLen = Math.max(18, strokeWidth * 1.4);
+    let acc = 0, colorIdx = 0, segStartIdx = 0;
+    function strokeSeg(a, b, col) {
+      if (b <= a) return;
+      ctx.beginPath(); ctx.moveTo(smHeadTail[a].x, smHeadTail[a].y);
+      for (let j = a + 1; j <= b; j++) ctx.lineTo(smHeadTail[j].x, smHeadTail[j].y);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = strokeWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (glow) { ctx.shadowBlur = 14; ctx.shadowColor = col; }
+      ctx.stroke();
+      if (glow) ctx.shadowBlur = 0;
+    }
+    for (let i = 1; i < smHeadTail.length; i++) {
+      const dx = smHeadTail[i].x - smHeadTail[i - 1].x, dy = smHeadTail[i].y - smHeadTail[i - 1].y, d = Math.hypot(dx, dy);
+      acc += d;
+      if (acc >= stripeLen) { strokeSeg(segStartIdx, i, cols[colorIdx % cols.length]); segStartIdx = i; acc = 0; colorIdx++; }
+    }
+    strokeSeg(segStartIdx, smHeadTail.length - 1, cols[colorIdx % cols.length]);
+  }
+
+  // highlight
+  ctx.globalAlpha = 0.22;
+  ctx.beginPath(); moveWithBezier(ctx, smTailHead, 0.75);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(1, strokeWidth * 0.35);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+/* ================ Draw Snake (with eyes & mouth) ================ */
+export function drawSnake(ctx, sn) {
+  if (!sn.path.length) return;
+
+  const rPix = bodyRadius(sn) * State.camera.zoom;
+  const segs = screenSegmentsFromSnake(sn);
+
+  // body
+  for (const seg of segs) {
+    if (seg.length < 2) continue;
+    strokeStripedPath(ctx, seg, rPix * 2, sn.colors, rPix * 0.65, sn.isAdminRainbow);
+  }
+
+  // head + two eyes + mouth
+  const headS = worldToScreen(sn.x, sn.y);
+  const rr = (6.5 + 0.1 * Math.sqrt(sn.length)) * State.camera.zoom;
+
+  // head base
+  ctx.beginPath();
+  ctx.arc(headS.x, headS.y, rr, 0, Math.PI * 2);
+  ctx.fillStyle = sn.colors && sn.colors.length ? sn.colors[0] : '#58ff9b';
+  ctx.fill();
+  ctx.lineWidth = 1.8;
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.stroke();
+
+  const dir = sn.dir;
+
+  // two eyes
+  const eyeOffsetX = Math.cos(dir + Math.PI / 2) * rr * 0.45;
+  const eyeOffsetY = Math.sin(dir + Math.PI / 2) * rr * 0.45;
+  const eyes = [
+    { x: headS.x + eyeOffsetX, y: headS.y + eyeOffsetY },
+    { x: headS.x - eyeOffsetX, y: headS.y - eyeOffsetY }
+  ];
+  for (const e of eyes) {
+    ctx.beginPath(); ctx.arc(e.x, e.y, rr * 0.33, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff"; ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(e.x + Math.cos(dir) * rr * 0.15, e.y + Math.sin(dir) * rr * 0.15, rr * 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = "#000"; ctx.fill();
+  }
+
+  // mouth (opens ~200ms after eat)
+  const mouthOpen = (sn._eatTimer && performance.now() - sn._eatTimer < 200);
+  const mouthSize = mouthOpen ? rr * 0.8 : rr * 0.4;
+  const mx = headS.x + Math.cos(dir) * rr * 0.7;
+  const my = headS.y + Math.sin(dir) * rr * 0.7;
+  ctx.beginPath();
+  ctx.ellipse(mx, my, mouthSize * 0.5, rr * 0.25, dir, 0, Math.PI * 2);
+  ctx.fillStyle = "#300";
+  ctx.fill();
+
+  // nameplate
+  const padX = 34, padY = 16 * State.camera.zoom;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.fillRect(headS.x - padX, headS.y - 22 * State.camera.zoom, padX * 2, padY);
+  ctx.strokeStyle = sn.borderColor || '#000';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(headS.x - padX, headS.y - 22 * State.camera.zoom, padX * 2, padY);
+  ctx.font = `${12 * State.camera.zoom}px system-ui,Segoe UI`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = sn.nameColor || '#fff';
+  ctx.fillText(sn.name || 'USER', headS.x, headS.y - 10 * State.camera.zoom);
+  ctx.restore();
+                                              }
