@@ -17,6 +17,7 @@ import { createSnake, updateSnake, drawSnake, spawnOfflineAsBots } from './core/
 import { grabUIRefs, setResetVisible, showToast, updateHUDCounts, updateRankPanel } from './core/ui.js';
 import { Input } from './core/input.js';
 import { netUpsert, netRemove } from './core/net.js';
+import { RAINBOW } from './core/config.js'; // ⬅️ Tambahan: ambil palet pelangi dari config
 
 // ===== Canvas / Camera =====
 let canvas, ctx;
@@ -64,7 +65,8 @@ function startGame(colors, startLen) {
   const startY = Math.random() * State.WORLD.h * 0.6 + State.WORLD.h * 0.2;
 
   const isAdmin = !!window.App?.isAdmin;
-  const cols = isAdmin ? State.RAINBOW?.slice?.() || lastColors.slice() : (colors && colors.length ? colors : ['#58ff9b']);
+  // ⬇️ Pakai RAINBOW dari config (bukan State.RAINBOW)
+  const cols = isAdmin ? RAINBOW.slice() : (colors && colors.length ? colors : ['#58ff9b']);
 
   const me = createSnake(
     cols,
