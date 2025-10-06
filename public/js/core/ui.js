@@ -3,11 +3,12 @@ import { State } from './state.js';
 
 export function grabUIRefs() {
   const ui = State.ui;
-  ui.elLen      = document.getElementById('len')      || ui.elLen;
-  ui.elUsers    = document.getElementById('userCount')|| ui.elUsers;
-  ui.rankRowsEl = document.getElementById('rankRows') || ui.rankRowsEl;
-  ui.resetBtnEl = document.getElementById('reset')    || ui.resetBtnEl;
-  ui.toastEl    = document.getElementById('toast')    || ui.toastEl;
+  ui.elLen      = document.getElementById('len')       || ui.elLen;
+  ui.elUsers    = document.getElementById('userCount') || ui.elUsers;
+  ui.rankRowsEl = document.getElementById('rankRows')  || ui.rankRowsEl;
+  // dukung id 'reset' atau 'restart'
+  ui.resetBtnEl = document.getElementById('reset') || document.getElementById('restart') || ui.resetBtnEl;
+  ui.toastEl    = document.getElementById('toast')     || ui.toastEl;
 }
 
 export function setResetVisible(show) {
@@ -29,6 +30,6 @@ export function showToast(msg, dur=1200) {
 
 export function updateHUDCounts() {
   const { elLen, elUsers } = State.ui;
-  if (State.player && elLen)   elLen.textContent = State.player.length;
+  if (State.player && elLen)   elLen.textContent = Math.max(1, Math.floor(State.player.length));
   if (elUsers) elUsers.textContent = State.snakes.filter(s=>s.alive).length;
-}
+      }
