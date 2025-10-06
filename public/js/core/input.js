@@ -12,7 +12,7 @@ export const Input = {
     addEventListener('keydown', (e)=>{
       const k = e.key.toLowerCase();
       this.keys[k] = true;
-      if (k === 'r' && State.ui.canReset) onQuickReset();
+      if ((k === 'r' || k === 'enter') && State.ui.canReset) onQuickReset();
     });
     addEventListener('keyup', (e)=>{ this.keys[e.key.toLowerCase()] = false; });
 
@@ -54,7 +54,8 @@ export const Input = {
       }
     }
 
-    const resetBtn = document.getElementById('reset');
+    // dukung id 'reset' atau 'restart'
+    const resetBtn = document.getElementById('reset') || document.getElementById('restart');
     if (resetBtn) {
       resetBtn.addEventListener('click', ()=>{
         if (State.ui.canReset) onQuickReset();
