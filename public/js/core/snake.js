@@ -11,7 +11,7 @@ const BASE_SEG_SPACE = 6;
 export function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
 export function needForNext(s){ return 10 + Math.max(0,(s.length - s.baseLen))*2; }
 
-// ===== Unik Palet (non-admin tidak boleh sama) =====
+// ===== Palet unik (non-admin tidak boleh sama) =====
 function paletteKey(cols){ return cols.map(c=>String(c).toLowerCase()).join('|'); }
 function isRainbow(cols){
   if (!Array.isArray(cols) || cols.length !== RAINBOW.length) return false;
@@ -36,7 +36,7 @@ function shiftHex(hex, amt){
 function paletteUsed(cols){
   const key = paletteKey(cols);
   for (const s of State.snakes) {
-    if (s.isAdminRainbow) continue; // admin boleh sama (wajib pelangi)
+    if (s.isAdminRainbow) continue; // admin: pelangi
     if (paletteKey(s.colors) === key) return true;
   }
   return false;
@@ -56,24 +56,16 @@ function nudgePalette(baseCols, seedKey){
   return baseCols.slice();
 }
 function pickUniquePalette(preferred, uidOrId){
-  // jika preferred pelangi → biarkan (admin)
   if (preferred && isRainbow(preferred)) return preferred.slice();
-
-  // kalau preferred ada dan belum dipakai → pakai
   if (preferred && preferred.length && !paletteUsed(preferred)) return preferred.slice();
-
-  // pilih dari BOT_PALETTES yang belum dipakai
   const start = BOT_PALETTES.length ? (hash32(uidOrId||'') % BOT_PALETTES.length) : 0;
   for (let i=0;i<BOT_PALETTES.length;i++){
     const pal = BOT_PALETTES[(start+i)%BOT_PALETTES.length];
     if (!paletteUsed(pal)) return pal.slice();
   }
-
-  // semua palet habis → modifikasi ringan agar beda
   const base = preferred && preferred.length ? preferred : BOT_PALETTES[0] || ['#58ff9b'];
   return nudgePalette(base, String(uidOrId||Math.random()));
 }
-
 export function ensureUniqueColors(s, preferred=null){
   if (s.isAdminRainbow) { s.colors = RAINBOW.slice(); return; }
   s.colors = pickUniquePalette(preferred || s.colors, s.uid || s.id);
@@ -99,9 +91,10 @@ export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=n
     nameColor, borderColor,
     aiSkill: isBot ? 0.8 : 0.9,
     aiAggro: isBot ? 0.65 : 0.9,
-    _lenDrainAcc: 0
+    _lenDrainAcc: 0,
+    // ⬇️ hitung total buah yang dimakan (untuk drop saat mati)
+    fruitsEaten: 0
   };
-  // pastikan palet unik untuk non-admin
   ensureUniqueColors(s);
   s.path.unshift({ x: s.x, y: s.y });
   return s;
@@ -235,12 +228,13 @@ export function updateSnake(s, dt) {
   const maxPath = Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP));
   if (s.path.length > maxPath) s.path.length = maxPath;
 
-  // makan buah + efek sedot
+  // makan buah + efek sedot + hitung total dimakan
   for (let i = State.foods.length - 1; i >= 0; i--) {
     const f = State.foods[i], dx2 = s.x - f.x, dy2 = s.y - f.y, eatR = bodyRadius(s) + 10;
     if (dx2*dx2 + dy2*dy2 < eatR*eatR) {
-      spawnSuckBurst(f.kind, f.x, f.y, s.id);
+      spawnSuckBurst(f.kind, f.x, f.y, s.id); // efek sedot
       State.foods.splice(i,1);
+      s.fruitsEaten = (s.fruitsEaten|0) + 1;   // ⬅️ hitung total
       s.fruitProgress += 1;
       if (s.fruitProgress >= needForNext(s)) {
         s.fruitProgress = 0;
@@ -264,12 +258,21 @@ export function killSnake(s) {
   if (!s.alive) return;
   s.alive = false;
 
-  // drop buah
-  for (let i=0;i<s.path.length;i+=Math.max(6, Math.floor(segSpace(s)))) {
-    const p = s.path[i];
-    spawnFood(p.x + (Math.random()*12 - 6), p.y + (Math.random()*12 - 6));
+  // === Drop buah sebanyak total yang dimakan ===
+  const count = Math.max(0, Math.floor(s.fruitsEaten || 0));
+  if (count > 0) {
+    const path = (s.path && s.path.length) ? s.path : [{ x: s.x, y: s.y }];
+    const L = path.length;
+    for (let k = 0; k < count; k++) {
+      const t = (L > 1) ? Math.min(L - 1, Math.floor((k / count) * (L - 1))) : 0;
+      const p = path[t];
+      const jitterX = (Math.random() * 14 - 7);
+      const jitterY = (Math.random() * 14 - 7);
+      spawnFood(p.x + jitterX, p.y + jitterY);
+    }
   }
 
+  // === Sisa logika kematian ===
   if (s.isRemote) { removeSnake(s); return; }
 
   if (s.isBot) {
@@ -281,7 +284,7 @@ export function killSnake(s) {
       registerSnake(nb);
     }, 700);
   } else if (s === State.player) {
-    setResetVisible(true);
+    setResetVisible(true); // ⬅️ tampilkan tombol Restart di tengah
     showToast('Kamu kalah! Tekan Restart untuk main lagi.', 1800);
   }
 }
@@ -315,7 +318,7 @@ export function spawnOfflineAsBots(maxCount=12) {
 
     s.isAdminRainbow = !!u.isAdmin;
     if (s.isAdminRainbow) s.colors = RAINBOW.slice();
-    else ensureUniqueColors(s); // pastikan non-admin unik
+    else ensureUniqueColors(s);
 
     s.aiAggro = s.isAdminRainbow ? 1.15 : 0.65;
     s.aiSkill = s.isAdminRainbow ? 0.95 : 0.8;
