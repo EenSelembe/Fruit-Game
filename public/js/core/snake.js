@@ -1,7 +1,7 @@
 // public/js/core/snake.js
 import { State } from './state.js';
 import { clamp, lerp, angNorm } from './utils.js';
-import { spawnFood } from './food.js';
+import { spawnFood, spawnSuckBurst } from './food.js'; // ⬅️ tambahkan spawnSuckBurst
 import { setResetVisible, showToast } from './ui.js';
 import { RAINBOW, BOT_PALETTES } from './config.js';
 import { Input } from './input.js';
@@ -11,7 +11,7 @@ const BASE_SEG_SPACE = 6;
 export function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
 export function needForNext(s){ return 10 + Math.max(0,(s.length - s.baseLen))*2; }
 
-// ⬇️ Drain panjang/score saat turbo (integer-per-second)
+// Drain panjang/score saat turbo (integer-per-second)
 const BOOST_LENGTH_DRAIN_PER_SEC = 1; // 1 poin per detik
 
 export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=null, nameColor='#fff', borderColor='#000') {
@@ -32,7 +32,6 @@ export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=n
     nameColor, borderColor,
     aiSkill: isBot ? 0.8 : 0.9,
     aiAggro: isBot ? 0.65 : 0.9,
-    // ⬇️ accumulator untuk drain integer
     _lenDrainAcc: 0
   };
   s.path.unshift({ x: s.x, y: s.y });
@@ -145,17 +144,15 @@ export function updateSnake(s, dt) {
 
   if (boosting) {
     s.energy = Math.max(0, s.energy - 0.28*dt);
-
-    // ⬇️ Drain panjang secara integer pakai accumulator
-    s._lenDrainAcc += BOOST_LENGTH_DRAIN_PER_SEC * dt; // akumulasi pecahan
-    const drop = Math.floor(s._lenDrainAcc);           // tukar jadi bilangan bulat
+    // Drain panjang integer via accumulator
+    s._lenDrainAcc += BOOST_LENGTH_DRAIN_PER_SEC * dt;
+    const drop = Math.floor(s._lenDrainAcc);
     if (drop > 0) {
       s.length = Math.max(1, Math.floor(s.length) - drop);
-      s._lenDrainAcc -= drop; // sisakan sisa pecahan di accumulator
+      s._lenDrainAcc -= drop;
     }
   } else {
     s.energy = Math.min(1, s.energy + 0.14*dt);
-    // opsional: pelan-pelan hilangkan sisa pecahan agar stabil
     s._lenDrainAcc = Math.min(s._lenDrainAcc, 0.999);
   }
 
@@ -170,10 +167,13 @@ export function updateSnake(s, dt) {
   const maxPath = Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP));
   if (s.path.length > maxPath) s.path.length = maxPath;
 
-  // makan buah (tetap integer)
+  // makan buah + efek sedot
   for (let i = State.foods.length - 1; i >= 0; i--) {
     const f = State.foods[i], dx2 = s.x - f.x, dy2 = s.y - f.y, eatR = bodyRadius(s) + 10;
     if (dx2*dx2 + dy2*dy2 < eatR*eatR) {
+      // 🔸 efek sedot: spawn sebelum buah dihapus
+      spawnSuckBurst(f.kind, f.x, f.y, s.id);
+
       State.foods.splice(i,1);
       s.fruitProgress += 1;
       if (s.fruitProgress >= needForNext(s)) {
@@ -255,4 +255,4 @@ export function spawnOfflineAsBots(maxCount=12) {
 
     registerSnake(s);
   }
-    }
+                                      }
