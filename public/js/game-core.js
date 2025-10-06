@@ -10,6 +10,9 @@ import { createSnake, registerSnake, spawnOfflineAsBots, updateSnake } from './c
 import { clamp, lerp } from './core/utils.js';
 import { netUpsert, netRemove } from './core/net.js';
 
+const LS = typeof localStorage !== 'undefined' ? localStorage : null;
+const save = (k,v)=>{ if(LS) LS.setItem(k,v); };
+
 const Game = (() => {
   function stepPhysics(dt) {
     const h = 1/60;
@@ -39,40 +42,31 @@ const Game = (() => {
   }
 
   function startGame(colors, startLen) {
-    // reset world
     State.snakes.splice(0, State.snakes.length);
     State.snakesByUid.clear();
     State.foods.splice(0, State.foods.length);
     ensureFood();
 
-    // persist admin dari runtime
     const isAdminRuntime = !!window.App?.isAdmin;
-    if (isAdminRuntime) State.profile.isAdminPersist = true;
+    if (isAdminRuntime) { State.profile.isAdminPersist = true; save('snake_isAdminPersist','1'); }
 
-    // dianggap admin jika salah satu true
-    const isAdmin =
-      State.profile.forceAdminRainbow ||
-      State.profile.isAdminPersist ||
-      isAdminRuntime;
+    const isAdmin = State.profile.forceAdminRainbow || State.profile.isAdminPersist || isAdminRuntime;
 
-    // player
     const uid = window.App?.profile?.id || null;
     const startX = Math.random() * State.WORLD.w * 0.6 + State.WORLD.w * 0.2;
     const startY = Math.random() * State.WORLD.h * 0.6 + State.WORLD.h * 0.2;
 
     const cols = isAdmin ? RAINBOW.slice() : (colors && colors.length ? colors : [DEFAULT_PLAYER_COLOR]);
-    const sMe = createSnake(
-      cols, startX, startY, false, startLen || 3,
-      State.profile.name, uid, State.profile.textColor, State.profile.borderColor
-    );
+    const sMe = createSnake(cols, startX, startY, false, startLen || 3, State.profile.name, uid, State.profile.textColor, State.profile.borderColor);
     sMe.isAdminRainbow = !!isAdmin;
+    if (sMe.isAdminRainbow) sMe.colors = RAINBOW.slice();
 
     State.player = sMe;
     registerSnake(State.player);
 
     State.camera.x = State.player.x; State.camera.y = State.player.y; State.camera.zoom = 1;
 
-    State.lastColors = cols.slice();
+    State.lastColors = sMe.colors.slice();
     State.lastStartLen = startLen || 3;
 
     spawnOfflineAsBots(12);
@@ -88,7 +82,6 @@ const Game = (() => {
   function init() {
     State.canvas = document.getElementById('game');
     State.ctx = State.canvas.getContext('2d');
-
     addEventListener('resize', resize, { passive: true });
     resize();
     grabUIRefs();
@@ -109,30 +102,17 @@ const Game = (() => {
     }
   }
 
-  // API paksa pelangi admin
   function setAdminRainbow(on = true) {
     State.profile.forceAdminRainbow = !!on;
+    save('snake_forceAdminRainbow', on ? '1' : '0');
   }
 
   function getPlayerState() {
     if (!State.player) return null;
-    return {
-      name: State.player.name,
-      colors: State.player.colors,
-      x: State.player.x, y: State.player.y, dir: State.player.dir, length: State.player.length
-    };
+    return { name: State.player.name, colors: State.player.colors, x: State.player.x, y: State.player.y, dir: State.player.dir, length: State.player.length };
   }
 
-  return {
-    init,
-    start: startGame,
-    quickReset,
-    applyProfileStyle,
-    netUpsert,
-    netRemove,
-    getPlayerState,
-    setAdminRainbow
-  };
+  return { init, start: startGame, quickReset, applyProfileStyle, netUpsert, netRemove, getPlayerState, setAdminRainbow };
 })();
 
 export default Game;
