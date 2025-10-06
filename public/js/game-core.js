@@ -1,6 +1,6 @@
 // /public/js/game-core.js
 // Engine Snake.io — kamera, loop, UI, start/reset, dan hook online.
-// Memakai modul modular di /public/js/core/*
+// Modular + bridge globals agar cocok dengan snake.js yang pakai window.Game*.
 // API publik:
 //   Game.init()
 //   Game.start(colors, startLen)
@@ -11,13 +11,13 @@
 //   Game.getPlayerState()
 
 import { State } from './core/state.js';
-import { clamp, lerp } from './core/utils.js';
+import { clamp, lerp, angNorm } from './core/utils.js';
 import { drawFood, ensureFood } from './core/food.js';
 import { createSnake, updateSnake, drawSnake, spawnOfflineAsBots } from './core/snake.js';
 import { grabUIRefs, setResetVisible, showToast, updateHUDCounts, updateRankPanel } from './core/ui.js';
 import { Input } from './core/input.js';
 import { netUpsert, netRemove } from './core/net.js';
-import { RAINBOW } from './core/config.js'; // ⬅️ Tambahan: ambil palet pelangi dari config
+import { RAINBOW } from './core/config.js'; // palet pelangi admin
 
 // ===== Canvas / Camera =====
 let canvas, ctx;
@@ -34,6 +34,14 @@ function resize() {
   State.vw = vw;
   State.vh = vh;
   State.dpr = dpr;
+}
+
+// World→Screen untuk bridge global (dipakai snake.js via window.GameRender)
+function worldToScreen(x, y) {
+  return {
+    x: (x - State.camera.x) * State.camera.zoom + State.vw / 2,
+    y: (y - State.camera.y) * State.camera.zoom + State.vh / 2
+  };
 }
 
 // ===== Profil pemain aktif (untuk nameplate) =====
@@ -55,6 +63,49 @@ function clearWorld() {
   ensureFood(); // isi awal supaya langsung ada buah
 }
 
+// === BRIDGE GLOBALS ===
+// snake.js kamu mengakses window.GameState, window.GameRender, dll.
+// Fungsi ini memasang jembatan agar semua tersedia.
+function attachGlobals() {
+  // State
+  if (!window.GameState) window.GameState = State;
+
+  // Utils
+  window.GameUtils = window.GameUtils || {};
+  window.GameUtils.clamp  = clamp;
+  window.GameUtils.lerp   = lerp;
+  window.GameUtils.angNorm = angNorm;
+
+  // Render helpers
+  window.GameRender = window.GameRender || {};
+  window.GameRender.worldToScreen = worldToScreen;
+
+  // Food helpers (fallback aman bila modul food tidak expose yang sama)
+  window.GameFood = window.GameFood || {};
+  if (typeof window.GameFood.spawnSuckBurst !== 'function') {
+    window.GameFood.spawnSuckBurst = () => {}; // no-op: efek partikel opsional
+  }
+  if (typeof window.GameFood.spawnFood !== 'function') {
+    // fallback minimal, supaya killSnake() bisa drop buah tanpa error
+    const FRUITS = ['apple','orange','grape','watermelon','strawberry','lemon','blueberry','starfruit'];
+    window.GameFood.spawnFood = (x, y) => {
+      const kind = FRUITS[(Math.random() * FRUITS.length) | 0];
+      State.foods.push({ kind, x, y });
+    };
+  }
+
+  // UI
+  window.GameUI = window.GameUI || {};
+  window.GameUI.setResetVisible = setResetVisible;
+  window.GameUI.showToast = showToast;
+
+  // Input
+  window.GameInput = Input;
+
+  // (opsional) Global Game untuk akses dari file lain
+  if (typeof window.Game === 'undefined') window.Game = Game;
+}
+
 // ===== Start/Reset =====
 function startGame(colors, startLen) {
   clearWorld();
@@ -65,7 +116,6 @@ function startGame(colors, startLen) {
   const startY = Math.random() * State.WORLD.h * 0.6 + State.WORLD.h * 0.2;
 
   const isAdmin = !!window.App?.isAdmin;
-  // ⬇️ Pakai RAINBOW dari config (bukan State.RAINBOW)
   const cols = isAdmin ? RAINBOW.slice() : (colors && colors.length ? colors : ['#58ff9b']);
 
   const me = createSnake(
@@ -194,8 +244,11 @@ const Game = {
     }
     ctx = canvas.getContext('2d');
 
-    // Simpan context ke State (opsional bila modul lain butuh)
+    // Simpan context ke State
     State.ctx = ctx;
+
+    // Pasang bridge globals supaya snake.js yang pakai window.Game* aman
+    attachGlobals();
 
     // UI & tombol Restart (tengah layar)
     const restartBtn = grabUIRefs();
@@ -209,7 +262,7 @@ const Game = {
     addEventListener('resize', resize, { passive: true });
     resize();
 
-    // Input (pointer/keyboard/joystick) — dikendalikan modul Input
+    // Input (pointer/keyboard/joystick)
     if (Input?.init) Input.init(canvas);
     bindLocalKeys();
 
