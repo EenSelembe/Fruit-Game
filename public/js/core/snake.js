@@ -11,30 +11,34 @@ const BASE_SEG_SPACE = 6;
 export function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
 export function needForNext(s){ return 10 + Math.max(0,(s.length - s.baseLen))*2; }
 
-// ⬇️ Drain panjang/score saat turbo (unit: panjang per detik)
-const BOOST_LENGTH_DRAIN_PER_SEC = 1; // ubah lebih besar kalau mau lebih boros
+// ⬇️ Drain panjang/score saat turbo (integer-per-second)
+const BOOST_LENGTH_DRAIN_PER_SEC = 1; // 1 poin per detik
 
 export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=null, nameColor='#fff', borderColor='#000') {
+  const useColors = (colors && colors.length) ? colors.slice() : BOT_PALETTES[Math.floor(Math.random()*BOT_PALETTES.length)];
   const s = {
     id: Math.random().toString(36).slice(2),
     uid, name,
-    colors: (colors && colors.length) ? colors.slice() : BOT_PALETTES[Math.floor(Math.random()*BOT_PALETTES.length)],
+    colors: useColors,
     x, y,
     dir: Math.random()*Math.PI*2 - Math.PI,
     speedBase: 120, speedMax: 220, v: 0,
     boost: false, energy: 1,
-    length: len, baseLen: len, fruitProgress: 0,
+    length: Math.max(1, Math.floor(len)), baseLen: Math.max(1, Math.floor(len)), fruitProgress: 0,
     path: [], _pathAcc: 0, alive: true,
     isBot, isRemote: false,
     aiTarget: { x: Math.random()*State.WORLD.w, y: Math.random()*State.WORLD.h },
     isAdminRainbow: false,
     nameColor, borderColor,
     aiSkill: isBot ? 0.8 : 0.9,
-    aiAggro: isBot ? 0.65 : 0.9
+    aiAggro: isBot ? 0.65 : 0.9,
+    // ⬇️ accumulator untuk drain integer
+    _lenDrainAcc: 0
   };
   s.path.unshift({ x: s.x, y: s.y });
   return s;
 }
+
 export function registerSnake(s){ State.snakes.push(s); if (s.uid) State.snakesByUid.set(s.uid, s); }
 export function removeSnake(s){ const i=State.snakes.indexOf(s); if(i>=0) State.snakes.splice(i,1); if(s.uid) State.snakesByUid.delete(s.uid); }
 
@@ -54,11 +58,11 @@ export function updateSnake(s, dt) {
     if (t !== null) targetAngle = t;
     s.boost = Input.boostHold || Input.keys['shift'];
   } else if (s.isBot || s.isRemote === false) {
-    // === AI sederhana (pakai yang sudah ada, non-agresif default) ===
+    // === AI: admin agresif, bot biasa kalem ===
     const aggro = Math.max(0.4, Math.min(1.4, s.aiAggro || 0.7));
     const skill = s.aiSkill || 0.8;
 
-    // mangsa kecil
+    // cari mangsa lebih kecil
     let prey = null, preyDist2 = 1e12;
     const killSense = 420 * aggro;
     for (const o of State.snakes) {
@@ -72,7 +76,7 @@ export function updateSnake(s, dt) {
       const dx = f.x - s.x, dy = f.y - s.y, d2 = dx*dx + dy*dy;
       if (d2 < bestD2) { bestD2 = d2; bestFood = f; }
     }
-    // pilih target: admin bot lebih pro-kejar
+    // pilih target: admin prioritas mangsa, bot biasa prioritas buah
     let target = s.aiTarget;
     const preyClose = prey && Math.sqrt(preyDist2) < killSense;
     const huntBias = 0.15 * aggro;
@@ -89,11 +93,11 @@ export function updateSnake(s, dt) {
     }
     s.aiTarget = target;
 
-    // arah
+    // vektor ke target
     let vx = target.x - s.x, vy = target.y - s.y;
     const vlen = Math.hypot(vx, vy) || 1; vx /= vlen; vy /= vlen;
 
-    // hindar
+    // hindari bahaya (tubuh & kepala)
     let ax = 0, ay = 0, dangerMax = 0;
     const R2 = 110 * 110;
     for (const o of State.snakes) {
@@ -120,7 +124,7 @@ export function updateSnake(s, dt) {
 
     targetAngle = Math.atan2(cy, cx);
 
-    // boost: admin lebih agresif, non-admin lebih jarang
+    // boost: admin lebih agresif, non-admin jarang
     s.boost = false;
     if (preferPrey && s.energy > 0.2) {
       const huntBoostProb = 0.35 * skill * (s.isAdminRainbow ? 1.2 : (0.3 + 0.7*aggro));
@@ -130,7 +134,7 @@ export function updateSnake(s, dt) {
     if (dangerMax > dangerThresh && s.energy > 0.15) s.boost = true;
   }
 
-  // belok & gerak dasar
+  // belok
   const MAX_TURN = 3.4, delta = angNorm(targetAngle - s.dir);
   s.dir += Math.max(-MAX_TURN*dt, Math.min(MAX_TURN*dt, delta));
 
@@ -141,10 +145,18 @@ export function updateSnake(s, dt) {
 
   if (boosting) {
     s.energy = Math.max(0, s.energy - 0.28*dt);
-    // ⬇️ KURANGI PANJANG / SKOR saat boost
-    s.length = Math.max(1, s.length - BOOST_LENGTH_DRAIN_PER_SEC * dt);
+
+    // ⬇️ Drain panjang secara integer pakai accumulator
+    s._lenDrainAcc += BOOST_LENGTH_DRAIN_PER_SEC * dt; // akumulasi pecahan
+    const drop = Math.floor(s._lenDrainAcc);           // tukar jadi bilangan bulat
+    if (drop > 0) {
+      s.length = Math.max(1, Math.floor(s.length) - drop);
+      s._lenDrainAcc -= drop; // sisakan sisa pecahan di accumulator
+    }
   } else {
     s.energy = Math.min(1, s.energy + 0.14*dt);
+    // opsional: pelan-pelan hilangkan sisa pecahan agar stabil
+    s._lenDrainAcc = Math.min(s._lenDrainAcc, 0.999);
   }
 
   // posisi & path
@@ -158,13 +170,16 @@ export function updateSnake(s, dt) {
   const maxPath = Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP));
   if (s.path.length > maxPath) s.path.length = maxPath;
 
-  // makan buah
+  // makan buah (tetap integer)
   for (let i = State.foods.length - 1; i >= 0; i--) {
     const f = State.foods[i], dx2 = s.x - f.x, dy2 = s.y - f.y, eatR = bodyRadius(s) + 10;
     if (dx2*dx2 + dy2*dy2 < eatR*eatR) {
       State.foods.splice(i,1);
       s.fruitProgress += 1;
-      if (s.fruitProgress >= needForNext(s)) { s.fruitProgress = 0; s.length += 1; }
+      if (s.fruitProgress >= needForNext(s)) {
+        s.fruitProgress = 0;
+        s.length = Math.max(1, Math.floor(s.length) + 1);
+      }
     }
   }
 
@@ -183,6 +198,7 @@ export function killSnake(s) {
   if (!s.alive) return;
   s.alive = false;
 
+  // drop buah di jalur
   for (let i=0;i<s.path.length;i+=Math.max(6, Math.floor(segSpace(s)))) {
     const p = s.path[i];
     spawnFood(p.x + (Math.random()*12 - 6), p.y + (Math.random()*12 - 6));
@@ -199,7 +215,6 @@ export function killSnake(s) {
       registerSnake(nb);
     }, 700);
   } else if (s === State.player) {
-    // ⬇️ Tampilkan tombol Restart/Reset saat kalah
     setResetVisible(true);
     showToast('Kamu kalah! Tekan Restart untuk main lagi.', 1800);
   }
@@ -240,4 +255,4 @@ export function spawnOfflineAsBots(maxCount=12) {
 
     registerSnake(s);
   }
-      }
+    }
