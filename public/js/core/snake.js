@@ -26,7 +26,8 @@ export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=n
     aiTarget: { x: Math.random()*State.WORLD.w, y: Math.random()*State.WORLD.h },
     isAdminRainbow: false,
     nameColor, borderColor,
-    aiSkill: 0.8
+    aiSkill: 0.8,      // akurasi steering & menghindar
+    aiAggro: 0.7       // seberapa agresif berburu (non-admin < 1, admin > 1)
   };
   s.path.unshift({ x: s.x, y: s.y });
   return s;
@@ -50,52 +51,57 @@ export function updateSnake(s, dt) {
     if (t !== null) targetAngle = t;
     s.boost = Input.boostHold || Input.keys['shift'];
   } else if (s.isBot || s.isRemote === false) {
-    // ===== AI CERDAS: cari buah, hindar, dan buru =====
-    const W = State.WORLD;
+    // ===== AI: kurang agresif untuk bot biasa, agresif untuk admin bot =====
+    const aggro = Math.max(0.4, Math.min(1.4, s.aiAggro || 0.7)); // non-admin ~0.65, admin ~1.15
+    const skill = s.aiSkill || 0.8;
 
-    // 1) Cari mangsa (ular yang lebih kecil) dalam radius
+    // 1) Cari mangsa (lebih kecil) dalam radius tergantung aggro
+    const killSense = AI.KILL_SENSE * aggro; // admin lebih jauh melihat mangsa
     let prey = null, preyDist2 = 1e12;
     for (const o of State.snakes) {
       if (!o.alive || o === s) continue;
       const dx = o.x - s.x, dy = o.y - s.y, d2 = dx*dx + dy*dy;
-      if (d2 < AI.KILL_SENSE*AI.KILL_SENSE && o.length + 2 < s.length && d2 < preyDist2) {
-        prey = o; preyDist2 = d2;
-      }
+      if (o.length + 2 < s.length && d2 < killSense*killSense && d2 < preyDist2) { prey = o; preyDist2 = d2; }
     }
 
-    // 2) Cari buah terdekat (dalam jangkauan)
+    // 2) Cari buah terdekat
     let bestFood = null, bestD2 = AI.FOOD_SENSE * AI.FOOD_SENSE;
     for (const f of State.foods) {
       const dx = f.x - s.x, dy = f.y - s.y, d2 = dx*dx + dy*dy;
       if (d2 < bestD2) { bestD2 = d2; bestFood = f; }
     }
 
-    // 3) Tentukan target
+    // 3) Tentukan target:
+    //    - Bot biasa: lebih memilih buah, hanya kejar mangsa bila sangat dekat atau sesekali random kecil
+    //    - Admin bot: prioritas mangsa ketika ada
     let target = s.aiTarget;
-    if (prey) {
+    const preyClose = prey && Math.sqrt(preyDist2) < killSense;
+    const huntBias = 0.15 * aggro;   // peluang "tetap kejar" meski tidak terlalu dekat
+    const preferPrey = prey && (preyClose || (!bestFood && Math.random() < huntBias));
+
+    if (preferPrey) {
       const lead = Math.min(1, Math.sqrt(preyDist2) / 220);
       target = { x: prey.x + Math.cos(prey.dir)*60*lead, y: prey.y + Math.sin(prey.dir)*60*lead };
     } else if (bestFood) {
       target = { x: bestFood.x, y: bestFood.y };
     } else {
       if ((Math.random() < 0.01) || ((s.x - target.x)**2 + (s.y - target.y)**2) < 140*140) {
-        target = { x: Math.random()*W.w, y: Math.random()*W.h };
+        target = { x: Math.random()*State.WORLD.w, y: Math.random()*State.WORLD.h };
       }
     }
     s.aiTarget = target;
 
-    // 4) Vektor ke target
+    // 4) Arah ke target
     let vx = target.x - s.x, vy = target.y - s.y;
     const vlen = Math.hypot(vx, vy) || 1; vx /= vlen; vy /= vlen;
 
-    // 5) Hindari bahaya (tubuh & kepala ular lain)
+    // 5) Hindari bahaya (tidak dikurangi untuk admin — tetap pintar menghindar)
     let ax = 0, ay = 0, dangerMax = 0;
     const R2 = AI.DANGER_RADIUS * AI.DANGER_RADIUS;
     for (const o of State.snakes) {
       if (!o.alive || o === s) continue;
       const step = 4;
 
-      // tubuh
       for (let i = 8; i < o.path.length; i += step) {
         const p = o.path[i], dx = s.x - p.x, dy = s.y - p.y, d2 = dx*dx + dy*dy;
         if (d2 < R2) {
@@ -104,7 +110,6 @@ export function updateSnake(s, dt) {
           ax += (dx/d) * w; ay += (dy/d) * w; dangerMax = Math.max(dangerMax, w);
         }
       }
-      // kepala
       const hdx = s.x - o.x, hdy = s.y - o.y, hd2 = hdx*hdx + hdy*hdy;
       if (hd2 < R2) {
         const d = Math.sqrt(hd2) || 1;
@@ -113,31 +118,31 @@ export function updateSnake(s, dt) {
       }
     }
 
-    // 6) Gabungkan: ke target + hindar + jitter
-    const skill = s.aiSkill || 0.8;
-    const weight = AI.DANGER_WEIGHT * skill;
-    let cx = vx + ax * weight + (Math.random()*2 - 1) * AI.JITTER * 0.4;
-    let cy = vy + ay * weight + (Math.random()*2 - 1) * AI.JITTER * 0.4;
+    // 6) Gabungkan
+    const avoidWeight = AI.DANGER_WEIGHT * skill;
+    let cx = vx + ax * avoidWeight + (Math.random()*2 - 1) * AI.JITTER * 0.35;
+    let cy = vy + ay * avoidWeight + (Math.random()*2 - 1) * AI.JITTER * 0.35;
 
     targetAngle = Math.atan2(cy, cx);
 
-    // 7) Boost: saat bahaya atau berburu
+    // 7) Boost: non-admin dikurangi, admin ditingkatkan
     s.boost = false;
-    if (prey && s.energy > 0.2) s.boost = Math.random() < AI.BOOST_HUNT * skill;
-    if (dangerMax > AI.BOOST_DANGER && s.energy > 0.15) s.boost = true;
+    if (preferPrey && s.energy > 0.2) {
+      const huntBoostProb = AI.BOOST_HUNT * skill * (0.3 + 0.7*aggro); // non-admin < admin
+      if (Math.random() < huntBoostProb) s.boost = true;
+    }
+    const dangerThresh = AI.BOOST_DANGER * (1.05 - 0.30*aggro); // admin lebih mudah boost saat bahaya
+    if (dangerMax > dangerThresh && s.energy > 0.15) s.boost = true;
   }
 
-  // Batas belok & arah
   const MAX_TURN = 3.4, delta = angNorm(targetAngle - s.dir);
   s.dir += Math.max(-MAX_TURN*dt, Math.min(MAX_TURN*dt, delta));
 
-  // Kecepatan & energi
   const want = (s.boost && s.energy > 0.15) ? s.speedMax : s.speedBase;
   s.v = lerp(s.v || s.speedBase, want, (s.boost ? 0.35 : 0.18));
   if (s.boost && s.energy > 0.15) s.energy = Math.max(0, s.energy - 0.28*dt);
   else s.energy = Math.min(1, s.energy + 0.14*dt);
 
-  // Gerak & jejak path
   const mv = s.v * dt;
   s.x += Math.cos(s.dir) * mv; s.y += Math.sin(s.dir) * mv;
   wrapPos(s);
@@ -148,7 +153,6 @@ export function updateSnake(s, dt) {
   const maxPath = Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP));
   if (s.path.length > maxPath) s.path.length = maxPath;
 
-  // Makan buah
   for (let i = State.foods.length - 1; i >= 0; i--) {
     const f = State.foods[i], dx2 = s.x - f.x, dy2 = s.y - f.y, eatR = bodyRadius(s) + 10;
     if (dx2*dx2 + dy2*dy2 < eatR*eatR) {
@@ -158,7 +162,6 @@ export function updateSnake(s, dt) {
     }
   }
 
-  // Tabrakan (ke tubuh musuh)
   for (const o of State.snakes) {
     if (!o.alive || o === s) continue;
     const rS = bodyRadius(s), rO = bodyRadius(o), thresh = (rS + rO) * 0.7, step = 3;
@@ -173,7 +176,6 @@ export function killSnake(s) {
   if (!s.alive) return;
   s.alive = false;
 
-  // drop buah
   for (let i=0;i<s.path.length;i+=Math.max(6, Math.floor(segSpace(s)))) {
     const p = s.path[i];
     spawnFood(p.x + (Math.random()*12 - 6), p.y + (Math.random()*12 - 6));
@@ -217,18 +219,20 @@ export function spawnOfflineAsBots(maxCount=12) {
     const nameColor = u.style?.color || '#fff';
     const borderCol = u.style?.borderColor || '#000';
 
-    // palet warna acak untuk bot
     const pal = BOT_PALETTES[Math.floor(Math.random()*BOT_PALETTES.length)];
-
     const s = createSnake(pal, p.x, p.y, true,
       3 + Math.floor(Math.random()*8), u.name, uid, nameColor, borderCol);
 
-    // admin offline tetap pelangi
-    if (u.isAdmin) { s.colors = RAINBOW.slice(); s.isAdminRainbow = true; }
-
-    // skill AI (0.5–1.0)
-    s.aiSkill = 0.5 + Math.random()*0.5;
+    if (u.isAdmin) {
+      s.colors = RAINBOW.slice();
+      s.isAdminRainbow = true;
+      s.aiAggro = 1.15;   // admin bot agresif
+      s.aiSkill = 0.95;   // dan lincah
+    } else {
+      s.aiAggro = 0.65;   // bot biasa lebih kalem
+      s.aiSkill = 0.8;    // tetap cukup pintar menghindar
+    }
 
     registerSnake(s);
   }
-                }
+                                    }
