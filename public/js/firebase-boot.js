@@ -59,7 +59,6 @@ function buildDomNicknameStyle(u){
   const color = u.color || '#fff';
   return `color:${color}; background:${bg}; ${extraAnim} border:${border}; border-radius:6px; padding:2px 6px; ${extraBorder}`;
 }
-
 function updateHeaderNickname(u){
   const el = document.getElementById("usernameSpan");
   if(!el) return;
@@ -79,6 +78,19 @@ onAuthStateChanged(auth, async (user)=>{
   const userRef = doc(db, "users", user.uid);
   window.App.userRef = userRef;
 
+  // Pastikan dokumen user ada (opsional, aman untuk produksi)
+  try {
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        name: user.displayName || "Anonim",
+        saldo: 0,
+        createdAt: serverTimestamp()
+      }, { merge: true });
+    }
+  } catch { /* ignore */ }
+
+  // Listener realtime profil + saldo
   onSnapshot(userRef, (snap)=>{
     if(!snap.exists()) return;
     const data = snap.data() || {};
@@ -98,8 +110,8 @@ onAuthStateChanged(auth, async (user)=>{
     window.dispatchEvent(new CustomEvent("user:profile", { detail: window.App.profileStyle }));
 
     let saldo = Number(data.saldo || 0);
-    if (window.App.isAdmin) saldo = Number.POSITIVE_INFINITY; // ∞
-    const elSaldo = document.getElementById("saldo");
+    if (window.App.isAdmin) saldo = Number.POSITIVE_INFINITY; // ∞ untuk admin
+    const elSaldo  = document.getElementById("saldo");
     const elSaldo2 = document.getElementById("saldoInModal");
     if (elSaldo)  elSaldo.textContent  = (saldo === Number.POSITIVE_INFINITY) ? "∞" : ("Rp " + formatRp(saldo));
     if (elSaldo2) elSaldo2.textContent = (saldo === Number.POSITIVE_INFINITY) ? "∞" : ("Rp " + formatRp(saldo));
@@ -108,20 +120,27 @@ onAuthStateChanged(auth, async (user)=>{
   });
 });
 
-/* ====== OPTIONAL: helper charge ====== */
+/* ====== Saldo API (global) ====== */
 if (!window.Saldo) window.Saldo = {};
-if (!window.Saldo.charge) {
-  window.Saldo.charge = async function(amount){
-    if(!window.App?.userRef) return;
-    if(window.App.isAdmin) return; // admin tidak dipotong
-    amount = Math.max(0, Math.floor(Number(amount)||0));
-    const curr = Number(window.App?.profile?.saldo || 0);
-    const newSaldo = Math.max(0, curr - amount);
-    try{
-      await updateDoc(window.App.userRef, {
-        saldo: newSaldo,
-        consumedSaldo: increment(amount)
-      });
-    }catch(e){ /* diamkan */ }
-  };
-             }
+
+/**
+ * Kurangi saldo user (kecuali admin) secara atomik di server
+ * → memicu realtime update di semua listener/tab
+ */
+window.Saldo.charge = async function(amount){
+  if(!window.App?.userRef) return;
+  if(window.App.isAdmin) return; // admin tidak dipotong
+  amount = Math.max(0, Math.floor(Number(amount)||0));
+  if (amount <= 0) return;
+
+  try{
+    await updateDoc(window.App.userRef, {
+      saldo: increment(-amount),
+      consumedSaldo: increment(amount),
+      lastUpdate: serverTimestamp() // memicu snapshot di semua tab/game
+    });
+  }catch(e){
+    console.error("[Saldo.charge] gagal:", e);
+    throw e; // biar caller (controller.js) bisa tampilkan toast error
+  }
+};
