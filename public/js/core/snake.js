@@ -12,7 +12,7 @@ export function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9);
 export function needForNext(s){ return 10 + Math.max(0,(s.length - s.baseLen))*2; }
 
 // ⬇️ Drain panjang/score saat turbo (unit: panjang per detik)
-const BOOST_LENGTH_DRAIN_PER_SEC = 0.9; // ubah lebih besar kalau mau lebih boros
+const BOOST_LENGTH_DRAIN_PER_SEC = 1; // ubah lebih besar kalau mau lebih boros
 
 export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=null, nameColor='#fff', borderColor='#000') {
   const s = {
