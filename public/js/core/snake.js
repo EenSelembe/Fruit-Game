@@ -1,25 +1,22 @@
 // public/js/core/snake.js
-import { State } from './state.js';
-import { clamp, lerp, angNorm } from './utils.js';
-import { worldToScreen } from './camera.js';
-import { spawnFood, spawnSuckBurst } from './food.js';
-import { setResetVisible, showToast } from './ui.js';
-import { RAINBOW, BOT_PALETTES } from './config.js';
-import { Input } from './input.js';
+// === Snake logic module (tanpa import) ===
+// Mengandalkan global dari game-core.js:
+//   window.GameState, window.GameUtils, window.GameRender, window.GameFood, window.GameUI, window.GameInput
 
-/* ================== Geometry & Growth ================== */
-export function bodyRadius(s){ return 4 + 2*Math.sqrt(Math.max(0, s.length-3)); }
-const BASE_SEG_SPACE = 6;
-export function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
-export function needForNext(s){ return 10 + Math.max(0,(s.length - s.baseLen))*2; }
+/* ================== Config Warna ================== */
+const RAINBOW = ["#ff0055","#ff7b00","#ffee00","#00d26a","#00b3ff","#6950ff"];
+const BOT_PALETTES = [
+  ["#79a7ff","#7cffea"], ["#ff9a76","#ffd166"],
+  ["#8aff80","#4df0c3"], ["#b48cff","#7e5bef"],
+  ["#ff6fb5","#ffa6c1"], ["#00e5ff","#00ffa3"],
+  ["#ffa552","#ffd166"], ["#66ff99","#66ffe5"]
+];
 
-/* ================== Unique Palettes (non-admin) ================== */
-function paletteKey(cols){ return cols.map(c=>String(c).toLowerCase()).join('|'); }
-function isRainbow(cols){
-  if (!Array.isArray(cols) || cols.length !== RAINBOW.length) return false;
-  const a = cols.map(c=>c.toLowerCase()).join('|');
-  const b = RAINBOW.map(c=>c.toLowerCase()).join('|');
-  return a === b;
+/* ================== Helpers internal ================== */
+function hash32(str=''){
+  let h = 2166136261 >>> 0;
+  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0;
 }
 function hexToRgb(hex) {
   let h = String(hex).replace('#','');
@@ -35,18 +32,21 @@ function shiftHex(hex, amt){
   const {r,g,b} = hexToRgb(hex);
   return rgbToHex(r+amt, g+amt, b+amt);
 }
+function paletteKey(cols){ return cols.map(c=>String(c).toLowerCase()).join('|'); }
+function isRainbow(cols){
+  if (!Array.isArray(cols) || cols.length !== RAINBOW.length) return false;
+  const a = cols.map(c=>c.toLowerCase()).join('|');
+  const b = RAINBOW.map(c=>c.toLowerCase()).join('|');
+  return a === b;
+}
 function paletteUsed(cols){
+  const State = window.GameState;
   const key = paletteKey(cols);
   for (const s of State.snakes) {
-    if (s.isAdminRainbow) continue; // admin: pelangi selalu diizinkan
+    if (s.isAdminRainbow) continue;
     if (paletteKey(s.colors) === key) return true;
   }
   return false;
-}
-function hash32(str=''){
-  let h = 2166136261 >>> 0;
-  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
-  return h >>> 0;
 }
 function nudgePalette(baseCols, seedKey){
   const seed = hash32(seedKey);
@@ -58,7 +58,7 @@ function nudgePalette(baseCols, seedKey){
   return baseCols.slice();
 }
 function pickUniquePalette(preferred, uidOrId){
-  if (preferred && isRainbow(preferred)) return preferred.slice();          // admin palette
+  if (preferred && isRainbow(preferred)) return preferred.slice();
   if (preferred && preferred.length && !paletteUsed(preferred)) return preferred.slice();
   const start = BOT_PALETTES.length ? (hash32(uidOrId||'') % BOT_PALETTES.length) : 0;
   for (let i=0;i<BOT_PALETTES.length;i++){
@@ -68,15 +68,22 @@ function pickUniquePalette(preferred, uidOrId){
   const base = preferred && preferred.length ? preferred : BOT_PALETTES[0] || ['#58ff9b'];
   return nudgePalette(base, String(uidOrId||Math.random()));
 }
+
+/* ================== Geometry & Growth ================== */
+export function bodyRadius(s){ return 4 + 2*Math.sqrt(Math.max(0, s.length-3)); }
+const BASE_SEG_SPACE = 6;
+export function segSpace(s){ return Math.max(BASE_SEG_SPACE, bodyRadius(s)*0.9); }
+export function needForNext(s){ return 10 + Math.max(0,(s.length - s.baseLen))*2; }
+
+/* ================== Creation & Registry ================== */
+const BOOST_LENGTH_DRAIN_PER_SEC = 1; // turbo: 1 poin/detik (integer via accumulator)
+
 export function ensureUniqueColors(s, preferred=null){
   if (s.isAdminRainbow) { s.colors = RAINBOW.slice(); return; }
   s.colors = pickUniquePalette(preferred || s.colors, s.uid || s.id);
 }
-
-/* ================== Creation & Registry ================== */
-const BOOST_LENGTH_DRAIN_PER_SEC = 1; // turbo drain 1 poin/det (integer via accumulator)
-
 export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=null, nameColor='#fff', borderColor='#000') {
+  const State = window.GameState;
   const s = {
     id: Math.random().toString(36).slice(2),
     uid, name,
@@ -94,26 +101,27 @@ export function createSnake(colors, x, y, isBot=false, len=3, name='USER', uid=n
     aiSkill: isBot ? 0.8 : 0.9,
     aiAggro: isBot ? 0.65 : 0.9,
     _lenDrainAcc: 0,
-    fruitsEaten: 0,          // total buah dimakan (untuk drop saat mati)
-    _eatTimer: 0             // untuk animasi mulut membuka
+    fruitsEaten: 0,
+    _eatTimer: 0
   };
   ensureUniqueColors(s);
   s.path.unshift({ x: s.x, y: s.y });
   return s;
 }
-
-export function registerSnake(s){ State.snakes.push(s); if (s.uid) State.snakesByUid.set(s.uid, s); }
-export function removeSnake(s){ const i=State.snakes.indexOf(s); if(i>=0) State.snakes.splice(i,1); if(s.uid) State.snakesByUid.delete(s.uid); }
-
-/* ================== Wrapping ================== */
+export function registerSnake(s){ const State=window.GameState; State.snakes.push(s); if (s.uid) State.snakesByUid.set(s.uid, s); }
+export function removeSnake(s){ const State=window.GameState; const i=State.snakes.indexOf(s); if(i>=0) State.snakes.splice(i,1); if(s.uid) State.snakesByUid.delete(s.uid); }
 export function wrapPos(p) {
-  const W = State.WORLD;
+  const W = window.GameState.WORLD;
   if (p.x < 0) p.x += W.w; else if (p.x >= W.w) p.x -= W.w;
   if (p.y < 0) p.y += W.h; else if (p.y >= W.h) p.y -= W.h;
 }
 
 /* ================== AI & Physics ================== */
 export function updateSnake(s, dt) {
+  const State = window.GameState;
+  const Input = window.GameInput;
+  const { angNorm, lerp } = window.GameUtils;
+
   if (!s.alive) return;
 
   let targetAngle = s.dir;
@@ -123,11 +131,10 @@ export function updateSnake(s, dt) {
     if (t !== null) targetAngle = t;
     s.boost = Input.boostHold || Input.keys['shift'];
   } else if (s.isBot || s.isRemote === false) {
-    // Admin lebih agresif, bot biasa lebih kalem
     const aggro = Math.max(0.4, Math.min(1.4, s.aiAggro || 0.7));
     const skill = s.aiSkill || 0.8;
 
-    // cari mangsa lebih kecil
+    // prey kecil
     let prey = null, preyDist2 = 1e12;
     const killSense = 420 * aggro;
     for (const o of State.snakes) {
@@ -135,13 +142,13 @@ export function updateSnake(s, dt) {
       const dx = o.x - s.x, dy = o.y - s.y, d2 = dx*dx + dy*dy;
       if (o.length + 2 < s.length && d2 < killSense*killSense && d2 < preyDist2) { prey = o; preyDist2 = d2; }
     }
-    // buah terdekat
+    // food terdekat
     let bestFood = null, bestD2 = 520 * 520;
     for (const f of State.foods) {
       const dx = f.x - s.x, dy = f.y - s.y, d2 = dx*dx + dy*dy;
       if (d2 < bestD2) { bestD2 = d2; bestFood = f; }
     }
-    // pilih target
+    // target
     let target = s.aiTarget;
     const preyClose = prey && Math.sqrt(preyDist2) < killSense;
     const huntBias = 0.15 * aggro;
@@ -162,7 +169,7 @@ export function updateSnake(s, dt) {
     let vx = target.x - s.x, vy = target.y - s.y;
     const vlen = Math.hypot(vx, vy) || 1; vx /= vlen; vy /= vlen;
 
-    // hindari bahaya (tubuh & kepala)
+    // hindari bahaya
     let ax = 0, ay = 0, dangerMax = 0;
     const R2 = 110 * 110;
     for (const o of State.snakes) {
@@ -233,12 +240,12 @@ export function updateSnake(s, dt) {
   const maxPath = Math.floor(5.5 * s.length * (BASE_SEG_SPACE / SP));
   if (s.path.length > maxPath) s.path.length = maxPath;
 
-  // makan buah + efek sedot + counter + buka mulut
+  // makan buah
   for (let i = State.foods.length - 1; i >= 0; i--) {
     const f = State.foods[i], dx2 = s.x - f.x, dy2 = s.y - f.y, eatR = bodyRadius(s) + 10;
     if (dx2*dx2 + dy2*dy2 < eatR*eatR) {
-      spawnSuckBurst(f.kind, f.x, f.y, s.id);     // efek sedot
-      s._eatTimer = performance.now();            // mulut buka 200ms
+      window.GameFood.spawnSuckBurst(f.kind, f.x, f.y, s.id); // efek sedot
+      s._eatTimer = performance.now();                        // mulut buka 200ms
       State.foods.splice(i,1);
       s.fruitsEaten = (s.fruitsEaten|0) + 1;
 
@@ -263,10 +270,11 @@ export function updateSnake(s, dt) {
 
 /* ================== Death & Respawn ================== */
 export function killSnake(s) {
+  const State = window.GameState;
   if (!s.alive) return;
   s.alive = false;
 
-  // Drop buah sebanyak total yang dimakan
+  // drop buah sebanyak yang dimakan
   const count = Math.max(0, Math.floor(s.fruitsEaten || 0));
   if (count > 0) {
     const path = (s.path && s.path.length) ? s.path : [{ x: s.x, y: s.y }];
@@ -274,7 +282,7 @@ export function killSnake(s) {
     for (let k = 0; k < count; k++) {
       const t = (L > 1) ? Math.min(L - 1, Math.floor((k / Math.max(1,count-1)) * (L - 1))) : 0;
       const p = path[t];
-      spawnFood(p.x + (Math.random()*14 - 7), p.y + (Math.random()*14 - 7));
+      window.GameFood.spawnFood(p.x + (Math.random()*14 - 7), p.y + (Math.random()*14 - 7));
     }
   }
 
@@ -289,19 +297,20 @@ export function killSnake(s) {
       registerSnake(nb);
     }, 700);
   } else if (s === State.player) {
-    setResetVisible(true); // tombol Restart ditampilkan (UI sudah pusatkan di layar)
-    showToast('Kamu kalah! Tekan Restart untuk main lagi.', 1800);
+    window.GameUI.setResetVisible(true); // tombol Restart
+    window.GameUI.showToast('Kamu kalah! Tekan Restart untuk main lagi.', 1800);
   }
 }
 
-/* ================== Offline Bots Spawn ================== */
+/* ================== Offline Bots ================== */
 export function hashToPos(uid){
+  const State = window.GameState;
   let h = 2166136261 >>> 0;
   for (let i=0;i<uid.length;i++){ h ^= uid.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
   return { x: (h % State.WORLD.w), y: ((h>>>1) % State.WORLD.h) };
 }
-
 export function spawnOfflineAsBots(maxCount=12) {
+  const State = window.GameState;
   const dir = window.Presence?.UserDir;
   const online = window.Presence?.OnlineUids;
   if (!dir || !online) return;
@@ -333,8 +342,7 @@ export function spawnOfflineAsBots(maxCount=12) {
   }
 }
 
-/* ================== Rendering ================== */
-// Helpers untuk path halus + striping tubuh
+/* ================== Rendering helpers (striped body) ================== */
 function moveWithBezier(ctx, pts, tension = 0.75) {
   ctx.moveTo(pts[0].x, pts[0].y);
   for (let i = 0; i < pts.length - 1; i++) {
@@ -360,6 +368,8 @@ function chaikinSmooth(pts, iterations = 2) {
   return out;
 }
 function screenSegmentsFromSnake(sn) {
+  const State = window.GameState;
+  const worldToScreen = window.GameRender.worldToScreen;
   const pts = [];
   for (let i = sn.path.length - 1; i >= 0; i--) {
     const p = sn.path[i]; const s = worldToScreen(p.x, p.y); pts.push({ x: s.x, y: s.y });
@@ -426,8 +436,10 @@ function strokeStripedPath(ctx, pts, strokeWidth, colors, outlineWidth = 0, glow
   ctx.globalAlpha = 1;
 }
 
-/* ================ Draw Snake (with eyes & mouth) ================ */
+/* ================ Draw Snake (eyes + mouth open on eat) ================ */
 export function drawSnake(ctx, sn) {
+  const State = window.GameState;
+  const worldToScreen = window.GameRender.worldToScreen;
   if (!sn.path.length) return;
 
   const rPix = bodyRadius(sn) * State.camera.zoom;
@@ -439,11 +451,11 @@ export function drawSnake(ctx, sn) {
     strokeStripedPath(ctx, seg, rPix * 2, sn.colors, rPix * 0.65, sn.isAdminRainbow);
   }
 
-  // head + two eyes + mouth
+  // head + eyes + mouth
   const headS = worldToScreen(sn.x, sn.y);
   const rr = (6.5 + 0.1 * Math.sqrt(sn.length)) * State.camera.zoom;
 
-  // head base
+  // head
   ctx.beginPath();
   ctx.arc(headS.x, headS.y, rr, 0, Math.PI * 2);
   ctx.fillStyle = sn.colors && sn.colors.length ? sn.colors[0] : '#58ff9b';
@@ -494,4 +506,4 @@ export function drawSnake(ctx, sn) {
   ctx.fillStyle = sn.nameColor || '#fff';
   ctx.fillText(sn.name || 'USER', headS.x, headS.y - 10 * State.camera.zoom);
   ctx.restore();
-                                              }
+    }
