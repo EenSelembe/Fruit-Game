@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
   <title>Snake.io — Smooth + Rank + Buah + Custom Color + Saldo + Profil</title>
-  <link rel="stylesheet" href="./css/snackio.css?v=12">
+  <link rel="stylesheet" href="./css/snackio.css?v=11">
 </head>
 <body>
   <div id="wrap">
@@ -77,17 +77,42 @@
     </div>
   </div>
 
+  <!-- COLOR PICKER MODAL -->
+  <div id="colorModal" class="modal" style="display:none">
+    <div class="card">
+      <h1>Pilih Warna</h1>
+      <div class="pickerGrid">
+        <div class="preview" id="prevBox"></div>
+        <div class="sl">
+          <label>Hue <input id="hue" type="range" min="0" max="360" value="160"></label>
+          <label>Saturation <input id="sat" type="range" min="0" max="100" value="85"></label>
+          <label>Lightness <input id="lit" type="range" min="0" max="100" value="55"></label>
+          <div class="hexRow">
+            <span>#</span><input id="hex" type="text" value="58ff9b" maxlength="6">
+          </div>
+          <div class="swatches" id="swatches"></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="cancelPick" class="btn">Batal</button>
+        <button id="okPick" class="btn">Pilih</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" style="display:none"></div>
 
-  <!-- ID ROOM GLOBAL -->
+  <!-- GLOBAL ROOM ID -->
   <script>window.WORLD_ROOM_ID = 'world1';</script>
 
-  <!-- ✅ URUTAN FINAL (bust cache dengan v=12) -->
-  <script type="module" src="./js/firebase-boot.js?v=12"></script>
-  <script type="module" src="./js/saldo-global.js?v=12"></script> <!-- pusat sinkron saldo -->
-  <script type="module" src="./js/picker.js?v=12"></script>
-  <script type="module" src="./js/game-core.js?v=12"></script>
-  <script type="module" src="./js/net-sync.js?v=12"></script>
-  <script type="module" src="./js/controller.js?v=12"></script>
+  <!-- ✅ SCRIPT URUTAN FINAL (semua fitur aktif) -->
+  <script type="module" src="./js/firebase-boot.js?v=11"></script>
+  <script type="module" src="./js/helpers.js?v=11"></script>
+  <script type="module" src="./js/presence.js?v=11"></script>
+  <script type="module" src="./js/picker.js?v=11"></script>
+  <script type="module" src="./js/saldo.js?v=11"></script>
+  <script type="module" src="./js/game-core.js?v=11"></script>
+  <script type="module" src="./js/net-sync.js?v=11"></script>
+  <script type="module" src="./js/controller.js?v=11"></script>
 </body>
-          </html>
+            </html>
