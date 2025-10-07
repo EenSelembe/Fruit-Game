@@ -1,15 +1,18 @@
-// /public/js/controller.js — controller utama Snake.io (pakai GlobalSaldo)
+// /public/js/controller.js — pengendali utama Snake.io
+// Integrasi Firebase (profil/saldo), picker (warna), game-core, dan NetSync.
+// Biaya: warna*10k + panjang*5k, Admin gratis (∞) dan pelangi.
+
 import "./firebase-boot.js";
 import "./picker.js";
-import "./net-sync.js";               // default export dipanggil lewat window.NetSync
-import { chargeGlobal } from "./saldo-global.js"; // gunakan saldo global
+import NetSync from "./net-sync.js";
+import { onSaldo, chargeGlobal } from "./saldo-global.js";
 
 // ==== Konstanta harga ====
 const PRICE_COLOR = 10000;
 const PRICE_LEN   = 5000;
 
 // ==== State dasar ====
-let saldo   = 0;
+let saldo = 0;
 let isAdmin = false;
 
 // simpan pembelian terakhir agar Reset memotong ulang
@@ -28,7 +31,7 @@ const resetBtn       = document.getElementById("reset");
 let palette  = window.ColorPicker?.palette  || ['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'];
 let selected = window.ColorPicker?.selected || [false,false,false,false,false];
 
-// Rainbow admin
+// Rainbow admin (body stripes)
 const RAINBOW = ["#ff0055","#ff7b00","#ffee00","#00d26a","#00b3ff","#6950ff"];
 
 // ==== Helpers ====
@@ -46,19 +49,19 @@ function calcCosts() {
 }
 function refreshCostUI() {
   const { cColor, cLen, total } = calcCosts();
-  costColorEl.textContent = formatRp(cColor);
-  costLenEl.textContent   = formatRp(cLen);
-  costTotalEl.textContent = formatRp(total);
+  if (costColorEl) costColorEl.textContent = formatRp(cColor);
+  if (costLenEl)   costLenEl.textContent   = formatRp(cLen);
+  if (costTotalEl) costTotalEl.textContent = formatRp(total);
 }
 function refreshStartState() {
   const { total, colorCount } = calcCosts();
   const saldoCheck = isAdmin ? Number.MAX_SAFE_INTEGER : saldo;
   const can = (isAdmin || colorCount > 0) && total <= saldoCheck;
-  startBtn.disabled = !can;
+  if (startBtn) startBtn.disabled = !can;
 }
 function refreshCostsAndStart() { refreshCostUI(); refreshStartState(); }
 
-// Toast helper (aman walau GameUI belum ada)
+// Toast helper
 const toast = (msg, dur=1200) => window.GameUI?.showToast?.(msg, dur);
 
 // ==== Event dari picker ====
@@ -68,51 +71,51 @@ window.addEventListener("color:update", (e) => {
   refreshCostsAndStart();
 });
 
-// ==== Dengar saldo global ====
-window.addEventListener("saldo:update", (e)=>{
-  saldo   = Number(e.detail.saldo || 0);
-  isAdmin = !!e.detail.isAdmin;
-  refreshCostsAndStart();
-});
-// fallback kompatibel lama (kalau ada)
-window.addEventListener("user:saldo", (e)=>{
-  saldo   = Number(e.detail.saldo || 0);
-  isAdmin = !!e.detail.isAdmin;
+// ==== Sinkron saldo-global (pusat) ====
+onSaldo((val, admin)=>{
+  saldo = Number(val||0);
+  isAdmin = !!admin;
   refreshCostsAndStart();
 });
 
-// ==== Dengar profile (untuk nameplate canvas) ====
-window.addEventListener("user:profile", (e)=>{
+// ==== Event dari Firebase (profil → nameplate style di canvas) ====
+window.addEventListener("user:profile", (e) => {
   if (window.Game?.applyProfileStyle) {
     window.Game.applyProfileStyle(e.detail);
   }
 });
 
 // ==== Input panjang ====
-startLenInput.addEventListener("input", refreshCostsAndStart);
+if (startLenInput) startLenInput.addEventListener("input", refreshCostsAndStart);
 
 // ==== Tombol START ====
-startBtn.addEventListener("click", async () => {
+if (startBtn) startBtn.addEventListener("click", async () => {
   if (!window.Game || typeof window.Game.start !== "function") {
     toast("Game belum siap, sebentar...", 1200);
     return;
   }
+
   const { len, total } = calcCosts();
   let colors = getSelectedColors();
-  if (isAdmin) colors = RAINBOW;
+  if (isAdmin) colors = RAINBOW; // admin pelangi
 
   const oldText = startBtn.textContent;
   startBtn.disabled = true;
   startBtn.textContent = "Memulai...";
 
   try {
-    if (!isAdmin) await chargeGlobal(total); // ⬅️ pakai saldo global
+    // potong saldo (kecuali admin) via pusat saldo
+    if (!isAdmin) {
+      await chargeGlobal(total);
+    }
 
+    // start game lokal
     window.Game.start(colors, len);
     lastPurchase = { colors, len, total };
 
-    try { window.NetSync?.start?.(colors, len); }
-    catch (e) { console.warn("[NetSync] start gagal:", e); toast("Mode online gagal, lanjut offline", 1400); }
+    // sync online (non-blok)
+    try { NetSync.start(colors, len); }
+    catch (e) { console.warn("[NetSync] start gagal:", e); toast("Mode online gagal, lanjut offline", 1500); }
 
     if (configPanel) configPanel.style.display = "none";
     toast("Game dimulai!", 1000);
@@ -130,7 +133,9 @@ startBtn.addEventListener("click", async () => {
 if (resetBtn) {
   resetBtn.addEventListener("click", async ()=>{
     try {
-      if (lastPurchase && !isAdmin) await chargeGlobal(lastPurchase.total); // ⬅️ pakai saldo global
+      if (lastPurchase && !isAdmin) {
+        await chargeGlobal(lastPurchase.total);
+      }
       if (window.Game?.quickReset) window.Game.quickReset();
       toast("Reset!", 900);
     } catch (e) {
@@ -143,8 +148,12 @@ if (resetBtn) {
 // ==== Inisialisasi awal ====
 document.addEventListener("DOMContentLoaded", () => {
   refreshCostsAndStart();
+
   const tryInit = () => {
-    if (window.Game?.init) { window.Game.init(); return; }
+    if (window.Game && typeof window.Game.init === "function") {
+      window.Game.init();
+      return;
+    }
     setTimeout(tryInit, 100);
   };
   tryInit();
