@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
   <title>Snake.io — Smooth + Rank + Buah + Custom Color + Saldo + Profil</title>
-  <link rel="stylesheet" href="./css/snackio.css?v=10">
+  <link rel="stylesheet" href="./css/snackio.css?v=12">
 </head>
 <body>
   <div id="wrap">
@@ -82,11 +82,12 @@
   <!-- ID ROOM GLOBAL -->
   <script>window.WORLD_ROOM_ID = 'world1';</script>
 
-  <!-- ✅ URUTAN FINAL SCRIPT -->
-  <script type="module" src="./js/firebase-boot.js?v=10"></script>
-  <script type="module" src="./js/picker.js?v=10"></script>
-  <script type="module" src="./js/game-core.js?v=10"></script>
-  <script type="module" src="./js/net-sync.js?v=10"></script>
-  <script type="module" src="./js/controller.js?v=10"></script>
+  <!-- ✅ URUTAN FINAL (bust cache dengan v=12) -->
+  <script type="module" src="./js/firebase-boot.js?v=12"></script>
+  <script type="module" src="./js/saldo-global.js?v=12"></script> <!-- pusat sinkron saldo -->
+  <script type="module" src="./js/picker.js?v=12"></script>
+  <script type="module" src="./js/game-core.js?v=12"></script>
+  <script type="module" src="./js/net-sync.js?v=12"></script>
+  <script type="module" src="./js/controller.js?v=12"></script>
 </body>
-</html>
+          </html>
