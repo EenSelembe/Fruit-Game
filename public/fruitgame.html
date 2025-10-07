@@ -135,17 +135,17 @@
     </div>
   </div>
 
+  <!-- ========= GAME LOGIC ========= -->
   <script>
     const COLS=5, ROWS=4;
     const FRUITS=["🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍒","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🍋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🦋","🍉","🍉","🍉","🍉","🍇","🍇","🍇","🍇","🍓","🍓","🍓","🍓","🍍","🍍","🍍","🍍","🧸","🧸","🧸","🧸","🍎","🍎","🍎","💐","💐","🍌","🍌","🥥","🥥","🍈","🍈","⭐","⭐","🔔","🔔"];
     const PAYTABLE={"🍒":0.1,"🍋":0.2,"🦋":0.3,"🍉":0.4,"🍇":0.5,"🍓":0.6,"🍍":0.7,"🥝":1.5,"🧸":0.8,"🍎":0.9,"🍐":2.5,"💐":1,"🍌":4,"🍑":4,"🥥":4,"🍈":4,"💎":8,"⭐":5};
-    let balance=0; bet=500, win=0, spinning=false;
+    let balance=0, bet=500, win=0, spinning=false;
     const betStep=500, betMin=500, betMax=100000;
     let cascadeCount=0, currentMulti=1;
     let freeSpins=0, inScatterMode=false, scatterWinTotal=0;
     let autoSpinValue=0, autoSpinCount=0;
     let turbo=false;
-    let currentSpinWin = 0;
     let autoSpinInfinite = false;
     let autoRunning = false;
 
@@ -157,15 +157,15 @@
     const buyBtn=document.getElementById("buyBtn");
     const buyPrice=document.getElementById("buyPrice");
 
+    function formatRupiah(num){return new Intl.NumberFormat("id-ID").format(Math.floor(num||0));}
     function updateBuyPrice(){
       const cost=bet*100;
       if(buyPrice){buyPrice.textContent="Harga: Rp. "+formatRupiah(cost)}
       const popupPrice=document.getElementById("popupPrice");
-      if(popupPrice){popupPrice.textContent=formatRupiah(cost)}
+      if(popupPrice){popupPrice.textContent="Rp. "+formatRupiah(cost)}
     }
-
     function updateStats(){
-      balEl.textContent="Rp. "+formatRupiah(balance);
+      balEl.textContent="Rp. "+(balance===Infinity?"∞":formatRupiah(balance));
       winEl.textContent="Rp. "+formatRupiah(win);
       betEl.textContent="Rp. "+formatRupiah(bet);
       updateBuyPrice();
@@ -175,15 +175,17 @@
       updateBuyPrice();
       document.getElementById("confirmPopup").style.display="flex";
     });
-
-    document.getElementById("confirmYes").addEventListener("click",()=>{
+    document.getElementById("confirmYes").addEventListener("click", async ()=>{
       document.getElementById("confirmPopup").style.display="none";
       const cost=bet*100;
-      if(balance>=cost){
-        const prevSaldo=balance;
-        balance-=cost;
+      if(balance>=cost || balance===Infinity){
+        // potong saldo realtime
+        if(!(window.SaldoGlobal?.isAdmin?.())) {
+          await window.SaldoGlobal?.chargeSaldo?.(cost);
+        }
+        if(balance!==Infinity) balance=Math.max(0, balance-cost);
         updateStats();
-        if(typeof saveBalance==="function")saveBalance(prevSaldo);
+
         inScatterMode=true;
         freeSpins=15;
         scatterWinTotal=0;
@@ -195,12 +197,7 @@
         banner.textContent="Saldo tidak cukup untuk Buy Free Spin!";
       }
     });
-
-    document.getElementById("confirmNo").addEventListener("click",()=>{
-      document.getElementById("confirmPopup").style.display="none";
-    });
-
-    function formatRupiah(num){return new Intl.NumberFormat("id-ID").format(num)}
+    document.getElementById("confirmNo").addEventListener("click",()=>{ document.getElementById("confirmPopup").style.display="none"; });
 
     function updateBanner(){
       if(inScatterMode){
@@ -214,7 +211,7 @@
       }
     }
 
-    function lockControls(){betMinus.disabled=true;betPlus.disabled=true;autoMinus.disabled=true;autoPlus.disabled=true}
+    function lockControls(){betMinus.disabled=true;betPlus.disabled=true;autoMinus.disabled=true;autoPlus.disabled=true;spinBtn.disabled=true}
     function unlockControls(){spinBtn.disabled=false;betMinus.disabled=false;betPlus.disabled=false;autoMinus.disabled=false;autoPlus.disabled=false}
     function updateAutoLabel(){
       if(autoSpinInfinite){autoCount.textContent="∞"}
@@ -242,32 +239,29 @@
     for(let c=0;c<COLS;c++){const reel=document.createElement("div");reel.className="reel";reel.id="reel"+c;const container=document.createElement("div");container.className="symbols";for(let r=0;r<ROWS;r++){container.appendChild(makeTile(getRandomFruit(c)))}reel.appendChild(container);board.appendChild(reel)}
 
     const sounds={spin:new Audio("sonds/spin.mp3"),roll:new Audio("sonds/roll.mp3"),rollScatter:new Audio("sonds/rollscatter.mp3"),lonceng:new Audio("sonds/lonceng.mp3"),win:new Audio("sonds/win.mp3"),scatter:new Audio("sonds/scatter.mp3"),totalWin:new Audio("sonds/total-win.mp3"),backsound:new Audio("sonds/backsondnormal.mp3"),backsoundScatter:new Audio("sonds/backsondscatter.mp3")};
-    sounds.roll.loop=true;
-    sounds.backsound.loop=true;
-    sounds.backsound.volume=0.5;
-    sounds.backsoundScatter.loop=true;
-    sounds.backsoundScatter.volume=0.5;
-
-    function playSound(name){if(sounds[name]){sounds[name].currentTime=0;sounds[name].play().catch(e=>{})}}
+    sounds.roll.loop=true; sounds.backsound.loop=true; sounds.backsound.volume=0.5; sounds.backsoundScatter.loop=true; sounds.backsoundScatter.volume=0.5;
+    function playSound(name){if(sounds[name]){sounds[name].currentTime=0;sounds[name].play().catch(()=>{})}}
     function stopSound(name){if(sounds[name]){sounds[name].pause();sounds[name].currentTime=0}}
-    function playBacksoundScatter(){stopSound("backsound");if(sounds.backsoundScatter.paused){sounds.backsoundScatter.currentTime=0;sounds.backsoundScatter.play().catch(e=>{})}}
-    function playBacksoundNormal(){stopSound("backsoundScatter");if(sounds.backsound.paused){sounds.backsound.currentTime=0;sounds.backsound.play().catch(e=>{})}}
-    function playBell(){const a=new Audio(sounds.lonceng.src);a.volume=sounds.lonceng.volume??1;a.play().catch(e=>{})}
+    function playBacksoundScatter(){stopSound("backsound");if(sounds.backsoundScatter.paused){sounds.backsoundScatter.currentTime=0;sounds.backsoundScatter.play().catch(()=>{})}}
+    function playBacksoundNormal(){stopSound("backsoundScatter");if(sounds.backsound.paused){sounds.backsound.currentTime=0;sounds.backsound.play().catch(()=>{})}}
+    function playBell(){const a=new Audio(sounds.lonceng.src);a.volume=sounds.lonceng.volume??1;a.play().catch(()=>{})}
 
     async function spin(){
-      if(balance<bet){banner.textContent="Saldo tidak cukup! Atur Bet dulu.";unlockControls();spinBtn.disabled=false;return}
+      if(balance<bet && balance!==Infinity){banner.textContent="Saldo tidak cukup! Atur Bet dulu.";unlockControls();spinBtn.disabled=false;return}
       if(spinning)return;
-      if(!inScatterMode&&balance<bet){alert("Saldo tidak cukup!");autoSpinCount=0;updateAutoLabel();return}
       lockControls();
       spinning=true;
       if(inScatterMode){playSound("rollScatter")}else{playSound("roll")}
-      win=0;
-      currentSpinWin=0;
-      updateStats();
-      if(!inScatterMode){const prevSaldo=balance;balance-=bet;if(typeof saveBalance==="function")saveBalance(prevSaldo)}
-      cascadeCount=0;
-      currentMulti=1;
-      updateBanner();
+      win=0; updateStats();
+
+      // potong saldo untuk spin biasa
+      if(!inScatterMode && balance!==Infinity){
+        await window.SaldoGlobal?.chargeSaldo?.(bet);
+        balance=Math.max(0,balance-bet);
+        updateStats();
+      }
+
+      cascadeCount=0; currentMulti=1; updateBanner();
       let matrix=[];
       for(let c=0;c<COLS;c++){const container=document.getElementById("reel"+c).querySelector(".symbols");container.innerHTML="";for(let i=0;i<80;i++){container.appendChild(makeTile(getRandomFruit(c)))}container.classList.add("spinning")}
       if(turbo){
@@ -339,15 +333,19 @@
           updateMultiplierDisplay();
           const winNow=result.totalWin*currentMulti;
           win+=winNow;
+
           if(inScatterMode){
             scatterWinTotal+=winNow;
-            updateBanner();
-            updateStats();
+            updateBanner(); updateStats();
           }else{
-            balance+=winNow;
+            // tambah saldo realtime utk kemenangan normal
+            if(!(window.SaldoGlobal?.isAdmin?.())) {
+              await window.SaldoGlobal?.addSaldo?.(Math.floor(winNow));
+            }
+            if(balance!==Infinity) balance+=winNow;
             updateStats();
-            if(typeof saveBalance==="function")saveBalance();
           }
+
           playSound("win");
           result.highlights.forEach(pos=>{
             const reel=document.getElementById("reel"+pos.c);
@@ -355,6 +353,7 @@
             if(tile)tile.classList.add("explode");
           });
           await new Promise(r=>setTimeout(r,600));
+
           for(const pos of result.highlights){matrix[pos.c][pos.r]=null}
           for(let c=0;c<COLS;c++){
             let col=matrix[c],newCol=[],shift=0;
@@ -387,14 +386,9 @@
             document.querySelectorAll(".tile.scatter").forEach(t=>t.classList.remove("shake"));
             stopSound("scatter");
             if(!inScatterMode&&freeSpins===0){
-              inScatterMode=true;
-              freeSpins=15;
-              document.body.classList.add("scatter-mode");
-              playBacksoundScatter();
+              inScatterMode=true; freeSpins=15; document.body.classList.add("scatter-mode"); playBacksoundScatter();
             }else if(inScatterMode){
-              freeSpins+=10;
-              banner.textContent=`+10 FREE SPIN (Sisa: ${freeSpins})`;
-              setTimeout(updateBanner,2500);
+              freeSpins+=10; banner.textContent=`+10 FREE SPIN (Sisa: ${freeSpins})`; setTimeout(updateBanner,2500);
             }
           }
           break;
@@ -404,36 +398,41 @@
 
     async function finishSpin(matrix){
       await cascade(matrix);
-      if(win>0&&typeof recordWin==="function"){recordWin(win)}
-      if(typeof publishWinNotifIfNeeded==="function"){publishWinNotifIfNeeded(win)}
+
+      // catat total win per spin untuk rank & notif
+      if(win>0 && typeof recordWin === "function"){recordWin(Math.floor(win));}
+      if(typeof publishWinNotifIfNeeded==="function"){publishWinNotifIfNeeded(Math.floor(win));}
+
       if(inScatterMode){
         updateBanner();
         for(let r=0;r<ROWS;r++){matrix[2][r]="⭐"}
         freeSpins--;
         updateBanner();
-        turbo=false;
-        turboBtn.classList.remove("active");
-        turboBtn.disabled=true;
+        turbo=false; turboBtn.classList.remove("active"); turboBtn.disabled=true;
+
         if(freeSpins<=0){
           inScatterMode=false;
           overlayAmount.textContent="RP. "+formatRupiah(scatterWinTotal);
           overlay.classList.add("show");
           playSound("totalwin");
           stopSound("backsoundScatter");
-          setTimeout(()=>{
+
+          setTimeout(async ()=>{
             overlay.classList.remove("show");
-            balance+=scatterWinTotal;
+            // masukkan total menang scatter sekaligus
+            if(!(window.SaldoGlobal?.isAdmin?.())) {
+              await window.SaldoGlobal?.addSaldo?.(Math.floor(scatterWinTotal));
+            }
+            if(balance!==Infinity) balance+=scatterWinTotal;
             updateStats();
-            if(typeof saveBalance==="function"){saveBalance()}
             scatterWinTotal=0;
             document.body.classList.remove("scatter-mode");
             turboBtn.disabled=false;
-            playBacksoundNormal();
-            if(autoSpinCount>0){
-              autoSpinCount--;
-              updateAutoLabel();
-              if(autoSpinCount>0){setTimeout(spin,800)}else{unlockControls()}
-            }else{unlockControls()}
+              playBacksoundNormal();
+              if(autoSpinCount>0){
+                autoSpinCount--; updateAutoLabel();
+                if(autoSpinCount>0){setTimeout(spin,800)}else{unlockControls()}
+              }else{unlockControls()}
           },4000);
         }else{
           setTimeout(spin,1200);
@@ -442,14 +441,11 @@
         if(autoRunning){
           if(autoSpinInfinite){setTimeout(spin,800)}
           else if(autoSpinCount>0){
-            autoSpinCount--;
-            updateAutoLabel();
+            autoSpinCount--; updateAutoLabel();
             if(autoSpinCount>0){setTimeout(spin,800)}else{unlockControls();spinBtn.textContent="SPIN"}
           }
         }else{
-          unlockControls();
-          spinBtn.textContent="SPIN";
-          updateAutoLabel();
+          unlockControls(); spinBtn.textContent="SPIN"; updateAutoLabel();
         }
       }
       spinning=false;
@@ -458,7 +454,7 @@
     spinBtn.addEventListener("click",()=>{
       if(sounds.backsound.paused&&!inScatterMode){playBacksoundNormal()}
       playSound("spin");
-      if(!document.fullscreenElement){document.documentElement.requestFullscreen().catch(err=>{})}
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen().catch(()=>{})}
       if(autoRunning){
         autoRunning=false;autoSpinInfinite=false;autoSpinCount=0;updateAutoLabel();spinBtn.textContent="SPIN";unlockControls();return
       }
@@ -475,88 +471,65 @@
     });
 
     window.addEventListener("DOMContentLoaded",()=>{updateStats();updateAutoLabel()});
+
+    // ======== sinkron saldo realtime dari saldo-global.js ========
+    window.addEventListener("user:saldo", (e)=>{
+      const { saldo, isAdmin } = e.detail || {};
+      balance = isAdmin ? Infinity : Number(saldo||0);
+      updateStats();
+    });
   </script>
 
+  <!-- ========= FIREBASE INIT (sekali saja) ========= -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, updateDoc, onSnapshot, getDoc, collection, addDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { initOnlineStatus } from "./online.js";
-
     initOnlineStatus();
 
     const firebaseConfig={apiKey:"AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",authDomain:"fruit-game-5e4a8.firebaseapp.com",projectId:"fruit-game-5e4a8",storageBucket:"fruit-game-5e4a8.appspot.com",messagingSenderId:"936228678997",appId:"1:936228678997:web:9dab2fa0d9a019161bd3dc",measurementId:"G-EPTSQQPM4D"};
-    const app=initializeApp(firebaseConfig);
-    const auth=getAuth(app);
-    const db=getFirestore(app);
+    initializeApp(firebaseConfig);
 
-    let userDocRef=null;
-    let meData=null;
+    const auth=getAuth();
+    onAuthStateChanged(auth,(user)=>{ if(!user) window.location.href="index.html"; });
+  </script>
 
-    onAuthStateChanged(auth,(user)=>{
-      if(user){
-        userDocRef=doc(db,"users",user.uid);
-        onSnapshot(userDocRef,(snap)=>{
-          if(snap.exists()){
-            balance=snap.data().saldo||0;
-            meData=snap.data();
-            updateStats();
-          }
-        });
-      }else{
-        window.location.href="index.html";
-      }
-    });
+  <!-- ========= LISTENER SALDO GLOBAL ========= -->
+  <script type="module" src="./js/saldo-global.js?v=11"></script>
 
-    async function saveBalance(prevSaldo){
-      if(!userDocRef)return;
-      const diff=(prevSaldo??balance)-balance;
-      let updates={saldo:balance};
-      if(diff>0){
-        const snap=await getDoc(userDocRef);
-        const prevConsumed=snap.exists()?(snap.data().consumedSaldo||0):0;
-        const totalConsumed=prevConsumed+diff;
-        const newLevel=Math.floor(totalConsumed/100000);
-        updates.consumedSaldo=totalConsumed;
-      }
-      await updateDoc(userDocRef,updates);
-    }
-    window.saveBalance=saveBalance;
+  <!-- ========= CATAT KEMENANGAN + NOTIF (tanpa re-init app) ========= -->
+  <script type="module">
+    import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, doc, updateDoc, addDoc, collection, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    function deductBet(amount){
-      const prevSaldo=balance;
-      balance=Math.max(balance-amount,0);
-      updateStats();
-      saveBalance(prevSaldo);
-    }
-    function addWin(amount){
-      balance+=amount;
-      updateStats();
-      saveBalance();
-    }
-    window.deductBet=deductBet;
-    window.addWin=addWin;
+    const auth = getAuth();
+    const db   = getFirestore();
 
     async function recordWin(amount){
-      if(!userDocRef)return;
+      const user = auth.currentUser;
+      if(!user) return;
       try{
-        await updateDoc(userDocRef,{winsAmount_slots54:increment(Math.floor(amount||0))});
+        await updateDoc(doc(db,"users",user.uid),{winsAmount_slots54: increment(Math.floor(amount||0))});
       }catch(e){}
     }
-    window.recordWin=recordWin;
+    window.recordWin = recordWin;
 
     async function publishWinNotifIfNeeded(spinTotalWin){
       try{
         const THRESHOLD=1000000;
-        if(!userDocRef||!meData)return;
-        if(spinTotalWin<THRESHOLD)return;
-        const nickname=meData.name||meData.username||"Player";
-        await addDoc(collection(db,"notifs"),{nickname,amount:spinTotalWin,createdAt:serverTimestamp()});
+        const user = auth.currentUser;
+        if(!user) return;
+        if(spinTotalWin < THRESHOLD) return;
+
+        // ambil nama user sekali
+        const nickname = (window.App?.profileStyle?.name) || "Player";
+        await addDoc(collection(db,"notifs"),{nickname,amount:Math.floor(spinTotalWin),createdAt:serverTimestamp()});
       }catch(e){}
     }
-    window.publishWinNotifIfNeeded=publishWinNotifIfNeeded;
+    window.publishWinNotifIfNeeded = publishWinNotifIfNeeded;
   </script>
 
+  <!-- ========= NOTIF POPUP PEMENANG ========= -->
   <script type="module">
     import { showWinNotif } from "./notif.js";
     window.showWinNotif=showWinNotif;
@@ -575,20 +548,19 @@
       return false;
     }
     async function pollNotif(){
-      if(document.hidden)return;
+      if(document.hidden) return;
       try{
         const q=query(collection(db,"notifs"),orderBy("createdAt","desc"),limit(1));
         const snap=await getDocs(q);
-        if(snap.empty)return;
+        if(snap.empty) return;
         const docu=snap.docs[0];
         const d=docu.data();
         if(first){first=false;lastId=docu.id;localStorage.setItem(LS_KEY,lastId);return}
-        if(docu.id===lastId)return;
+        if(docu.id===lastId) return;
         const amount=Number(d?.amount||0);
         const name=String(d?.nickname||"Player");
-        if(!isExpired(d)&&amount>1000000){showWinNotif(name,amount)}
-        lastId=docu.id;
-        localStorage.setItem(LS_KEY,lastId);
+        if(!isExpired(d)&&amount>=1000000){showWinNotif(name,amount)}
+        lastId=docu.id; localStorage.setItem(LS_KEY,lastId);
       }catch(e){}
     }
     pollNotif();
@@ -596,6 +568,7 @@
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollNotif()});
   </script>
 
+  <!-- ========= CHAT / DM (opsional, tetap) ========= -->
   <div id="chatContainer"></div>
   <script type="module">
     fetch("chat.html").then(r=>r.text()).then(html=>{
@@ -604,6 +577,7 @@
     });
   </script>
 
+  <!-- ========= MINI RANK ========= -->
   <style>
     .rank-panel{position:fixed;bottom:10px;left:10px;z-index:2500;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);color:#fff;padding:10px 12px;border-radius:10px;width:max-content;box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;font-family:inherit}
     .rank-panel h3{margin:0 0 6px 0;font-size:.95rem;font-weight:800;letter-spacing:.3px}
@@ -617,7 +591,6 @@
     .winAmount{font-size:.50rem;font-weight:500;color:#ffd54f;margin-left:2px}
     @keyframes neonAnim{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   </style>
-
   <div id="rankPanel" class="rank-panel">
     <h3>🏆RANK🏆</h3>
     <ol id="rankList">
@@ -626,7 +599,6 @@
       <li>username<br><span class="winAmount">Rp. 0</span></li>
     </ol>
   </div>
-
   <script type="module">
     import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     const db=getFirestore();
@@ -666,6 +638,5 @@
     loadTopWins();
     setInterval(loadTopWins,60*1000);
   </script>
-  <script type="module" src="./js/saldo-global.js?v=11"></script>
 </body>
 </html>
