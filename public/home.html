@@ -1,116 +1,329 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home - Fruit Game</title>
-  <link rel="stylesheet" href="notif.css">
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-image: url("./image/wallpaper-02.jpg");
-      background-position: center;
-      background-repeat: no-repeat;
-      background-attachment: fixed;
-      background-size: cover;
-      color: #fff;
-      text-align: center;
-    }
-    h1 {
-      font-size: 48px;
-      font-weight: bold;
-      margin: 20px 0;
-      background: linear-gradient(90deg, gold, orange, red);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 10px rgba(255,215,0,0.8),
-                   0 0 20px rgba(255,165,0,0.6);
-    }
-    .saldo {
-      font-size: 22px;
-      margin: 10px 0;
-    }
-    .menu {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    button {
-      font-size: 18px;
-      padding: 10px 20px;
-      background: linear-gradient(90deg, #ff512f, #dd2476);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    button:hover { transform: scale(1.05); }
-    #logout {
-      margin-top: 25px;
-      background: linear-gradient(90deg, #c31432, #240b36);
-    }
-  </style>
-</head>
-<body>
-  <h1>🎰 FRUIT GAME 🎮</h1>
-  <h2 id="username">Memuat...</h2>
-  <div class="saldo">Saldo: <span id="saldo">Rp 0</span></div>
-
-  <div class="menu">
-    <button onclick="window.location='fruitgame.html'">🎲 Slot Buah</button>
-    <button onclick="window.location='snake.html'">🐍 Snake.io</button>
-    <button onclick="window.location='blockpuzzle.html'">🧩 Puzzle Block</button>
-    <button onclick="window.location='rolet.html'">🎡 Rolet Buah</button>
-  </div>
-
-  <button id="logout">Logout</button>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
-      authDomain: "fruit-game-5e4a8.firebaseapp.com",
-      projectId: "fruit-game-5e4a8",
-      storageBucket: "fruit-game-5e4a8.appspot.com",
-      messagingSenderId: "936228678997",
-      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const usernameEl = document.getElementById("username");
-    const saldoEl = document.getElementById("saldo");
-
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-      const userRef = doc(db, "users", user.uid);
-      onSnapshot(userRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          usernameEl.textContent = data.name || data.username || "Player";
-          saldoEl.textContent = "Rp " + (Number(data.saldo) || 0).toLocaleString("id-ID");
-        } else {
-          usernameEl.textContent = "Player";
-          saldoEl.textContent = "Rp 0";
-        }
-      });
-    });
-
-    document.getElementById("logout").addEventListener("click", () => {
-      signOut(auth).then(() => window.location.href = "index.html");
-    });
-  </script>
-</body>
-</html>
+<!DOCTYPE html>  <html lang="id">  
+<head>  
+  <meta charset="UTF-8">  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>Home - Fruit Game</title>  
+  <link rel="stylesheet" href="notif.css">  
+  <style>  
+    body {  
+      margin: 0;  
+      font-family: Arial, sans-serif;  
+      background-image: url("./image/wallpaper-02.jpg");  
+      background-position: center;  
+      background-repeat: no-repeat;  
+      background-attachment: fixed;  
+      background-size: cover;  
+      color: #fff;  
+      text-align: center;  
+    }  
+    h1 {  
+      font-size: 48px;  
+      font-weight: bold;  
+      margin: 20px 0;  
+      background: linear-gradient(90deg, gold, orange, red);  
+      -webkit-background-clip: text;  
+      -webkit-text-fill-color: transparent;  
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 140, 0, 0.6);  
+      animation: glow 2s infinite alternate;  
+    }  
+    @keyframes glow {  
+      from { text-shadow: 0 0 10px gold, 0 0 20px orange; }  
+      to   { text-shadow: 0 0 20px gold, 0 0 40px red; }  
+    }  
+    .profile-box {  
+      background: rgba(0, 0, 0, 0.6);  
+      padding: 20px;  
+      margin: 20px auto;  
+      border-radius: 10px;  
+      max-width: 400px;  
+      text-align: center;  
+      font-size: 18px;  
+    }  
+    #username {  
+      font-size: 20px;  
+      font-weight: bold;  
+      display: block;  
+    }  
+    .nickname {  
+      display: inline-block;  
+      border-radius: 6px;  
+      padding: 2px 6px;  
+    }  
+    .saldo-box {  
+      display: flex;  
+      justify-content: center;  
+      align-items: center;  
+      font-size: 22px;  
+      font-weight: bold;  
+      color: #00ffcc;  
+      margin-top: 5px;  
+    }  
+    .saldo-box span { margin: 0 3px; }  
+    .level-box {  
+      font-size: 16px;  
+      margin-top: 6px;  
+      color: #ffd54f;  
+      font-weight: bold;  
+    }  
+    button {  
+      padding: 10px 20px; margin: 10px;  
+      border: none; border-radius: 5px;  
+      font-weight: bold; cursor: pointer;  
+    }  
+    .logout-btn { background: crimson; color: #fff; }  
+    .play-btn { background: gold; color: #000; }  
+    .rank-btn { background: #ffd54f; color: #111; }  
+    .topup-btn { background: #00e5ff; color: #111; }  
+    .games-container {  
+      display: flex;  
+      gap: 16px;  
+      overflow-x: auto;  
+      padding: 10px 20px;  
+      scroll-snap-type: x mandatory;  
+      scrollbar-width: none;  
+    }  
+    .games-container::-webkit-scrollbar { display: none; }  
+    .game-card {  
+      flex: 0 0 auto;  
+      background: rgba(0, 0, 0, 0.6);  
+      padding: 20px;  
+      border-radius: 10px;  
+      width: 200px;  
+      scroll-snap-align: center;  
+    }  
+    .game-card img { width: 100%; border-radius: 10px; }  
+    .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }  
+    .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }  
+    .dot.active { background: gold; }  
+    @keyframes neonAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }  
+  </style>  
+</head>  
+<body>  
+  <div id="notifContainer"></div>    <h1>FRUIT GAME</h1>    <div class="profile-box">  
+    <span id="username">Loading...</span>  
+    <div class="saldo-box">  
+      <span>Rp</span>  
+      <span id="saldo">0</span>  
+    </div>  
+    <div class="level-box">Level: <span id="level">0</span></div>  
+    <button class="play-btn" onclick="window.location.href='transfer.html'">Transfer Saldo</button>  
+    <button class="topup-btn" onclick="window.location.href='topup.html'">Top Up</button>  
+    <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>  
+    <button class="logout-btn" id="logoutBtn">Logout</button>  
+  </div>    <div class="games-container" id="gamesContainer">  
+    <div class="game-card">  
+      <h2>Slot Fruit</h2>  
+      <img src="./image/Slot-Fruit.png" alt="Fruit Game">  
+      <br>  
+      <button class="play-btn" onclick="window.location.href='/fruitgame.html'">Mainkan</button>  
+    </div>  
+    <div class="game-card">  
+      <h2>Greedy Fruit</h2>  
+      <img src="./image/graddyfruit.png" alt="Greedy Fruit">  
+      <br>  
+      <button class="play-btn" onclick="window.location.href='/greedyfruit.html'">Mainkan</button>  
+    </div>  
+    <div class="game-card">  
+      <h2>Rollet Fruit</h2>  
+      <img src="./image/rolletfruit.png" alt="Rollet Fruit">  
+      <br>  
+      <button class="play-btn" onclick="window.location.href='/rolletfruit.html'">Mainkan</button>  
+    </div>  
+    <div class="game-card">  
+      <h2>Puzzle Block</h2>  
+      <img src="./image/puzzleblock.png" alt="Rollet Fruit">  
+      <br>  
+      <button class="play-btn" onclick="window.location.href='/puzzleblock.html'">Mainkan</button>  
+    </div>  
+    <div class="game-card">  
+      <h2>Snack.Io Fruit</h2>  
+      <img src="./image/snackio.png" alt="Rollet Fruit">  
+      <br>  
+      <button class="play-btn" onclick="window.location.href='/snackio.html'">Mainkan</button>  
+    </div>  
+    <div class="game-card">  
+      <h2>Coming Soon</h2>  
+      <img src="./image/card-game-coming-soon.png" alt="Coming Soon">  
+      <br>  
+      <button class="play-btn" disabled>Segera</button>  
+    </div>  
+  </div>    <div class="dots" id="dots"></div>  <script type="module">  
+  import { initOnlineStatus } from "./online.js";  
+  initOnlineStatus();  
+  
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";  
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";  
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";  
+  
+  const firebaseConfig = {  
+    apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",  
+    authDomain: "fruit-game-5e4a8.firebaseapp.com",  
+    projectId: "fruit-game-5e4a8",  
+    storageBucket: "fruit-game-5e4a8.appspot.com",  
+    messagingSenderId: "936228678997",  
+    appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc",  
+    measurementId: "G-EPTSQQPM4D"  
+  };  
+  
+  const app = initializeApp(firebaseConfig);  
+  const auth = getAuth(app);  
+  const db = getFirestore(app);  
+  
+  function calcLevel(consumedSaldo) {  
+    let level = 0;  
+    let nextNeed = 100000;  
+    while (consumedSaldo >= nextNeed) {  
+      consumedSaldo -= nextNeed;  
+      level++;  
+      nextNeed += 100000;  
+    }  
+    return level;  
+  }  
+  
+  onAuthStateChanged(auth, (user) => {  
+    if (user) {  
+      const userRef = doc(db, "users", user.uid);  
+      onSnapshot(userRef, (snap) => {  
+        if (snap.exists()) {  
+          const data = snap.data();  
+          const usernameEl = document.getElementById("username");  
+  
+          let bg = data.bgColor || 'transparent';  
+          let extraAnim = '';  
+          if (data.bgGradient) {  
+            bg = data.bgGradient;  
+            extraAnim = 'background-size:600% 600%; animation: neonAnim 8s ease infinite;';  
+          }  
+  
+          let border = `1px solid ${data.borderColor || '#000'}`;  
+          let extraBorder = '';  
+          if (data.borderGradient) {  
+            const baseBg = data.bgColor || 'transparent';  
+            border = '3px solid transparent';  
+            extraBorder = `background-image: linear-gradient(${baseBg}, ${baseBg}), ${data.borderGradient}; background-origin: border-box; background-clip: padding-box, border-box;`;  
+          }  
+  
+          const style = `color:${data.color || '#fff'}; background:${bg}; ${extraAnim} border:${border}; ${extraBorder}`;  
+  
+          usernameEl.innerHTML = `<span class="nickname" style="${style}">${data.name || data.username || "Anonim"}</span>`;  
+  
+          const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";  
+          const rpSpan = document.querySelector(".saldo-box span:first-child");  
+  
+          if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {  
+            if (rpSpan) rpSpan.style.display = "none";  
+            document.getElementById("saldo").textContent = "∞";  
+            document.getElementById("level").textContent = "∞";  
+          } else {  
+            if (rpSpan) rpSpan.style.display = "";  
+            const saldoVal = typeof data.saldo === "number" ? data.saldo : 0;  
+            const consumedVal = typeof data.consumedSaldo === "number" ? data.consumedSaldo : 0;  
+            document.getElementById("saldo").textContent = saldoVal.toLocaleString("id-ID");  
+            document.getElementById("level").textContent = calcLevel(consumedVal);  
+          }  
+        } else {  
+          document.getElementById("username").textContent = "User tidak ditemukan";  
+          document.getElementById("saldo").textContent = "0";  
+          document.getElementById("level").textContent = "0";  
+        }  
+      });  
+    } else {  
+      window.location.href = "index.html";  
+    }  
+  });  
+  
+  document.getElementById("logoutBtn").addEventListener("click", () => {  
+    signOut(auth).then(() => window.location.href = "index.html");  
+  });  
+  
+  const gamesContainer = document.getElementById("gamesContainer");  
+  const dotsContainer = document.getElementById("dots");  
+  const cards = gamesContainer.querySelectorAll(".game-card");  
+  
+  cards.forEach((_, idx) => {  
+    const dot = document.createElement("div");  
+    dot.className = "dot";  
+    if (idx === 0) dot.classList.add("active");  
+    dotsContainer.appendChild(dot);  
+  });  
+  const dots = dotsContainer.querySelectorAll(".dot");  
+  
+  gamesContainer.addEventListener("scroll", () => {  
+    const cardWidth = cards[0].offsetWidth + 16;  
+    const index = Math.round(gamesContainer.scrollLeft / cardWidth);  
+    dots.forEach((dot, i) => dot.classList.toggle("active", i === index));  
+  });  
+</script>  <div id="chatContainer"></div>  
+<script type="module">  
+  fetch("chat.html")  
+    .then(r => r.text())  
+    .then(html => {  
+      document.getElementById("chatContainer").innerHTML = html;  
+      import("./chat.js").then(mod => mod.initChat());  
+    });  
+</script>  <script type="module">  
+  import { initDM } from "./dm.js";  
+  initDM();  
+</script>  <script type="module">  
+  import { showWinNotif } from "./notif.js";  
+  import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";  
+  
+  const db = getFirestore();  
+  
+  if (!document.getElementById('notifContainer')) {  
+    const el = document.createElement('div');  
+    el.id = 'notifContainer';  
+    document.body.prepend(el);  
+  }  
+  
+  const LS_KEY = "notif:lastId";  
+  let lastId = localStorage.getItem(LS_KEY) || null;  
+  let firstPoll = true;  
+  const INTERVAL_MS = 60000;  
+  const TTL_FALLBACK_MS = 5 * 60 * 1000;  
+  
+  function isExpired(d) {  
+    const now = Date.now();  
+    if (d?.expiredAt && typeof d.expiredAt.toMillis === 'function') return d.expiredAt.toMillis() <= now;  
+    if (d?.createdAt && typeof d.createdAt.toMillis === 'function') return (now - d.createdAt.toMillis()) > TTL_FALLBACK_MS;  
+    return false;  
+  }  
+  
+  async function pollNotifs() {  
+    if (document.hidden) return;  
+    try {  
+      const qNotifs = query(collection(db, "notifs"), orderBy("createdAt", "desc"), limit(1));  
+      const snap = await getDocs(qNotifs);  
+      if (snap.empty) return;  
+  
+      const docu = snap.docs[0];  
+      const data = docu.data();  
+  
+      if (firstPoll) {  
+        firstPoll = false;  
+        lastId = docu.id;  
+        localStorage.setItem(LS_KEY, lastId);  
+        return;  
+      }  
+  
+      if (docu.id === lastId) return;  
+  
+      const name = String(data?.nickname || "Player");  
+      const amount = Number(data?.amount || 0);  
+  
+      if (amount >= 1000000 && !isExpired(data)) {  
+        showWinNotif(name, amount);  
+      }  
+  
+      lastId = docu.id;  
+      localStorage.setItem(LS_KEY, lastId);  
+    } catch (e) {}  
+  }  
+  
+  pollNotifs();  
+  setInterval(pollNotifs, INTERVAL_MS);  
+  document.addEventListener("visibilitychange", () => {  
+    if (!document.hidden) pollNotifs();  
+  });  
+</script>  </body>  
+</html> cek home.html saya
