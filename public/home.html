@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Home - Fruit Game</title>
-  <link rel="stylesheet" href="notif.css" />
+  <link rel="stylesheet" href="notif.css">
   <style>
     body {
       margin: 0;
@@ -17,6 +17,7 @@
       color: #fff;
       text-align: center;
     }
+
     h1 {
       font-size: 48px;
       font-weight: bold;
@@ -25,187 +26,185 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-shadow: 0 0 10px rgba(255, 215, 0, 0.8),
-                   0 0 20px rgba(255, 140, 0, 0.6);
-      animation: glow 2s infinite alternate;
+                   0 0 20px rgba(255, 165, 0, 0.6);
     }
-    @keyframes glow {
-      from { text-shadow: 0 0 10px gold, 0 0 20px orange; }
-      to { text-shadow: 0 0 20px gold, 0 0 40px red; }
+
+    .saldo {
+      font-size: 24px;
+      margin-top: 10px;
     }
-    .profile-box {
-      background: rgba(0, 0, 0, 0.6);
-      padding: 20px;
-      margin: 20px auto;
-      border-radius: 10px;
-      max-width: 400px;
-      text-align: center;
+
+    .btn {
+      display: inline-block;
+      margin: 10px;
+      padding: 10px 18px;
       font-size: 18px;
+      background: linear-gradient(90deg, #ff512f, #dd2476);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
     }
-    #username { font-size: 20px; font-weight: bold; display: block; }
-    .nickname { display: inline-block; border-radius: 6px; padding: 2px 6px; }
-    .saldo-box {
-      display: flex; justify-content: center; align-items: center;
-      font-size: 22px; font-weight: bold; color: #00ffcc; margin-top: 5px;
+
+    .btn:hover {
+      transform: scale(1.05);
+      background: linear-gradient(90deg, #dd2476, #ff512f);
     }
-    .saldo-box span { margin: 0 3px; }
-    .level-box { font-size: 16px; margin-top: 6px; color: #ffd54f; font-weight: bold; }
-    button {
-      padding: 10px 20px; margin: 10px;
-      border: none; border-radius: 5px;
-      font-weight: bold; cursor: pointer;
+
+    .game-list {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
     }
-    .logout-btn { background: crimson; color: #fff; }
-    .play-btn { background: gold; color: #000; }
-    .rank-btn { background: #ffd54f; color: #111; }
-    .topup-btn { background: #00e5ff; color: #111; }
-    .games-container {
-      display: flex; gap: 16px; overflow-x: auto; padding: 10px 20px;
-      scroll-snap-type: x mandatory; scrollbar-width: none;
+
+    .card {
+      width: 220px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s;
     }
-    .games-container::-webkit-scrollbar { display: none; }
-    .game-card {
-      flex: 0 0 auto; background: rgba(0, 0, 0, 0.6);
-      padding: 20px; border-radius: 10px; width: 200px; scroll-snap-align: center;
+
+    .card:hover {
+      transform: scale(1.05);
+      background: rgba(0, 0, 0, 0.8);
     }
-    .game-card img { width: 100%; border-radius: 10px; }
-    .dots { display: flex; justify-content: center; margin: 10px 0 20px; gap: 6px; }
-    .dot { width: 10px; height: 10px; background: #888; border-radius: 50%; transition: background 0.3s; }
-    .dot.active { background: gold; }
-    @keyframes neonAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+    .card img {
+      width: 100%;
+      border-radius: 8px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #ffd700;
+    }
+
+    #logout {
+      margin-top: 30px;
+      background: linear-gradient(90deg, #c31432, #240b36);
+    }
+
+    .username {
+      font-size: 20px;
+      margin-top: 15px;
+      color: #00ffff;
+      text-shadow: 0 0 6px #00ffff;
+    }
+
+    .rank {
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 10px;
+      border-radius: 10px;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
-  <div id="notifContainer"></div>
+  <h1>🎰 FRUIT GAME 🎮</h1>
+  <div class="username" id="username">Memuat...</div>
+  <div class="saldo">Saldo: <span id="saldo">Rp 0</span></div>
 
-  <h1>FRUIT GAME</h1>
+  <div class="game-list">
+    <div class="card">
+      <img src="public/image/game-slot.jpg" alt="Slot Buah">
+      <div class="card-title">Slot Buah</div>
+      <button class="btn" onclick="window.location='fruitgame.html'">Main</button>
+    </div>
 
-  <div class="profile-box">
-    <span id="username">Loading...</span>
-    <div class="saldo-box"><span>Rp</span><span id="saldo">0</span></div>
-    <div class="level-box">Level: <span id="level">0</span></div>
-    <button class="play-btn" onclick="window.location.href='transfer.html'">Transfer Saldo</button>
-    <button class="topup-btn" onclick="window.location.href='topup.html'">Top Up</button>
-    <button class="rank-btn" onclick="window.location.href='rank.html'">🏆 Peringkat</button>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
-  </div>
+    <div class="card">
+      <img src="public/image/game-puzzle.jpg" alt="Puzzle Block">
+      <div class="card-title">Puzzle Block</div>
+      <button class="btn" onclick="window.location='blockpuzzle.html'">Main</button>
+    </div>
 
-  <div class="games-container" id="gamesContainer">
-    <div class="game-card">
-      <h2>Slot Fruit</h2>
-      <img src="./image/Slot-Fruit.png" alt="Fruit Game">
-      <br><button class="play-btn" onclick="window.location.href='fruitgame.html'">Mainkan</button>
+    <div class="card">
+      <img src="public/image/game-snake.jpg" alt="Snake">
+      <div class="card-title">Snake Online</div>
+      <button class="btn" onclick="window.location='snake.html'">Main</button>
     </div>
-    <div class="game-card">
-      <h2>Greedy Fruit</h2>
-      <img src="./image/graddyfruit.png" alt="Greedy Fruit">
-      <br><button class="play-btn" onclick="window.location.href='greedyfruit.html'">Mainkan</button>
-    </div>
-    <div class="game-card">
-      <h2>Rollet Fruit</h2>
-      <img src="./image/rolletfruit.png" alt="Rollet Fruit">
-      <br><button class="play-btn" onclick="window.location.href='rolletfruit.html'">Mainkan</button>
-    </div>
-    <div class="game-card">
-      <h2>Puzzle Block</h2>
-      <img src="./image/puzzleblock.png" alt="Puzzle Block">
-      <br><button class="play-btn" onclick="window.location.href='puzzleblock.html'">Mainkan</button>
-    </div>
-    <div class="game-card">
-      <h2>Snake.io Fruit</h2>
-      <img src="./image/snackio.png" alt="Snack.io">
-      <br><button class="play-btn" onclick="window.location.href='snackio.html'">Mainkan</button>
+
+    <div class="card">
+      <img src="public/image/game-rolet.jpg" alt="Rolet Buah">
+      <div class="card-title">Rolet Buah</div>
+      <button class="btn" onclick="window.location='rolet.html'">Main</button>
     </div>
   </div>
 
-  <div class="dots" id="dots"></div>
+  <button id="logout" class="btn">Logout</button>
 
-  <!-- ✅ Firebase Boot (global, realtime sinkron) -->
-  <script type="module" src="./js/firebase-boot.js"></script>
+  <div class="rank">
+    <strong>Top Player:</strong>
+    <div id="rankList">Memuat...</div>
+  </div>
 
   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    const auth = window.Firebase.auth;
-    const db = window.Firebase.db;
-    const ADMIN_UID = window.App.ADMIN_UID;
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
+      authDomain: "fruit-game-5e4a8.firebaseapp.com",
+      projectId: "fruit-game-5e4a8",
+      storageBucket: "fruit-game-5e4a8.appspot.com",
+      messagingSenderId: "936228678997",
+      appId: "1:936228678997:web:9dab2fa0d9a019161bd3dc"
+    };
 
-    function calcLevel(consumedSaldo){ return Math.floor((consumedSaldo||0)/100000); }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    onAuthStateChanged(auth, (user)=>{
-      if(!user){ location.href="index.html"; return; }
-      const ref = doc(db,"users",user.uid);
-      onSnapshot(ref,(snap)=>{
-        if(!snap.exists())return;
-        const d = snap.data();
-        const usernameEl = document.getElementById("username");
-        const saldoEl = document.getElementById("saldo");
-        const lvlEl = document.getElementById("level");
+    const saldoEl = document.getElementById("saldo");
+    const usernameEl = document.getElementById("username");
+    const rankEl = document.getElementById("rankList");
 
-        let bg = d.bgColor || 'transparent';
-        let extraAnim = d.bgGradient ? 'background-size:600% 600%;animation:neonAnim 8s ease infinite;' : '';
-        let border = `1px solid ${d.borderColor||'#000'}`;
-        if (d.borderGradient) {
-          const baseBg = d.bgColor || 'transparent';
-          border = '3px solid transparent';
-          extraAnim += `background-image: linear-gradient(${baseBg}, ${baseBg}), ${d.borderGradient}; background-origin:border-box;background-clip:padding-box,border-box;`;
-        }
-        const color = d.color || '#fff';
-        usernameEl.innerHTML = `<span class="nickname" style="color:${color};background:${bg};${extraAnim}border:${border};">${d.name||d.username||'Anonim'}</span>`;
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
 
-        if (user.uid === ADMIN_UID) {
-          saldoEl.textContent = '∞'; lvlEl.textContent = '∞';
+      const userRef = doc(db, "users", user.uid);
+      onSnapshot(userRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          usernameEl.textContent = data.name || data.username || "Player";
+          saldoEl.textContent = "Rp " + (Number(data.saldo) || 0).toLocaleString("id-ID");
         } else {
-          const s = +d.saldo || 0;
-          const c = +d.consumedSaldo || 0;
-          saldoEl.textContent = s.toLocaleString('id-ID');
-          lvlEl.textContent = calcLevel(c);
+          usernameEl.textContent = "Player";
+          saldoEl.textContent = "Rp 0";
         }
       });
-
-      document.getElementById("logoutBtn").addEventListener("click",()=>signOut(auth));
     });
-  </script>
 
-  <!-- ✅ Notifikasi Menang (aktif jika koleksi notifs ada) -->
-  <script type="module">
-    import { showWinNotif } from "./js/notif.js";
-    import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-    const db = window.Firebase.db;
+    document.getElementById("logout").addEventListener("click", () => {
+      signOut(auth).then(() => {
+        window.location.href = "index.html";
+      });
+    });
 
-    const LS_KEY = "notif:lastId";
-    let lastId = localStorage.getItem(LS_KEY)||null;
-    let firstPoll = true;
-
-    async function poll(){
-      try{
-        const qn = query(collection(db,"notifs"),orderBy("createdAt","desc"),limit(1));
-        const snap = await getDocs(qn);
-        if(snap.empty)return;
-        const docu = snap.docs[0];
-        if(firstPoll){firstPoll=false;lastId=docu.id;localStorage.setItem(LS_KEY,lastId);return;}
-        if(docu.id===lastId)return;
-        const d=docu.data();
-        const name=d.nickname||"Player";
-        const amt=+d.amount||0;
-        if(amt>=1000000) showWinNotif(name,amt);
-        lastId=docu.id;localStorage.setItem(LS_KEY,lastId);
-      }catch(e){}
+    // Top Rank
+    async function loadTopRank() {
+      const q = query(collection(db, "users"), orderBy("saldo", "desc"), limit(3));
+      const snap = await getDocs(q);
+      let html = "";
+      snap.forEach(docu => {
+        const d = docu.data();
+        html += `<div>${d.name || d.username || "Player"} - Rp ${(d.saldo || 0).toLocaleString("id-ID")}</div>`;
+      });
+      rankEl.innerHTML = html || "Belum ada data.";
     }
-    poll(); setInterval(poll,60000);
-    document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll();});
-  </script>
-
-  <script type="module">
-    const cards=document.querySelectorAll(".game-card");
-    const dotsBox=document.getElementById("dots");
-    cards.forEach((_,i)=>{const d=document.createElement("div");d.className="dot";if(i===0)d.classList.add("active");dotsBox.appendChild(d);});
-    const dots=dotsBox.querySelectorAll(".dot");
-    document.getElementById("gamesContainer").addEventListener("scroll",(e)=>{
-      const cw=cards[0].offsetWidth+16;
-      const i=Math.round(e.target.scrollLeft/cw);
-      dots.forEach((d,ix)=>d.classList.toggle("active",ix===i));
-    });
+    loadTopRank();
+    setInterval(loadTopRank, 30000);
   </script>
 </body>
-  </html>
+</html>
