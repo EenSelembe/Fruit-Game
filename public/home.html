@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home - Fruit Game</title>
   <link rel="stylesheet" href="notif.css">
   <style>
@@ -17,7 +17,6 @@
       color: #fff;
       text-align: center;
     }
-
     h1 {
       font-size: 48px;
       font-weight: bold;
@@ -25,130 +24,55 @@
       background: linear-gradient(90deg, gold, orange, red);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8),
-                   0 0 20px rgba(255, 165, 0, 0.6);
+      text-shadow: 0 0 10px rgba(255,215,0,0.8),
+                   0 0 20px rgba(255,165,0,0.6);
     }
-
     .saldo {
-      font-size: 24px;
-      margin-top: 10px;
+      font-size: 22px;
+      margin: 10px 0;
     }
-
-    .btn {
-      display: inline-block;
-      margin: 10px;
-      padding: 10px 18px;
+    .menu {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    button {
       font-size: 18px;
+      padding: 10px 20px;
       background: linear-gradient(90deg, #ff512f, #dd2476);
-      border: none;
       color: white;
+      border: none;
       border-radius: 8px;
       cursor: pointer;
       transition: transform 0.2s;
     }
-
-    .btn:hover {
-      transform: scale(1.05);
-      background: linear-gradient(90deg, #dd2476, #ff512f);
-    }
-
-    .game-list {
-      margin-top: 30px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-    }
-
-    .card {
-      width: 220px;
-      padding: 15px;
-      background: rgba(0, 0, 0, 0.6);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-      transition: transform 0.3s;
-    }
-
-    .card:hover {
-      transform: scale(1.05);
-      background: rgba(0, 0, 0, 0.8);
-    }
-
-    .card img {
-      width: 100%;
-      border-radius: 8px;
-    }
-
-    .card-title {
-      font-size: 18px;
-      margin-top: 10px;
-      color: #ffd700;
-    }
-
+    button:hover { transform: scale(1.05); }
     #logout {
-      margin-top: 30px;
+      margin-top: 25px;
       background: linear-gradient(90deg, #c31432, #240b36);
-    }
-
-    .username {
-      font-size: 20px;
-      margin-top: 15px;
-      color: #00ffff;
-      text-shadow: 0 0 6px #00ffff;
-    }
-
-    .rank {
-      margin-top: 20px;
-      background: rgba(255, 255, 255, 0.15);
-      padding: 10px;
-      border-radius: 10px;
-      display: inline-block;
     }
   </style>
 </head>
 <body>
   <h1>🎰 FRUIT GAME 🎮</h1>
-  <div class="username" id="username">Memuat...</div>
+  <h2 id="username">Memuat...</h2>
   <div class="saldo">Saldo: <span id="saldo">Rp 0</span></div>
 
-  <div class="game-list">
-    <div class="card">
-      <img src="public/image/game-slot.jpg" alt="Slot Buah">
-      <div class="card-title">Slot Buah</div>
-      <button class="btn" onclick="window.location='fruitgame.html'">Main</button>
-    </div>
-
-    <div class="card">
-      <img src="public/image/game-puzzle.jpg" alt="Puzzle Block">
-      <div class="card-title">Puzzle Block</div>
-      <button class="btn" onclick="window.location='blockpuzzle.html'">Main</button>
-    </div>
-
-    <div class="card">
-      <img src="public/image/game-snake.jpg" alt="Snake">
-      <div class="card-title">Snake Online</div>
-      <button class="btn" onclick="window.location='snake.html'">Main</button>
-    </div>
-
-    <div class="card">
-      <img src="public/image/game-rolet.jpg" alt="Rolet Buah">
-      <div class="card-title">Rolet Buah</div>
-      <button class="btn" onclick="window.location='rolet.html'">Main</button>
-    </div>
+  <div class="menu">
+    <button onclick="window.location='fruitgame.html'">🎲 Slot Buah</button>
+    <button onclick="window.location='snake.html'">🐍 Snake.io</button>
+    <button onclick="window.location='blockpuzzle.html'">🧩 Puzzle Block</button>
+    <button onclick="window.location='rolet.html'">🎡 Rolet Buah</button>
   </div>
 
-  <button id="logout" class="btn">Logout</button>
-
-  <div class="rank">
-    <strong>Top Player:</strong>
-    <div id="rankList">Memuat...</div>
-  </div>
+  <button id="logout">Logout</button>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getFirestore, doc, onSnapshot, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB8g9X_En_sJnbdT_Rc1NK88dUdbg3y2nE",
@@ -163,16 +87,14 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const saldoEl = document.getElementById("saldo");
     const usernameEl = document.getElementById("username");
-    const rankEl = document.getElementById("rankList");
+    const saldoEl = document.getElementById("saldo");
 
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "index.html";
         return;
       }
-
       const userRef = doc(db, "users", user.uid);
       onSnapshot(userRef, (snap) => {
         if (snap.exists()) {
@@ -187,24 +109,8 @@
     });
 
     document.getElementById("logout").addEventListener("click", () => {
-      signOut(auth).then(() => {
-        window.location.href = "index.html";
-      });
+      signOut(auth).then(() => window.location.href = "index.html");
     });
-
-    // Top Rank
-    async function loadTopRank() {
-      const q = query(collection(db, "users"), orderBy("saldo", "desc"), limit(3));
-      const snap = await getDocs(q);
-      let html = "";
-      snap.forEach(docu => {
-        const d = docu.data();
-        html += `<div>${d.name || d.username || "Player"} - Rp ${(d.saldo || 0).toLocaleString("id-ID")}</div>`;
-      });
-      rankEl.innerHTML = html || "Belum ada data.";
-    }
-    loadTopRank();
-    setInterval(loadTopRank, 30000);
   </script>
 </body>
 </html>
