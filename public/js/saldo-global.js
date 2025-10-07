@@ -1,95 +1,95 @@
 // /public/js/saldo-global.js
-// Satu sumber saldo realtime untuk SEMUA game (Slot, Greedy, Puzzle, Snack.io, dst).
-// - Listen Firestore sekali → broadcast ke semua halaman via event 'saldo:update'
-// - Deduct saldo pakai increment() agar aman multi-tab
-// - Kompatibel mundur: juga kirim 'user:saldo' (biar code lama tetap jalan)
-
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { doc, onSnapshot, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+// Layer pusat untuk sinkron saldo antar-halaman/game.
+// - Dengar 'user:saldo' dari firebase-boot.js
+// - Ekspor onSaldo(cb), chargeGlobal(amount), getSaldo(), isAdmin()
 
 const ADMIN_UID = "AxB4G2xwhiXdJnyDrzn82Xanc4x2";
 
-// State internal
-let _userRef = null;
 let _saldo = 0;
 let _isAdmin = false;
+let _ready = false;
 
-// Optional: auto-apply ke UI standar kalau elemen ada
-const elSaldo = document.getElementById("saldo");
-const elSaldoModal = document.getElementById("saldoInModal");
-const elUsername = document.getElementById("usernameSpan");
-
-function formatRp(n){ return n === Infinity ? "∞" : ("Rp " + Math.max(0, Math.floor(Number(n)||0)).toLocaleString("id-ID")); }
-function applyUI(name, color, borderColor){
-  if (elUsername) {
-    elUsername.textContent = name || "Anonim";
-    elUsername.style.color = color || "#fff";
-    elUsername.style.border = `1px solid ${borderColor || "#000"}`;
-  }
-  const v = _isAdmin ? Infinity : _saldo;
-  if (elSaldo) elSaldo.textContent = formatRp(v);
-  if (elSaldoModal) elSaldoModal.textContent = formatRp(v);
+function dispatch() {
+  window.dispatchEvent(new CustomEvent("saldo:update", {
+    detail: { saldo: _saldo, isAdmin: _isAdmin }
+  }));
 }
 
-// Init sekali, dipanggil otomatis di bawah
-export function initGlobalSaldo(onUpdate){
-  const auth = window.Firebase?.auth;
-  const db   = window.Firebase?.db;
-  if (!auth || !db) {
-    console.warn("[GlobalSaldo] Firebase belum siap, coba lagi...");
-    // retry ringan
-    setTimeout(()=>initGlobalSaldo(onUpdate), 100);
-    return;
-  }
+// Ambil update dari firebase-boot.js (yang sudah onSnapshot)
+window.addEventListener("user:saldo", (e) => {
+  _saldo   = Number(e.detail?.saldo ?? 0);
+  _isAdmin = !!e.detail?.isAdmin;
+  _ready = true;
+  dispatch();
+});
 
-  onAuthStateChanged(auth, (user)=>{
-    if (!user) return; // halaman login akan handle redirect
+// Fallback jika halaman tertentu tidak load firebase-boot.js (jarang, tapi aman)
+(async function ensureAuthWatch(){
+  try {
+    if (window.Firebase?.onAuthStateChanged && !_ready) {
+      window.Firebase.onAuthStateChanged(window.Firebase.auth, (user) => {
+        if (!user) return;
+        _isAdmin = (user.uid === ADMIN_UID);
+        // saldo realtime tetap dipush oleh firebase-boot.js → user:saldo
+      });
+    }
+  } catch {}
+})();
 
-    _userRef  = doc(db, "users", user.uid);
-    _isAdmin  = (user.uid === ADMIN_UID);
-
-    onSnapshot(_userRef, (snap)=>{
-      if (!snap.exists()) return;
-      const d = snap.data() || {};
-      _saldo = _isAdmin ? Infinity : Number(d.saldo||0);
-
-      // update UI standar (opsional)
-      applyUI(d.name, d.color, d.borderColor);
-
-      // callback lokal (kalau ada)
-      if (typeof onUpdate === "function") onUpdate(_saldo, _isAdmin);
-
-      // broadcast modern
-      window.dispatchEvent(new CustomEvent("saldo:update", { detail: { saldo:_saldo, isAdmin:_isAdmin }}));
-      // broadcast kompatibilitas lama
-      window.dispatchEvent(new CustomEvent("user:saldo",  { detail: { saldo:_saldo, isAdmin:_isAdmin }}));
-      window.dispatchEvent(new CustomEvent("user:profile",{ detail: d }));
+// ===== API =====
+export function onSaldo(cb){
+  if (typeof cb === "function") {
+    // panggil jika sudah siap
+    if (_ready) cb(_saldo, _isAdmin);
+    // dengarkan update
+    window.addEventListener("saldo:update", (e)=>{
+      cb(e.detail.saldo, e.detail.isAdmin);
     });
-  });
+  }
 }
 
-// Potong saldo aman (increment)
 export async function chargeGlobal(amount){
   amount = Math.max(0, Math.floor(Number(amount)||0));
-  if (!_userRef || _isAdmin || amount <= 0) return _saldo;
-  try{
-    await updateDoc(_userRef, {
-      saldo: increment(-amount),
-      consumedSaldo: increment(amount),
-      lastUpdate: serverTimestamp()
-    });
-  }catch(e){
-    console.error("[GlobalSaldo] charge gagal:", e);
+  if (_isAdmin || amount <= 0) return _saldo;
+
+  // Optimistic UI
+  _saldo = Math.max(0, _saldo - amount);
+  dispatch();
+
+  // Tulis ke Firestore via helper dari firebase-boot.js (window.Saldo.charge)
+  if (window.Saldo?.charge) {
+    try {
+      const newVal = await window.Saldo.charge(amount);
+      // beberapa versi helper tidak return; biarkan snapshot menstabilkan
+      if (typeof newVal === "number") {
+        _saldo = newVal;
+        dispatch();
+      }
+    } catch (e) {
+      // fallback: biarkan snapshot memperbaiki bila gagal
+      console.warn("[saldo-global] charge gagal, menunggu snapshot:", e);
+    }
+  } else if (window.Firebase?.updateDoc && window.App?.userRef) {
+    // Fallback langsung ke Firestore bila helper tidak ada (harusnya jarang)
+    try {
+      const { updateDoc, increment, serverTimestamp } = window.Firebase;
+      await updateDoc(window.App.userRef, {
+        saldo: window.Firebase.increment(-amount),
+        consumedSaldo: window.Firebase.increment(amount),
+        lastUpdate: serverTimestamp()
+      });
+    } catch (e) {
+      console.warn("[saldo-global] fallback updateDoc gagal:", e);
+    }
   }
+
   return _saldo;
 }
 
-// API global di window
-if (!window.GlobalSaldo) window.GlobalSaldo = {};
-window.GlobalSaldo.init    = initGlobalSaldo;
-window.GlobalSaldo.charge  = chargeGlobal;
-window.GlobalSaldo.get     = () => _saldo;
-window.GlobalSaldo.isAdmin = () => _isAdmin;
+export function getSaldo(){ return _saldo; }
+export function isAdmin(){ return _isAdmin; }
 
-// Auto init (agar cukup <script type="module" src="./js/saldo-global.js">)
-initGlobalSaldo();
+// Expose opsional ke window (debug)
+if (typeof window !== "undefined") {
+  window.SaldoGlobal = { onSaldo, chargeGlobal, getSaldo, isAdmin };
+}
